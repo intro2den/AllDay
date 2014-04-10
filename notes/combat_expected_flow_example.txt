@@ -1,0 +1,15 @@
+1. Agent 2 move first, so player 1 moves agent 2 between nearest mana spring and player 2's closest agents. agent 2 uses all of its movement to do this and is left in a normal stance/status.
+
+2. Player 2 moves agent 5 closer to agent 2, but not close enough to attack
+
+3. Player 2 moves agent 4 as fas as it can towards agent 2.
+
+4. Player 1 moves agent 3 onto the mana spring and begins casting a channeled spell, consuming some spell points/mana
+
+5. Player 2 makes agent 7 casts a spell increasing the strength (consuming mana) of agent 9 and then move closer to player 1's agents with remain movement points
+
+6. Player 2 moves agent 8 
+
+7. Player 1 moves agent 1 to block agent 5 from rushing around agent 3, and uses an ability to fortify itself, increasing defense.
+
+8. Player 2 moves agent 6
