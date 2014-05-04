@@ -1,34 +1,106 @@
+////////////////////////////////////////////////////////////////////////////////
+// Filename: combatmapclass.cpp
+////////////////////////////////////////////////////////////////////////////////
 #include "combatmapclass.h"
 
-
-combatmapclass::combatmapclass()
-{
+CombatMap::CombatMap(){
+	grassTerrain = 0;
+	waterTerrain = 0;
+	m_terrain = 0;
 }
 
-
-combatmapclass::~combatmapclass()
-{
+CombatMap::~CombatMap(){
 }
 
-bool combatmapclass::Initialize(ID3D11Device* device, int width, int height, int map, int screenwidth, int screenheight){
-	m_height = height;
-	m_width = width;
-	
-	terrain* grass = new terrain(0, 1, true);
-	terrain* water = new terrain(1, 1, false);
+bool CombatMap::Initialize(MapType mapType, int mapWidth, int mapHeight, int screenWidth, int screenHeight){
+	bool result;
+	int i;
 
-	for (int i = 0; i < m_height*m_width; i++){
-		if (i % m_width == m_width / 2){
-			m_terrains[i] = water;
-		}	else {
-			m_terrains[i] = grass;
-		}
+	// Sanity check, map must have no more than MAX_MAPSIZE tiles
+	if (mapWidth * mapHeight > MAX_MAPSIZE){
+		return false;
 	}
 
-	LRESULT result = m_bitmaps[0]->Initialize(device, screenwidth, screenheight, "../rastertekTutorials/data/hexagons.dds", 50*width, 50*height);
+	m_mapWidth = mapWidth;
+	m_mapHeight = mapHeight;
+
+	m_terrain = new Terrain*[m_mapWidth*m_mapHeight];
+
+	grassTerrain = new Terrain();
+	if (!grassTerrain){
+		return false;
+	}
+
+	result = grassTerrain->Initialize(0, 1, true);
 	if (!result){
 		return false;
 	}
 
+	waterTerrain = new Terrain();
+	if (!waterTerrain){
+		return false;
+	}
+
+	result = waterTerrain->Initialize(1, 1, false);
+	if (!result){
+		return false;
+	}
+
+	// NOTE: Will need to find a way to more conveniently create/store fixed maps - ie. Read from file
+	// NOTE2: Randomized maps should be reasonable, ie. No agents permanently isolated by terrain, etc.
+
+	// Generate Terrain based on mapType
+	switch (mapType){
+	case MAPTYPE_ALLGRASS:
+		// A map that is all grass tiles
+		for (i = 0; i < m_mapHeight*m_mapWidth; i++){
+			m_terrain[i] = grassTerrain;
+		}
+
+		break;
+
+	case MAPTYPE_RIVERSPLIT:
+		// All Grass split by a North-South river
+		for (int i = 0; i < m_mapHeight*m_mapWidth; i++){
+			if (i / m_mapHeight == m_mapWidth / 2){
+				m_terrain[i] = waterTerrain;
+			} else{
+				m_terrain[i] = grassTerrain;
+			}
+		}
+
+		break;
+	}
+
 	return true;
+}
+
+void CombatMap::Shutdown(){
+	if (grassTerrain){
+		grassTerrain->Shutdown();
+		delete grassTerrain;
+		grassTerrain = 0;
+	}
+
+	if (waterTerrain){
+		waterTerrain->Shutdown();
+		delete waterTerrain;
+		waterTerrain = 0;
+	}
+
+	return;
+}
+
+bool CombatMap::GetTerrainArray(int *terrain){
+	int i;
+
+	for (i = 0; i < m_mapWidth * m_mapHeight; i++){
+		terrain[i] = GetTile(i).GetTerrainType();
+	}
+
+	return true;
+}
+
+Terrain& CombatMap::GetTile(int index){
+	return *m_terrain[index];
 }

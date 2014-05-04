@@ -5,8 +5,7 @@
 
 // Object pointers initialize to NULL (Important in event of initialization failure)
 SystemClass::SystemClass(){
-	m_Input = 0;
-	m_Graphics = 0;
+	m_Application = 0;
 }
 
 // Empty copy constructor and empty class deconstructor
@@ -22,9 +21,6 @@ bool SystemClass::Initialize(){
 	int screenWidth, screenHeight;
 	bool result;
 
-	// Set state to initial state
-	state = 0;
-
 	// Initialize the width and height of the screen to zero before sending the variables into the function.
 	screenWidth = 0;
 	screenHeight = 0;
@@ -32,28 +28,16 @@ bool SystemClass::Initialize(){
 	// Initialize the windows api.
 	InitializeWindows(screenWidth, screenHeight);
 
-	// Create the input object.  This object will be used to handle reading the keyboard input from the user.
-	m_Input = new InputClass;
-	if (!m_Input){
+	// Create new application wrapper object
+	m_Application = new ApplicationClass;
+	if (!m_Application){
 		return false;
 	}
 
-	// Initialize the input object.
-	result = m_Input->Initialize(m_hinstance, m_hwnd, screenWidth, screenHeight);
+	// Initialize the application wrapper object
+	result = m_Application->Initialize(m_hinstance, m_hwnd, screenWidth, screenHeight);
 	if (!result){
 		MessageBox(m_hwnd, "Could not initialize the input object.", "Error", MB_OK);
-		return false;
-	}
-
-	// Create the graphics object.  This object will handle rendering all the graphics for this application.
-	m_Graphics = new GraphicsClass;
-	if (!m_Graphics){
-		return false;
-	}
-
-	// Initialize the graphics object.
-	result = m_Graphics->Initialize(screenWidth, screenHeight, m_hwnd);
-	if (!result){
 		return false;
 	}
 
@@ -63,17 +47,10 @@ bool SystemClass::Initialize(){
 // Shutdown function - shuts down and releases everything, shuts down window, cleans up handles
 void SystemClass::Shutdown(){
 	// Release the graphics object.
-	if (m_Graphics){
-		m_Graphics->Shutdown();
-		delete m_Graphics;
-		m_Graphics = 0;
-	}
-
-	// Release the input object.
-	if (m_Input){
-		m_Input->Shutdown();
-		delete m_Input;
-		m_Input = 0;
+	if (m_Application){
+		m_Application->Shutdown();
+		delete m_Application;
+		m_Application = 0;
 	}
 
 	// Shutdown the window.
@@ -87,7 +64,6 @@ void SystemClass::Shutdown(){
 void SystemClass::Run(){
 	MSG msg;
 	bool done, result;
-	int mouseX, mouseY;
 
 	// Initialize the message structure.
 	ZeroMemory(&msg, sizeof(MSG));
@@ -105,37 +81,12 @@ void SystemClass::Run(){
 		if (msg.message == WM_QUIT){
 			done = true;
 		} else{
-			// Game Processing
-
-			// Get the location of the mouse from the input object,
-			m_Input->GetMouseLocation(mouseX, mouseY);
-
-			// If left mouse is pressed in the top left corner, exit
-			if (m_Input->IsLeftMousePressed() == true){
-				if (mouseX > 50 && mouseX < 650 && mouseY > 125 && mouseY < 175){
-					state = 1;
-				}
-
-				if (mouseX > 50 && mouseX < 650 && mouseY > 200 && mouseY < 250 && state == 0){
-					done = true;
-				}
-			}
-
-
-			// Do the frame processing.
+			// Do frame processing
 			result = Frame();
 			if (!result){
-				MessageBox(m_hwnd, "Frame Processing Failed", "Error", MB_OK);
 				done = true;
 			}
 		}
-
-		// Check if the user pressed escape and wants to quit.
-		if (m_Input->IsEscapePressed() == true){
-			done = true;
-		}
-
-		
 	}
 
 	return;
@@ -144,25 +95,9 @@ void SystemClass::Run(){
 // All processing for application done here
 bool SystemClass::Frame(){
 	bool result;
-	int mouseX, mouseY;
 
-	// Do the input frame processing.
-	result = m_Input->Frame();
-	if (!result){
-		return false;
-	}
-
-	// Get the location of the mouse from the input object,
-	m_Input->GetMouseLocation(mouseX, mouseY);
-
-	// Do the frame processing for the graphics object.
-	result = m_Graphics->Frame(mouseX, mouseY);
-	if (!result){
-		return false;
-	}
-
-	// Finally render the graphics to the screen.
-	result = m_Graphics->Render(mouseX, mouseY, state);
+	// Do frame processing for the application object
+	result = m_Application->Frame();
 	if (!result){
 		return false;
 	}

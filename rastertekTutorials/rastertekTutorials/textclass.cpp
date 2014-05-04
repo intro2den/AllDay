@@ -6,10 +6,11 @@
 TextClass::TextClass(){
 	m_Font = 0;
 	m_FontShader = 0;
-
 	m_sentence1 = 0;
 	m_sentence2 = 0;
 	m_sentence3 = 0;
+	m_sentence4 = 0;
+	m_sentence5 = 0;
 }
 
 TextClass::TextClass(const TextClass& other){

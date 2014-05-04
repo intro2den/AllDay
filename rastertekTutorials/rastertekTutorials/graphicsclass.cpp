@@ -3,6 +3,8 @@
 ////////////////////////////////////////////////////////////////////////////////
 #include "graphicsclass.h"
 
+// NOTE: The GraphicsClass has been entirely replaced by the ApplicationClass
+
 GraphicsClass::GraphicsClass(){
 	m_D3D = 0;
 	m_Camera = 0;
@@ -59,7 +61,6 @@ bool GraphicsClass::Initialize(int screenWidth, int screenHeight, HWND hwnd){
 		return false;
 	}
 	
-
 	/*
 	// Create the color shader object.
 	m_ColorShader = new ColorShaderClass;

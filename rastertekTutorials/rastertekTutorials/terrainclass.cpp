@@ -1,27 +1,35 @@
+////////////////////////////////////////////////////////////////////////////////
+// Filename: terrainclass.cpp
+////////////////////////////////////////////////////////////////////////////////
 #include "terrainclass.h"
 
 
-terrain::terrain(int type, int cost, bool passable)
-{
-	m_type = type;
-	m_cost = cost;
-	m_passable = passable;
+Terrain::Terrain(){
 }
 
-
-terrain::~terrain()
-{
-
+Terrain::~Terrain(){
 }
 
-int terrain::movement_cost()
-{
-	return m_cost;
+bool Terrain::Initialize(int terrainType, int movementCost, bool passable){
+	m_terrainType = terrainType;
+	m_movementCost = movementCost;
+	m_isPassable = passable;
+
+	return true;
 }
-bool terrain::check_passable()
-{
-	return m_passable;
+
+void Terrain::Shutdown(){
+	// Nothing should need to be released
 }
-int terrain::get_type(){
-	return m_type;
+
+int Terrain::GetMovementCost(){
+	return m_movementCost;
+}
+
+bool Terrain::IsPassable(){
+	return m_isPassable;
+}
+
+int Terrain::GetTerrainType(){
+	return m_terrainType;
 }

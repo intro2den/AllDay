@@ -1,22 +1,46 @@
+////////////////////////////////////////////////////////////////////////////////
+// Filename: combatmapclass.h
+////////////////////////////////////////////////////////////////////////////////
 #pragma once
+
+/////////////
+// GLOBALS //
+/////////////
+const int MAX_MAPSIZE = 1024;
+
+//////////////
+// INCLUDES //
+//////////////
 #include "terrainclass.h"
-#include "bitmapclass.h"
 
-class combatmapclass
-{
-public:
-	combatmapclass();
-	~combatmapclass();
-
-	bool Initialize(ID3D11Device*, int width, int height, int map, int screenWidth, int screenHeight);
-	void Shutdown();
-	bool Frame();
-	bool Render();
-
-private:
-	terrain* m_terrains[1024];
-	int m_width;
-	int m_height;
-	BitmapClass* m_bitmaps[5];
+///////////
+// enum  //
+///////////
+enum MapType{
+	MAPTYPE_ALLGRASS,
+	MAPTYPE_RIVERSPLIT
 };
 
+////////////////////////////////////////////////////////////////////////////////
+// Class name: CombatMap
+////////////////////////////////////////////////////////////////////////////////
+class CombatMap{
+public:
+	CombatMap();
+	~CombatMap();
+
+	bool Initialize(MapType mapType, int mapWidth, int mapHeight, int screenWidth, int screenHeight);
+	void Shutdown();
+
+	bool GetTerrainArray(int*);
+
+private:
+	Terrain& GetTile(int index);
+
+private:
+	Terrain* grassTerrain;
+	Terrain* waterTerrain;
+
+	int m_mapWidth, m_mapHeight;
+	Terrain** m_terrain;
+};

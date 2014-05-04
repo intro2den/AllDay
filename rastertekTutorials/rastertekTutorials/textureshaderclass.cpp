@@ -3,7 +3,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 #include "textureshaderclass.h"
 
-
 TextureShaderClass::TextureShaderClass(){
 	m_vertexShader = 0;
 	m_pixelShader = 0;

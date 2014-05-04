@@ -1,17 +1,25 @@
+////////////////////////////////////////////////////////////////////////////////
+// Filename: terrainclass.h
+////////////////////////////////////////////////////////////////////////////////
 #pragma once
-class terrain
-{
+
+////////////////////////////////////////////////////////////////////////////////
+// Class name: Terrain
+////////////////////////////////////////////////////////////////////////////////
+class Terrain{
 public:
-	terrain(int type, int cost, bool passable);
-	~terrain();
+	Terrain();
+	~Terrain();
+
+	bool Initialize(int, int, bool);
+	void Shutdown();
 	
-	int movement_cost();
-	bool check_passable();
-	int get_type();
-
+	int GetTerrainType();
+	int GetMovementCost();
+	bool IsPassable();
+	
 private:
-	int m_type;
-	int m_cost;
-	bool m_passable;
+	int m_terrainType;
+	int m_movementCost;
+	bool m_isPassable;
 };
-

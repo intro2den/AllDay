@@ -10,10 +10,8 @@ ColorShaderClass::ColorShaderClass(){
 	m_matrixBuffer = 0;
 }
 
-
 ColorShaderClass::ColorShaderClass(const ColorShaderClass& other){
 }
-
 
 ColorShaderClass::~ColorShaderClass(){
 }

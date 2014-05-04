@@ -152,7 +152,7 @@ bool InputClass::ReadMouse(){
 	POINT point;
 	BOOL in_bounds;
 	
-	
+	// Calculate the position of the cursor with respect to the application window
 	result = GetCursorPos(&point);
 	if (FAILED(result)){
 		return false;
@@ -166,6 +166,7 @@ bool InputClass::ReadMouse(){
 	m_mouseX = point.x;
 	m_mouseY = point.y;
 
+	// Only read the mouse device if the cursor is within the application window (will otherwise use results of last read)
 	in_bounds = m_mouseX > 0 && m_mouseY > 0 && m_mouseX < m_screenWidth && m_mouseY < m_screenHeight;
 
 	if (in_bounds){
@@ -186,18 +187,7 @@ bool InputClass::ReadMouse(){
 }
 
 void InputClass::ProcessInput(){
-	/*
-	// Update the location of the mouse cursor based on the change of the mouse location during the frame.
-	m_mouseX += m_mouseState.lX;
-	m_mouseY += m_mouseState.lY;
-
-	// Ensure the mouse location doesn't exceed the screen width or height.
-	if (m_mouseX < 0)  { m_mouseX = 0; }
-	if (m_mouseY < 0)  { m_mouseY = 0; }
-
-	if (m_mouseX > m_screenWidth)  { m_mouseX = m_screenWidth; }
-	if (m_mouseY > m_screenHeight) { m_mouseY = m_screenHeight; }
-	*/
+	// NOTE: This function is unlikely to be needed - previously calculated cursor position
 	return;
 }
 

@@ -1,8 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 // Filename: systemclass.h
 ////////////////////////////////////////////////////////////////////////////////
-#ifndef _SYSTEMCLASS_H_
-#define _SYSTEMCLASS_H_
+#pragma once
 
 ///////////////////////////////
 // PRE-PROCESSING DIRECTIVES //
@@ -14,11 +13,10 @@
 //////////////
 #include <windows.h>
 
-///////////////////////
-// MY CLASS INCLUDES //
-///////////////////////
-#include "inputclass.h"
-#include "graphicsclass.h"
+////////////////////
+// CLASS INCLUDES //
+////////////////////
+#include "applicationclass.h"
 
 ////////////////////////////////////////////////////////////////////////////////
 // Class name: SystemClass
@@ -45,10 +43,7 @@ private:
 	HINSTANCE m_hinstance;
 	HWND m_hwnd;
 
-	InputClass* m_Input;
-	GraphicsClass* m_Graphics;
-
-	int state;
+	ApplicationClass* m_Application;
 };
 
 /////////////////////////
@@ -60,5 +55,3 @@ static LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 // GLOBALS //
 /////////////
 static SystemClass* ApplicationHandle = 0;
-
-#endif

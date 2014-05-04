@@ -17,6 +17,7 @@ BitmapClass::~BitmapClass(){
 
 bool BitmapClass::Initialize(ID3D11Device* device, int screenWidth, int screenHeight, CHAR* textureFilename, int bitmapWidth, int bitmapHeight){
 	bool result;
+
 	// Store the screen size.
 	m_screenWidth = screenWidth;
 	m_screenHeight = screenHeight;
@@ -84,7 +85,6 @@ bool BitmapClass::InitializeBuffers(ID3D11Device* device){
 	D3D11_SUBRESOURCE_DATA vertexData, indexData;
 	HRESULT result;
 	int i;
-
 
 	///////////////////////////////////
 	// NOTE: This is currently hardcoded to make a rectangular bitmap
