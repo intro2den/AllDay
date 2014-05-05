@@ -23,6 +23,8 @@ const float SCREEN_NEAR = 0.1f;
 #include "textureshaderclass.h"
 #include "textclass.h"
 #include "fontshaderclass.h"
+#include "timerclass.h"
+#include "positionclass.h"
 
 ////////////////////////////////////////////////////////////////////////////////
 // Class name: ApplicationClass
@@ -44,9 +46,9 @@ public:
 	bool Frame();
 
 private:
+	bool HandleInput(float); // Requires timer
 	bool InitializeCombatMap(MapType, int, int);
 	void ShutdownCombatMap();
-	//bool HandleInput(float); // Requires timer
 	bool RenderGraphics();
 
 private:
@@ -61,6 +63,8 @@ private:
 	TextureShaderClass* m_TextureShader;
 	TextClass* m_Text;
 	FontShaderClass* m_FontShader;
+	TimerClass* m_Timer;
+	PositionClass* m_Position;
 
 	MainState m_MainState;
 	int m_screenWidth, m_screenHeight;

@@ -214,3 +214,39 @@ bool InputClass::IsLeftMousePressed(){
 
 	return false;
 }
+
+bool InputClass::IsUpPressed(){
+	// Check if the up arrow is pressed
+	if (m_keyboardState[DIK_UP]){
+		return true;
+	}
+
+	return false;
+}
+
+bool InputClass::IsDownPressed(){
+	// Check if the down arrow is pressed
+	if (m_keyboardState[DIK_DOWN]){
+		return true;
+	}
+
+	return false;
+}
+
+bool InputClass::IsLeftPressed(){
+	// Check if the left arrow is pressed
+	if (m_keyboardState[DIK_LEFT]){
+		return true;
+	}
+
+	return false;
+}
+
+bool InputClass::IsRightPressed(){
+	// Check if the right arrow is pressed
+	if (m_keyboardState[DIK_RIGHT]){
+		return true;
+	}
+
+	return false;
+}

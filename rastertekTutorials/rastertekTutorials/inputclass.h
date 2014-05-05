@@ -36,6 +36,11 @@ public:
 	void GetMouseLocation(int&, int&);
 	bool IsLeftMousePressed();
 
+	bool IsUpPressed();
+	bool IsDownPressed();
+	bool IsLeftPressed();
+	bool IsRightPressed();
+
 private:
 	bool ReadKeyboard();
 	bool ReadMouse();

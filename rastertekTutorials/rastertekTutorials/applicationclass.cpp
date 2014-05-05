@@ -16,6 +16,8 @@ ApplicationClass::ApplicationClass(){
 	m_TextureShader = 0;
 	m_Text = 0;
 	m_FontShader = 0;
+	m_Timer = 0;
+	m_Position = 0;
 }
 
 // Empty copy constructor and empty class deconstructor
@@ -155,6 +157,28 @@ bool ApplicationClass::Initialize(HINSTANCE hinstance, HWND hwnd, int screenWidt
 		return false;
 	}
 
+	// Create the timer object.
+	m_Timer = new TimerClass;
+	if (!m_Timer){
+		return false;
+	}
+
+	// Initialize the timer object.
+	result = m_Timer->Initialize();
+	if (!result){
+		MessageBox(hwnd, "Could not initialize the Timer object.", "Error", MB_OK);
+		return false;
+	}
+
+	// Create the position object
+	m_Position = new PositionClass;
+	if (!m_Position){
+		return false;
+	}
+
+	// Set the initial position of the viewer to the same as the initial camera position.
+	m_Position->SetPosition(cameraX, cameraY, cameraZ);
+
 	// Set initial MainState
 	m_MainState = MAINSTATE_MAINMENU;
 
@@ -167,6 +191,18 @@ bool ApplicationClass::Initialize(HINSTANCE hinstance, HWND hwnd, int screenWidt
 
 // Shutdown function - shuts down and releases everything, shuts down window, cleans up handles
 void ApplicationClass::Shutdown(){
+	// Release the position object
+	if (m_Position){
+		delete m_Position;
+		m_Position = 0;
+	}
+
+	// Release the timer object
+	if (m_Timer){
+		delete m_Timer;
+		m_Timer = 0;
+	}
+
 	// Release the font shader object.
 	if (m_FontShader){
 		m_FontShader->Shutdown();
@@ -251,6 +287,9 @@ void ApplicationClass::Shutdown(){
 bool ApplicationClass::Frame(){
 	bool result;
 
+	// Update system stats
+	m_Timer->Frame();
+
 	// Do the input frame processing.
 	result = m_Input->Frame();
 	if (!result){
@@ -271,8 +310,31 @@ bool ApplicationClass::Frame(){
 		return false;
 	}
 
+	result = HandleInput(m_Timer->GetTime());
+	if (!result){
+		return false;
+	}
+
+	// Render the graphics
+	result = RenderGraphics();
+	if (!result){
+		return false;
+	}
+	
+	return true;
+}
+
+// Handle all user input
+bool ApplicationClass::HandleInput(float frameTime){
+	bool result, scrolling;
+	float posX, posY, posZ;
+
+	// Set the frame time for calculating the updated position.
+	m_Position->SetFrameTime(frameTime);
+
 	// NOTE: Will also be using MainState/other state checks for rendering
-	// NOTE2: Processing of input will likely be handed off to the HandleInput() function
+	// NOTE2: Processing of mouse input occurs while it is pressed down, and
+	//        should instead occur when the button is released (or initially pressed)
 
 	switch (m_MainState){
 	case MAINSTATE_MAINMENU:
@@ -284,6 +346,9 @@ bool ApplicationClass::Frame(){
 				m_MainState = MAINSTATE_COMBATMAP;
 				if (!m_CombatMap){
 					result = InitializeCombatMap((MapType)(rand() % 2), 32, 32);
+					if (!result){
+						return false;
+					}
 				}
 			}
 			// Second option exits the application
@@ -296,23 +361,51 @@ bool ApplicationClass::Frame(){
 
 	case MAINSTATE_COMBATMAP:
 		// Combat Map Processing
+		// Get the currect camera position
+		m_Position->GetPosition(posX, posY, posZ);
+
+		// Scroll the camera if the cursor is near the edge of the window
+		// or if the user is pressing the corresponding arrow keys
+		
+		// TODO: Implement scrolling by cursor position
+		//       Implement bounds on the camera
+		//       Fix the rendered position of any UI elements regardless of camera position
+
+		// Scroll Up/Forward
+		scrolling = (m_Input->IsUpPressed() || false);
+		m_Position->MoveForward(scrolling);
+
+		// Scroll Down/Backward
+		scrolling = (m_Input->IsDownPressed() || false);
+		m_Position->MoveBackward(scrolling);
+
+		// Scroll Left
+		scrolling = (m_Input->IsLeftPressed() || false);
+		m_Position->MoveLeft(scrolling);
+
+		// Scroll Right
+		scrolling = (m_Input->IsRightPressed() || false);
+		m_Position->MoveRight(scrolling);
+
+		// Update the position of the camera
+		m_Position->GetPosition(posX, posY, posZ);
+		m_Camera->SetPosition(posX, posY, posZ);
+
 		if (m_Input->IsLeftMousePressed() == true){
 			// If the mouse is in the top left corner, return to the main menu
 			if (m_mouseX >= 0 && m_mouseX < 50 && m_mouseY >= 0 && m_mouseY < 50){
 				m_MainState = MAINSTATE_MAINMENU;
 				ShutdownCombatMap();
+
+				// Set the position of the camera back to the origin
+				m_Position->SetPosition(0.0f, 0.0f, -10.0f);
+				m_Camera->SetPosition(0.0f, 0.0f, -10.0f);
 			}
 		}
 
 		break;
 	}
 
-	// Render the graphics
-	result = RenderGraphics();
-	if (!result){
-		return false;
-	}
-	
 	return true;
 }
 
