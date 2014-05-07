@@ -29,6 +29,8 @@ public:
 
 	void GetPosition(float&, float&, float&);
 
+	void SetBounds(float, float, float);
+
 	void SetFrameTime(float);
 
 	void MoveForward(bool);
@@ -38,6 +40,7 @@ public:
 
 private:
 	float m_positionX, m_positionY, m_positionZ;
+	float m_boundX, m_boundY, m_boundZ;
 
 	float m_frameTime;
 

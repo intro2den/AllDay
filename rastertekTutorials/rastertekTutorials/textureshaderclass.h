@@ -28,7 +28,7 @@ public:
 	TextureShaderClass(const TextureShaderClass&);
 	~TextureShaderClass();
 
-	bool Initialize(ID3D11Device*, HWND);
+	bool Initialize(ID3D11Device*, HWND, bool);
 	void Shutdown();
 	bool Render(ID3D11DeviceContext*, int, D3DXMATRIX, D3DXMATRIX, D3DXMATRIX, ID3D11ShaderResourceView*);
 

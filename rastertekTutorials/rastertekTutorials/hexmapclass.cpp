@@ -234,10 +234,10 @@ bool HexMapClass::UpdateBuffers(ID3D11DeviceContext* deviceContext, int position
 	m_previousPosY = positionY;
 
 	// Calculate the screen coordinates of the left side of the map.
-	left = (float)((m_screenWidth / 2) * -1) + (HEX_SIZE / 2.0f) + (float)positionX;
+	left = (float)((m_screenWidth / 2) * -1) + MAP_HORIZONTALOFFSET + (float)positionX;
 
 	// Calculate the screen coordinates of the top of the map.
-	top = (float)(m_screenHeight / 2) - (HEX_HEIGHT / 2.0f) - (float)positionY;
+	top = (float)(m_screenHeight / 2) - MAP_VERTICALOFFSET - (float)positionY;
 
 	// Create the vertex array.
 	vertices = new VertexType[m_vertexCount];

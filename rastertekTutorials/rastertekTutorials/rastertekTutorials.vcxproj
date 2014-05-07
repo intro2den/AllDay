@@ -67,6 +67,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="activeagentclass.cpp" />
+    <ClCompile Include="agentclass.cpp" />
     <ClCompile Include="applicationclass.cpp" />
     <ClCompile Include="bitmapclass.cpp" />
     <ClCompile Include="cameraclass.cpp" />
@@ -75,7 +77,6 @@
     <ClCompile Include="d3dclass.cpp" />
     <ClCompile Include="fontclass.cpp" />
     <ClCompile Include="fontshaderclass.cpp" />
-    <ClCompile Include="graphicsclass.cpp" />
     <ClCompile Include="hexmapclass.cpp" />
     <ClCompile Include="inputclass.cpp" />
     <ClCompile Include="main.cpp" />
@@ -89,6 +90,8 @@
     <ClCompile Include="timerclass.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="activeagentclass.h" />
+    <ClInclude Include="agentclass.h" />
     <ClInclude Include="applicationclass.h" />
     <ClInclude Include="bitmapclass.h" />
     <ClInclude Include="cameraclass.h" />
@@ -97,7 +100,6 @@
     <ClInclude Include="d3dclass.h" />
     <ClInclude Include="fontclass.h" />
     <ClInclude Include="fontshaderclass.h" />
-    <ClInclude Include="graphicsclass.h" />
     <ClInclude Include="hexmapclass.h" />
     <ClInclude Include="inputclass.h" />
     <ClInclude Include="modelclass.h" />
@@ -114,6 +116,7 @@
     <None Include="color.vs" />
     <None Include="font.ps" />
     <None Include="font.vs" />
+    <None Include="lowalphatexture.ps" />
     <None Include="texture.ps" />
     <None Include="texture.vs" />
   </ItemGroup>
