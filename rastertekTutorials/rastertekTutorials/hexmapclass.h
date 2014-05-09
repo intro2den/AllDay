@@ -16,6 +16,9 @@ const float PI = 3.14159f;
 const float HEX_SIZE = 30.0f;
 const float HEX_HEIGHT = 2.0f * HEX_SIZE * sin(2.0f*PI/3.0f);
 
+const float MAP_HORIZONTALOFFSET = 15.0f;
+const float MAP_VERTICALOFFSET = 15.0f;
+
 
 ////////////////////
 // CLASS INCLUDES //

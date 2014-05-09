@@ -8,6 +8,10 @@ PositionClass::PositionClass(){
 	m_positionY = 0.0f;
 	m_positionZ = 0.0f;
 
+	m_boundX = 0.0f;
+	m_boundY = 0.0f;
+	m_boundZ = -10.0f;
+
 	m_frameTime = 0.0f;
 
 	m_forwardSpeed = 0.0f;
@@ -36,6 +40,18 @@ void PositionClass::GetPosition(float& x, float& y, float& z){
 	return;
 }
 
+void PositionClass::SetBounds(float boundX, float boundY, float boundZ){
+	// NOTE: The bounds are not all the same sign
+	//       0 <= positionX <= boundX
+	//       boundY <= positionY <= 0
+	//       boundZ <= positionZ <= 0
+
+	// Set new bounds for the camera
+	m_boundX = boundX;
+	m_boundY = boundY;
+	m_boundZ = boundZ;
+}
+
 void PositionClass::SetFrameTime(float time){
 	m_frameTime = time;
 	return;
@@ -62,6 +78,12 @@ void PositionClass::MoveForward(bool keydown){
 	// Update the position.
 	m_positionY += m_forwardSpeed;
 
+	// If out of bounds, reposition to the boundary and reset speed to 0
+	if (m_positionY > 0.0f){
+		m_positionY = 0.0f;
+		m_forwardSpeed = 0.0f;
+	}
+
 	return;
 }
 
@@ -86,6 +108,12 @@ void PositionClass::MoveBackward(bool keydown){
 
 	// Update the position.
 	m_positionY -= m_backwardSpeed;
+
+	// If out of bounds, reposition to the boundary and reset speed to 0
+	if (m_positionY < m_boundY){
+		m_positionY = m_boundY;
+		m_backwardSpeed = 0.0f;
+	}
 
 	return;
 }
@@ -112,6 +140,12 @@ void PositionClass::MoveLeft(bool keydown){
 	// Update the position.
 	m_positionX -= m_leftSpeed;
 
+	// If out of bounds, reposition to the boundary and reset speed to 0
+	if (m_positionX < 0.0f){
+		m_positionX = 0.0f;
+		m_leftSpeed = 0.0f;
+	}
+
 	return;
 }
 
@@ -136,6 +170,12 @@ void PositionClass::MoveRight(bool keydown){
 
 	// Update the position.
 	m_positionX += m_rightSpeed;
+
+	// If out of bounds, reposition to the boundary and reset speed to 0
+	if (m_positionX > m_boundX){
+		m_positionX = m_boundX;
+		m_rightSpeed = 0.0f;
+	}
 
 	return;
 }

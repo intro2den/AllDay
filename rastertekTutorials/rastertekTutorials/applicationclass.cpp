@@ -13,7 +13,9 @@ ApplicationClass::ApplicationClass(){
 	m_Mouse = 0;
 	m_CombatMap = 0;
 	m_TerrainMap = 0;
+	m_HexHighlight = 0;
 	m_TextureShader = 0;
+	m_LowAlphaTextureShader = 0;
 	m_Text = 0;
 	m_FontShader = 0;
 	m_Timer = 0;
@@ -125,7 +127,20 @@ bool ApplicationClass::Initialize(HINSTANCE hinstance, HWND hwnd, int screenWidt
 	}
 
 	// Initialize the texture shader object.
-	result = m_TextureShader->Initialize(m_D3D->GetDevice(), hwnd);
+	result = m_TextureShader->Initialize(m_D3D->GetDevice(), hwnd, false);
+	if (!result){
+		MessageBox(hwnd, "Could not initialize the texture shader object.", "Error", MB_OK);
+		return false;
+	}
+
+	// Create the texture shader object.
+	m_LowAlphaTextureShader = new TextureShaderClass;
+	if (!m_LowAlphaTextureShader){
+		return false;
+	}
+
+	// Initialize the texture shader object.
+	result = m_LowAlphaTextureShader->Initialize(m_D3D->GetDevice(), hwnd, true);
 	if (!result){
 		MessageBox(hwnd, "Could not initialize the texture shader object.", "Error", MB_OK);
 		return false;
@@ -217,11 +232,25 @@ void ApplicationClass::Shutdown(){
 		m_Text = 0;
 	}
 
+	// Release the low alpha texture shader object
+	if (m_LowAlphaTextureShader){
+		m_LowAlphaTextureShader->Shutdown();
+		delete m_LowAlphaTextureShader;
+		m_LowAlphaTextureShader = 0;
+	}
+
 	// Release the texture shader object
 	if (m_TextureShader){
 		m_TextureShader->Shutdown();
 		delete m_TextureShader;
 		m_TextureShader = 0;
+	}
+
+	// Release the Highlight HexMap object
+	if (m_HexHighlight){
+		m_HexHighlight->Shutdown();
+		delete m_HexHighlight;
+		m_HexHighlight = 0;
 	}
 
 	// Release the terrain HexMap object
@@ -372,19 +401,19 @@ bool ApplicationClass::HandleInput(float frameTime){
 		//       Fix the rendered position of any UI elements regardless of camera position
 
 		// Scroll Up/Forward
-		scrolling = (m_Input->IsUpPressed() || false);
+		scrolling = (m_Input->IsUpPressed() || (m_mouseY >= 0 && m_mouseY < 20));
 		m_Position->MoveForward(scrolling);
 
 		// Scroll Down/Backward
-		scrolling = (m_Input->IsDownPressed() || false);
+		scrolling = (m_Input->IsDownPressed() || (m_mouseY > m_screenHeight - 20 && m_mouseY <= m_screenHeight));
 		m_Position->MoveBackward(scrolling);
 
 		// Scroll Left
-		scrolling = (m_Input->IsLeftPressed() || false);
+		scrolling = (m_Input->IsLeftPressed() || (m_mouseX >= 0 && m_mouseX < 20));
 		m_Position->MoveLeft(scrolling);
 
 		// Scroll Right
-		scrolling = (m_Input->IsRightPressed() || false);
+		scrolling = (m_Input->IsRightPressed() || (m_mouseX > m_screenWidth - 20 && m_mouseX <= m_screenWidth));
 		m_Position->MoveRight(scrolling);
 
 		// Update the position of the camera
@@ -412,6 +441,7 @@ bool ApplicationClass::HandleInput(float frameTime){
 // Initialize a new Combat Map - this should happen when entering the CombatMap MainState (entering the Combat Map)
 bool ApplicationClass::InitializeCombatMap(MapType mapType, int mapWidth, int mapHeight){
 	bool result;
+	float boundX, boundY, boundZ;
 
 	m_combatMapWidth = mapWidth;
 	m_combatMapHeight = mapHeight;
@@ -437,11 +467,36 @@ bool ApplicationClass::InitializeCombatMap(MapType mapType, int mapWidth, int ma
 		return false;
 	}
 
+	// Initialize a HexMap to highlight the tile that the user has the cursor over
+	m_HexHighlight = new HexMapClass();
+	if (!m_HexHighlight){
+		return false;
+	}
+
+	result = m_HexHighlight->Initialize(m_D3D->GetDevice(), m_screenWidth, m_screenHeight, "../rastertekTutorials/data/white.dds", 1, 1);
+	if (!result){
+		return false;
+	}
+
+	// Adjust the bounds on the camera position to allow for proper scrolling
+	boundX = max(0, HEX_SIZE*(1.5f + 1.5f*(float)mapWidth) - (float)m_screenWidth);
+	boundY = min(0, -1.0f * HEX_HEIGHT*(1.5f + (float)mapHeight) + (float)m_screenHeight);
+	boundZ = -10.0f;
+
+	m_Position->SetBounds(boundX, boundY, boundZ);
+
 	return true;
 }
 
 // Shutdown the Combat Map specifically - this should happen when exiting from the CombatMap but not the application
 void ApplicationClass::ShutdownCombatMap(){
+	// Release the Highlight HexMap object
+	if (m_HexHighlight){
+		m_HexHighlight->Shutdown();
+		delete m_HexHighlight;
+		m_HexHighlight = 0;
+	}
+
 	// Shutdown the HexMap corresponding to the Combat Map
 	if (m_TerrainMap){
 		m_TerrainMap->Shutdown();
@@ -462,6 +517,10 @@ bool ApplicationClass::RenderGraphics(){
 	bool result;
 	int i;
 	int* terrain;
+	float cameraX, cameraY, cameraZ;
+	float cursorX, cursorY, normalizedCursorX, normalizedCursorY;
+	int hexX, hexY;
+	int highlightX, highlightY;
 
 	// Clear the buffers to begin the scene.
 	m_D3D->BeginScene(0.0f, 0.0f, 0.0f, 1.0f);
@@ -475,11 +534,14 @@ bool ApplicationClass::RenderGraphics(){
 	m_D3D->GetProjectionMatrix(projectionMatrix);
 	m_D3D->GetOrthoMatrix(orthoMatrix);
 
+	// Get the offset for any static UI elements
+	m_Position->GetPosition(cameraX, cameraY, cameraZ);
+
 	// Turn off the Z buffer to begin all 2D rendering.
 	m_D3D->TurnZBufferOff();
 
 	// Render the Background first
-	result = m_Background->Render(m_D3D->GetDeviceContext(), 0, 0);
+	result = m_Background->Render(m_D3D->GetDeviceContext(), (int)cameraX, -(int)cameraY);
 	if (!result){
 		return false;
 	}
@@ -535,6 +597,71 @@ bool ApplicationClass::RenderGraphics(){
 			return false;
 		}
 
+		// Find the hex that the cursor is overtop of this frame
+		// NOTE: Because the result of this calculation will need to be used elsewhere as well
+		//       it will be moved and the results stored in the class
+
+		// Calculate the actual cursor position relative to the map
+		cursorX = (float)m_mouseX + cameraX - MAP_HORIZONTALOFFSET;
+		cursorY = (float)m_mouseY - cameraY - MAP_VERTICALOFFSET;
+
+		if (cursorX >= 0){
+			// Calculate the grid coordinates for the hex the cursor is over
+			hexX = (int)(cursorX / (1.5f * HEX_SIZE));
+
+			// Use the X-coordinate of the cursor to find the column
+			if (fmod(cursorX, 1.5f * HEX_SIZE) >= 0.5f * HEX_SIZE){
+				// The X-position of the Hex that the cursor is over can be identified by the X-coordinate alone
+				hexX = (int)(cursorX / (1.5f * HEX_SIZE));
+			}
+			else{
+				// The cursor could be over a hex in either of 2 adjacent columns, will need to use both
+				// coordinates to determine the column
+
+				// Normalize the coordinates to be relative the origin
+				normalizedCursorX = abs(fmod(cursorX, 1.5f * HEX_SIZE)) / (0.5f * HEX_SIZE);
+				normalizedCursorY = abs((fmod(cursorY + 0.5f * HEX_HEIGHT * (float)(abs(hexX % 2)), HEX_HEIGHT)) - 0.5f * HEX_HEIGHT) / (0.5f * HEX_HEIGHT);
+
+				if (normalizedCursorX >= abs(normalizedCursorY)){
+					hexX = (int)(cursorX / (1.5f * HEX_SIZE));
+				}
+				else{
+					hexX = (int)(cursorX / (1.5f * HEX_SIZE)) - 1;
+				}
+			}
+
+			// Now that we know the column, we can identify the row using the Y-coordinate
+			hexY = (int)((cursorY - 0.5f * HEX_HEIGHT * abs(hexX % 2)) / HEX_HEIGHT);
+			if (cursorY - 0.5f * HEX_HEIGHT * abs(hexX % 2) < 0){
+				hexY = -1;
+			}
+
+			// Highlight only hexes that are actually on the map
+			if (hexX >= 0 && hexX < m_combatMapWidth && hexY >= 0 && m_combatMapHeight){
+
+				// From the grid coordinates, calculate the absolute pixel coordinates to render the highlight to
+				highlightX = (int)(1.5f * HEX_SIZE * hexX);
+				highlightY = (int)(HEX_HEIGHT * (hexY + 0.5 * abs(hexX % 2)));
+
+				// Turn on alpha blending to highlight
+				m_D3D->TurnOnAlphaBlending();
+
+				// Render the highlight overtop of whatever hex the cursor is over
+				result = m_HexHighlight->Render(m_D3D->GetDeviceContext(), highlightX, highlightY, terrain);
+				if (!result){
+					return false;
+				}
+
+				result = m_LowAlphaTextureShader->Render(m_D3D->GetDeviceContext(), m_HexHighlight->GetIndexCount(), worldMatrix, viewMatrix, orthoMatrix, m_HexHighlight->GetTexture());
+				if (!result){
+					return false;
+				}
+
+				// Turn off alpha blending
+				m_D3D->TurnOffAlphaBlending();
+			}
+		}
+
 		break;
 	}
 
@@ -557,7 +684,7 @@ bool ApplicationClass::RenderGraphics(){
 	m_D3D->TurnOffAlphaBlending();
 
 	// Render the cursor
-	result = m_Mouse->Render(m_D3D->GetDeviceContext(), m_mouseX, m_mouseY);
+	result = m_Mouse->Render(m_D3D->GetDeviceContext(), m_mouseX + (int)cameraX, m_mouseY - (int)cameraY);
 	if (!result){
 		return false;
 	}

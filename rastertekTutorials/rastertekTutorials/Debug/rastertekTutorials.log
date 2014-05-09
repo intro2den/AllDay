@@ -1,8 +1,15 @@
-﻿  systemclass.cpp
-  positionclass.cpp
-  applicationclass.cpp
-  Generating Code...
-  Compiling...
-  main.cpp
-  Generating Code...
-  rastertekTutorials.vcxproj -> D:\Sunview\AllDay\rastertekTutorials\Debug\rastertekTutorials.exe
+﻿Build started 5/7/2014 6:29:26 PM.
+     1>Project "C:\Users\Denning\Documents\GitHub\AllDay\rastertekTutorials\rastertekTutorials\rastertekTutorials.vcxproj" on node 2 (Build target(s)).
+     1>ClCompile:
+         C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\CL.exe /c /ZI /nologo /W3 /WX- /sdl /Od /Oy- /D _MBCS /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Debug\\" /Fd"Debug\vc120.pdb" /Gd /TP /analyze- /errorReport:prompt activeagentclass.cpp agentclass.cpp
+         activeagentclass.cpp
+         Generating Code...
+     1>c:\users\denning\documents\github\allday\rastertektutorials\rastertektutorials\activeagentclass.cpp(121): error C4716: 'ActiveAgentClass::Search' : must return a value
+     1>C:\Program Files (x86)\MSBuild\Microsoft.Cpp\v4.0\V120\Microsoft.CppCommon.targets(341,5): error MSB6006: "CL.exe" exited with code 2.
+         Skipping... (no relevant changes detected)
+         agentclass.cpp
+     1>Done Building Project "C:\Users\Denning\Documents\GitHub\AllDay\rastertekTutorials\rastertekTutorials\rastertekTutorials.vcxproj" (Build target(s)) -- FAILED.
+
+Build FAILED.
+
+Time Elapsed 00:00:02.20

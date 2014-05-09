@@ -17,11 +17,15 @@ TextureShaderClass::TextureShaderClass(const TextureShaderClass& other){
 TextureShaderClass::~TextureShaderClass(){
 }
 
-bool TextureShaderClass::Initialize(ID3D11Device* device, HWND hwnd){
+bool TextureShaderClass::Initialize(ID3D11Device* device, HWND hwnd, bool lowAlpha){
 	bool result;
 
 	// Initialize the vertex and pixel shaders.
-	result = InitializeShader(device, hwnd, "../rastertekTutorials/texture.vs", "../rastertekTutorials/texture.ps");
+	if (lowAlpha){
+		result = InitializeShader(device, hwnd, "../rastertekTutorials/texture.vs", "../rastertekTutorials/lowalphatexture.ps");
+	} else{
+		result = InitializeShader(device, hwnd, "../rastertekTutorials/texture.vs", "../rastertekTutorials/texture.ps");
+	}
 	if (!result){
 		return false;
 	}
