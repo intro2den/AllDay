@@ -10,6 +10,7 @@ const bool FULL_SCREEN = false;
 const bool VSYNC_ENABLED = true;
 const float SCREEN_DEPTH = 1000.0f;
 const float SCREEN_NEAR = 0.1f;
+const int MAX_AGENTS = 512;
 
 ////////////////////
 // CLASS INCLUDES //
@@ -25,6 +26,7 @@ const float SCREEN_NEAR = 0.1f;
 #include "fontshaderclass.h"
 #include "timerclass.h"
 #include "positionclass.h"
+#include "activeagentclass.h"
 
 ////////////////////////////////////////////////////////////////////////////////
 // Class name: ApplicationClass
@@ -71,4 +73,8 @@ private:
 	int m_screenWidth, m_screenHeight;
 	int m_combatMapWidth, m_combatMapHeight;
 	int m_mouseX, m_mouseY;
+	int m_currentTileX, m_currentTileY;
+
+	AgentClass** m_Agents;
+	BitmapClass* m_AgentSprites;
 };

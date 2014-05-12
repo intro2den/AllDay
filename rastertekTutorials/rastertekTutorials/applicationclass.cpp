@@ -19,6 +19,8 @@ ApplicationClass::ApplicationClass(){
 	m_FontShader = 0;
 	m_Timer = 0;
 	m_Position = 0;
+	m_Agents = 0;
+	m_AgentSprites = 0;
 }
 
 // Empty copy constructor and empty class deconstructor
@@ -38,6 +40,17 @@ bool ApplicationClass::Initialize(HINSTANCE hinstance, HWND hwnd, int screenWidt
 	// Keep track of the screen width and height for bounding the camera, dynamic bitmap initialization and/or scaling(?)
 	m_screenWidth = screenWidth;
 	m_screenHeight = screenHeight;
+
+	// Set initial MainState
+	m_MainState = MAINSTATE_MAINMENU;
+
+	// Initialize the mouse (cursor) position (this will be overwritten in the first frame)
+	m_mouseX = 0;
+	m_mouseY = 0;
+
+	// Initialize the coordinates for the currently highlighted tile (for the CombatMap - initially invalid coordinates)
+	m_currentTileX = -1;
+	m_currentTileY = -1;
 
 	// Create the input object.  The input object will be used to handle reading the keyboard and mouse input from the user.
 	m_Input = new InputClass;
@@ -179,13 +192,6 @@ bool ApplicationClass::Initialize(HINSTANCE hinstance, HWND hwnd, int screenWidt
 
 	// Set the initial position of the viewer to the same as the initial camera position.
 	m_Position->SetPosition(cameraX, cameraY, cameraZ);
-
-	// Set initial MainState
-	m_MainState = MAINSTATE_MAINMENU;
-
-	// Initialize the mouse (cursor) position (this will be overwritten in the first frame)
-	m_mouseX = 0;
-	m_mouseY = 0;
 
 	return true;
 }
@@ -336,6 +342,7 @@ bool ApplicationClass::Frame(){
 bool ApplicationClass::HandleInput(float frameTime){
 	bool result, scrolling;
 	float posX, posY, posZ;
+	float cursorX, cursorY, normalizedCursorX, normalizedCursorY;
 
 	// Set the frame time for calculating the updated position.
 	m_Position->SetFrameTime(frameTime);
@@ -393,6 +400,48 @@ bool ApplicationClass::HandleInput(float frameTime){
 		// Update the position of the camera
 		m_Position->GetPosition(posX, posY, posZ);
 		m_Camera->SetPosition(posX, posY, posZ);
+
+		// Find the coordinates of the hex that the cursor is overtop of this frame
+
+		// Calculate the actual cursor position relative to the map
+		cursorX = (float)m_mouseX + posX - MAP_HORIZONTALOFFSET;
+		cursorY = (float)m_mouseY - posY - MAP_VERTICALOFFSET;
+
+		// Calculate the grid coordinates for the hex the cursor is over
+		m_currentTileX = (int)(cursorX / (1.5f * HEX_SIZE));
+
+		// Use the X-coordinate of the cursor to find the column
+		if (fmod(cursorX, 1.5f * HEX_SIZE) >= 0.5f * HEX_SIZE){
+			// The X-position of the Hex that the cursor is over can be identified by the X-coordinate alone
+			m_currentTileX = (int)(cursorX / (1.5f * HEX_SIZE));
+		}
+		else{
+			// The cursor could be over a hex in either of 2 adjacent columns, will need to use both
+			// coordinates to determine the column
+
+			// Normalize the coordinates to be relative the origin
+			normalizedCursorX = abs(fmod(cursorX, 1.5f * HEX_SIZE)) / (0.5f * HEX_SIZE);
+			normalizedCursorY = abs((fmod(cursorY + 0.5f * HEX_HEIGHT * (float)(abs(m_currentTileX % 2)), HEX_HEIGHT)) - 0.5f * HEX_HEIGHT) / (0.5f * HEX_HEIGHT);
+
+			if (normalizedCursorX >= abs(normalizedCursorY)){
+				m_currentTileX = (int)(cursorX / (1.5f * HEX_SIZE));
+			}
+			else{
+				m_currentTileX = (int)(cursorX / (1.5f * HEX_SIZE)) - 1;
+			}
+		}
+
+		// Now that we know the column, we can identify the row using the Y-coordinate
+		m_currentTileY = (int)((cursorY - 0.5f * HEX_HEIGHT * abs(m_currentTileX % 2)) / HEX_HEIGHT);
+
+		// Integer division rounds towards 0, make sure that we catch all negative X- and Y-coordinates as negative
+		if (cursorX < 0){
+			m_currentTileX = -1;
+		}
+
+		if (cursorY - 0.5f * HEX_HEIGHT * abs(m_currentTileX % 2) < 0){
+			m_currentTileY = -1;
+		}
 
 		if (m_Input->WasLeftMouseClicked() == true){
 			// If the mouse is in the top left corner, return to the main menu
@@ -459,11 +508,84 @@ bool ApplicationClass::InitializeCombatMap(MapType mapType, int mapWidth, int ma
 
 	m_Position->SetBounds(boundX, boundY, boundZ);
 
+	// Initialize Agents
+	m_Agents = new AgentClass*[MAX_AGENTS];
+	m_Agents[0] = new AgentClass();
+	if (!m_Agents[0]){
+		return false;
+	}
+
+	result = m_Agents[0]->Initialize(AGENTTYPE_ACTIVE1, 0, 0);
+	if (!result){
+		return false;
+	}
+
+	m_Agents[1] = new AgentClass();
+	if (!m_Agents[1]){
+		return false;
+	}
+
+	result = m_Agents[1]->Initialize(AGENTTYPE_ACTIVE2, 2, 0);
+	if (!result){
+		return false;
+	}
+
+	m_Agents[2] = new AgentClass();
+	if (!m_Agents[2]){
+		return false;
+	}
+
+	result = m_Agents[2]->Initialize(AGENTTYPE_INACTIVE1, 1, 16);
+	if (!result){
+		return false;
+	}
+
+	m_Agents[3] = new AgentClass();
+	if (!m_Agents[3]){
+		return false;
+	}
+
+	result = m_Agents[3]->Initialize(AGENTTYPE_INACTIVE2, 3, 5);
+	if (!result){
+		return false;
+	}
+
+	// Initialize a HexMap to highlight the tile that the user has the cursor over
+	m_AgentSprites = new BitmapClass();
+	if (!m_AgentSprites){
+		return false;
+	}
+
+	result = m_AgentSprites->Initialize(m_D3D->GetDevice(), m_screenWidth, m_screenHeight, "../rastertekTutorials/data/agentsprites.dds", HEX_SIZE, HEX_HEIGHT);
+	if (!result){
+		return false;
+	}
+
 	return true;
 }
 
 // Shutdown the Combat Map specifically - this should happen when exiting from the CombatMap but not the application
 void ApplicationClass::ShutdownCombatMap(){
+	int i;
+
+	// Release the AgentSprites bitmap
+	if (m_AgentSprites){
+		m_AgentSprites->Shutdown();
+		delete m_AgentSprites;
+		m_AgentSprites = 0;
+	}
+
+	// Release the Agents
+	if (m_Agents){
+		for (i = 0; i < sizeof(m_Agents); i++){
+			delete m_Agents[i];
+			m_Agents[i] = 0;
+		}
+
+		delete m_Agents;
+		m_Agents = 0;
+	}
+
 	// Release the Highlight HexMap object
 	if (m_HexHighlight){
 		m_HexHighlight->Shutdown();
@@ -492,9 +614,8 @@ bool ApplicationClass::RenderGraphics(){
 	int i;
 	int* terrain;
 	float cameraX, cameraY, cameraZ;
-	float cursorX, cursorY, normalizedCursorX, normalizedCursorY;
-	int hexX, hexY;
 	int highlightX, highlightY;
+	int agentX, agentY;
 
 	// Clear the buffers to begin the scene.
 	m_D3D->BeginScene(0.0f, 0.0f, 0.0f, 1.0f);
@@ -571,68 +692,59 @@ bool ApplicationClass::RenderGraphics(){
 			return false;
 		}
 
-		// Find the hex that the cursor is overtop of this frame
-		// NOTE: Because the result of this calculation will need to be used elsewhere as well
-		//       it will be moved and the results stored in the class
+		// Highlight only hexes that are actually on the map (non-negative coordinates, within bounds)
+		if (m_currentTileX >= 0 && m_currentTileX < m_combatMapWidth && m_currentTileY >= 0 && m_currentTileY < m_combatMapHeight){
 
-		// Calculate the actual cursor position relative to the map
-		cursorX = (float)m_mouseX + cameraX - MAP_HORIZONTALOFFSET;
-		cursorY = (float)m_mouseY - cameraY - MAP_VERTICALOFFSET;
+			// From the grid coordinates, calculate the absolute pixel coordinates to render the highlight to
+			highlightX = (int)(1.5f * HEX_SIZE * m_currentTileX);
+			highlightY = (int)(HEX_HEIGHT * (m_currentTileY + 0.5 * abs(m_currentTileX % 2)));
 
-		if (cursorX >= 0){
-			// Calculate the grid coordinates for the hex the cursor is over
-			hexX = (int)(cursorX / (1.5f * HEX_SIZE));
+			// Turn on alpha blending to highlight
+			m_D3D->TurnOnAlphaBlending();
 
-			// Use the X-coordinate of the cursor to find the column
-			if (fmod(cursorX, 1.5f * HEX_SIZE) >= 0.5f * HEX_SIZE){
-				// The X-position of the Hex that the cursor is over can be identified by the X-coordinate alone
-				hexX = (int)(cursorX / (1.5f * HEX_SIZE));
+			// Render the highlight overtop of whatever hex the cursor is over
+			result = m_HexHighlight->Render(m_D3D->GetDeviceContext(), highlightX, highlightY, terrain);
+			if (!result){
+				return false;
+			}
+
+			result = m_TextureShader->Render(m_D3D->GetDeviceContext(), m_HexHighlight->GetIndexCount(), worldMatrix, viewMatrix, orthoMatrix, m_HexHighlight->GetTexture(), PSTYPE_LOWALPHA);
+			if (!result){
+				return false;
+			}
+
+			// Turn off alpha blending
+			m_D3D->TurnOffAlphaBlending();
+		}
+
+		// Render Agents
+		for (i = 0; i < sizeof(m_Agents); i++){
+			// Get the position of the agent
+			m_Agents[i]->getPosition(agentX, agentY);
+			
+			// Calculate the pixel coordinates to render the agent to
+			agentY = (int)(MAP_VERTICALOFFSET + HEX_HEIGHT*((float)agentY + 0.5f * fmod((float)agentX, 2.0f)));
+			agentX = (int)(MAP_HORIZONTALOFFSET + (HEX_SIZE / 2.0f) + (1.5f * HEX_SIZE * agentX));
+
+			if (m_Agents[i]->getType() < AGENTTYPE_ACTIVE1){
+				// Render an inactive agent
+				result = m_AgentSprites->Render(m_D3D->GetDeviceContext(), agentX, agentY);
+				if (!result){
+					return false;
+				}
 			} else{
-				// The cursor could be over a hex in either of 2 adjacent columns, will need to use both
-				// coordinates to determine the column
-
-				// Normalize the coordinates to be relative the origin
-				normalizedCursorX = abs(fmod(cursorX, 1.5f * HEX_SIZE)) / (0.5f * HEX_SIZE);
-				normalizedCursorY = abs((fmod(cursorY + 0.5f * HEX_HEIGHT * (float)(abs(hexX % 2)), HEX_HEIGHT)) - 0.5f * HEX_HEIGHT) / (0.5f * HEX_HEIGHT);
-
-				if (normalizedCursorX >= abs(normalizedCursorY)){
-					hexX = (int)(cursorX / (1.5f * HEX_SIZE));
-				} else{
-					hexX = (int)(cursorX / (1.5f * HEX_SIZE)) - 1;
-				}
-			}
-
-			// Now that we know the column, we can identify the row using the Y-coordinate
-			hexY = (int)((cursorY - 0.5f * HEX_HEIGHT * abs(hexX % 2)) / HEX_HEIGHT);
-
-			// Integer division rounds towards 0, make sure that we catch all negative Y-coordinates as negative
-			if (cursorY - 0.5f * HEX_HEIGHT * abs(hexX % 2) < 0){
-				hexY = -1;
-			}
-
-			// Highlight only hexes that are actually on the map (non-negative coordinates, within bounds)
-			if (hexX >= 0 && hexX < m_combatMapWidth && hexY >= 0 && hexY < m_combatMapHeight){
-
-				// From the grid coordinates, calculate the absolute pixel coordinates to render the highlight to
-				highlightX = (int)(1.5f * HEX_SIZE * hexX);
-				highlightY = (int)(HEX_HEIGHT * (hexY + 0.5 * abs(hexX % 2)));
-
-				// Turn on alpha blending to highlight
-				m_D3D->TurnOnAlphaBlending();
-
-				// Render the highlight overtop of whatever hex the cursor is over
-				result = m_HexHighlight->Render(m_D3D->GetDeviceContext(), highlightX, highlightY, terrain);
+				// Render an active agent
+				/*
+				result = m_AgentSprites->Render(m_D3D->GetDeviceContext(), agentX, agentY);
 				if (!result){
 					return false;
-				}
+				}*/
+			}
 
-				result = m_TextureShader->Render(m_D3D->GetDeviceContext(), m_HexHighlight->GetIndexCount(), worldMatrix, viewMatrix, orthoMatrix, m_HexHighlight->GetTexture(), PSTYPE_LOWALPHA);
-				if (!result){
-					return false;
-				}
 
-				// Turn off alpha blending
-				m_D3D->TurnOffAlphaBlending();
+			result = m_TextureShader->Render(m_D3D->GetDeviceContext(), m_AgentSprites->GetIndexCount(), worldMatrix, viewMatrix, orthoMatrix, m_AgentSprites->GetTexture(), PSTYPE_NORMAL);
+			if (!result){
+				return false;
 			}
 		}
 

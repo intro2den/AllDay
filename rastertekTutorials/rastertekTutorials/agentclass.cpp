@@ -7,7 +7,7 @@ AgentClass::AgentClass(){
 AgentClass::~AgentClass(){
 }
 
-bool AgentClass::Initialize(int agentType, int posX, int posY){
+bool AgentClass::Initialize(AgentType agentType, int posX, int posY){
 	m_agentType = agentType;
 	m_posX = posX;
 	m_posY = posY;
@@ -24,7 +24,7 @@ void AgentClass::setHeading(int heading){
 	m_heading = heading;
 }
 
-int AgentClass::getType(){
+AgentType AgentClass::getType(){
 	return m_agentType;
 }
 
