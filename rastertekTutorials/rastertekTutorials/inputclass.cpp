@@ -28,6 +28,10 @@ bool InputClass::Initialize(HINSTANCE hinstance, HWND hwnd, int screenWidth, int
 	m_mouseX = 0;
 	m_mouseY = 0;
 
+	// Initialize the leftMousePressed and leftMouseReleased flags to false
+	m_leftMousePressed = false;
+	m_leftMouseReleased = false;
+
 	// Initialize the main direct input interface.
 	result = DirectInput8Create(hinstance, DIRECTINPUT_VERSION, IID_IDirectInput8, (void**)&m_directInput, NULL);
 	if (FAILED(result))	{
@@ -167,7 +171,12 @@ bool InputClass::ReadMouse(){
 	m_mouseY = point.y;
 
 	// Only read the mouse device if the cursor is within the application window (will otherwise use results of last read)
-	in_bounds = m_mouseX > 0 && m_mouseY > 0 && m_mouseX < m_screenWidth && m_mouseY < m_screenHeight;
+	// NOTE: May not want to check for bounds
+	//   - move mouse off application with button in one state
+	//   - move back over with other state
+	//   - unintended behaviour occurs (ex. mouse pressed behaviour)
+	//   Is this avoidable?
+	in_bounds = (m_mouseX > 0 && m_mouseY > 0 && m_mouseX < m_screenWidth && m_mouseY < m_screenHeight);
 
 	if (in_bounds){
 		// Read the mouse device.
@@ -187,7 +196,18 @@ bool InputClass::ReadMouse(){
 }
 
 void InputClass::ProcessInput(){
-	// NOTE: This function is unlikely to be needed - previously calculated cursor position
+	// Update the leftMousePressed and leftMouseReleased flags
+	m_leftMouseReleased = false;
+	
+	if (!m_mouseState.rgbButtons[0] && m_leftMousePressed){
+		m_leftMousePressed = false;
+		m_leftMouseReleased = true;
+	}
+
+	if (m_mouseState.rgbButtons[0]){
+		m_leftMousePressed = true;
+	}
+
 	return;
 }
 
@@ -207,12 +227,11 @@ void InputClass::GetMouseLocation(int& mouseX, int& mouseY){
 }
 
 bool InputClass::IsLeftMousePressed(){
-	// Check if the left mouse button is pressed.
-	if (m_mouseState.rgbButtons[0]){
-		return true;
-	}
+	return m_leftMousePressed;
+}
 
-	return false;
+bool InputClass::WasLeftMouseClicked(){
+	return m_leftMouseReleased;
 }
 
 bool InputClass::IsUpPressed(){

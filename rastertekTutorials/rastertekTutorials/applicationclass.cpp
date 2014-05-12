@@ -348,7 +348,7 @@ bool ApplicationClass::HandleInput(float frameTime){
 	case MAINSTATE_MAINMENU:
 		// Main Menu Processing
 		// Process mouse input, left mouse button
-		if (m_Input->IsLeftMousePressed() == true){
+		if (m_Input->WasLeftMouseClicked() == true){
 			// First option changes MainState to CombatMap
 			if (m_mouseX > 50 && m_mouseX < 750 && m_mouseY > 125 && m_mouseY < 175){
 				m_MainState = MAINSTATE_COMBATMAP;
@@ -374,11 +374,6 @@ bool ApplicationClass::HandleInput(float frameTime){
 
 		// Scroll the camera if the cursor is near the edge of the window
 		// or if the user is pressing the corresponding arrow keys
-		
-		// TODO: Implement scrolling by cursor position
-		//       Implement bounds on the camera
-		//       Fix the rendered position of any UI elements regardless of camera position
-
 		// Scroll Up/Forward
 		scrolling = (m_Input->IsUpPressed() || (m_mouseY >= 0 && m_mouseY < 20));
 		m_Position->MoveForward(scrolling);
@@ -399,7 +394,7 @@ bool ApplicationClass::HandleInput(float frameTime){
 		m_Position->GetPosition(posX, posY, posZ);
 		m_Camera->SetPosition(posX, posY, posZ);
 
-		if (m_Input->IsLeftMousePressed() == true){
+		if (m_Input->WasLeftMouseClicked() == true){
 			// If the mouse is in the top left corner, return to the main menu
 			if (m_mouseX >= 0 && m_mouseX < 50 && m_mouseY >= 0 && m_mouseY < 50){
 				m_MainState = MAINSTATE_MAINMENU;
