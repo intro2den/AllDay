@@ -12,9 +12,13 @@ void ActiveAgentClass::Move(int mapWidth, int mapHeight, int *costArray, int tar
 	Pathnode path;
 
 	validMove = Search(mapWidth, mapHeight, costArray, targetX, targetY, &path);
+	if (validMove){
+		setPosition(targetX, targetY);
+	}
 }
 
 bool ActiveAgentClass::Search(int mapWidth, int mapHeight, int *costArray, int targetX, int targetY, Pathnode *path){
+	// Find and return the minimum cost path from the agent's current postion to the target coordinates if one exists
 	int currX, currY;
 
 	getPosition(currX, currY);
@@ -27,7 +31,7 @@ bool ActiveAgentClass::Search(int mapWidth, int mapHeight, int *costArray, int t
 	temp.prev = nullptr;
 
 	queue[0] = temp;
-
+	/*
 	while (queue[0].tileX != targetX || queue[0].tileY != targetY){
 		int index = queue[0].tileX*mapHeight + queue[0].tileY;
 		if (queue[0].tileX % 2 == 0){
@@ -104,7 +108,7 @@ bool ActiveAgentClass::Search(int mapWidth, int mapHeight, int *costArray, int t
 			temp.prev = &queue[0];
 			queue[sizeof(queue)-1] = temp;
 		}
-
+		
 		
 		/* indexing
 		int index2 = index -1;
@@ -117,5 +121,7 @@ bool ActiveAgentClass::Search(int mapWidth, int mapHeight, int *costArray, int t
 		odd true = queue[0].tileX % 2 == 1;
 		even true = queue[0].tileX % 2 == 0;
 		*/
-	}
+	//}
+	
+	return false;
 }

@@ -5,7 +5,8 @@
 
 TextureShaderClass::TextureShaderClass(){
 	m_vertexShader = 0;
-	m_pixelShader = 0;
+	m_normalPixelShader = 0;
+	m_lowAlphaPixelShader = 0;
 	m_layout = 0;
 	m_matrixBuffer = 0;
 	m_sampleState = 0;
@@ -17,15 +18,11 @@ TextureShaderClass::TextureShaderClass(const TextureShaderClass& other){
 TextureShaderClass::~TextureShaderClass(){
 }
 
-bool TextureShaderClass::Initialize(ID3D11Device* device, HWND hwnd, bool lowAlpha){
+bool TextureShaderClass::Initialize(ID3D11Device* device, HWND hwnd){
 	bool result;
 
 	// Initialize the vertex and pixel shaders.
-	if (lowAlpha){
-		result = InitializeShader(device, hwnd, "../rastertekTutorials/texture.vs", "../rastertekTutorials/lowalphatexture.ps");
-	} else{
-		result = InitializeShader(device, hwnd, "../rastertekTutorials/texture.vs", "../rastertekTutorials/texture.ps");
-	}
+	result = InitializeShader(device, hwnd, "../rastertekTutorials/texture.vs", "../rastertekTutorials/texture.ps", "../rastertekTutorials/lowalphatexture.ps");
 	if (!result){
 		return false;
 	}
@@ -40,7 +37,7 @@ void TextureShaderClass::Shutdown(){
 	return;
 }
 
-bool TextureShaderClass::Render(ID3D11DeviceContext* deviceContext, int indexCount, D3DXMATRIX worldMatrix, D3DXMATRIX viewMatrix, D3DXMATRIX projectionMatrix, ID3D11ShaderResourceView* texture){
+bool TextureShaderClass::Render(ID3D11DeviceContext* deviceContext, int indexCount, D3DXMATRIX worldMatrix, D3DXMATRIX viewMatrix, D3DXMATRIX projectionMatrix, ID3D11ShaderResourceView* texture, PixelShaderType pixelShader){
 	bool result;
 
 	// Set the shader parameters that it will use for rendering.
@@ -50,16 +47,17 @@ bool TextureShaderClass::Render(ID3D11DeviceContext* deviceContext, int indexCou
 	}
 
 	// Now render the prepared buffers with the shader.
-	RenderShader(deviceContext, indexCount);
+	RenderShader(deviceContext, indexCount, pixelShader);
 
 	return true;
 }
 
-bool TextureShaderClass::InitializeShader(ID3D11Device* device, HWND hwnd, CHAR* vsFilename, CHAR* psFilename){
+bool TextureShaderClass::InitializeShader(ID3D11Device* device, HWND hwnd, CHAR* vsFilename, CHAR* psFilename, CHAR* lowAlphaPSFilename){
 	HRESULT result;
 	ID3D10Blob* errorMessage;
 	ID3D10Blob* vertexShaderBuffer;
 	ID3D10Blob* pixelShaderBuffer;
+	ID3D10Blob* lowAlphaPixelShaderBuffer;
 	D3D11_INPUT_ELEMENT_DESC polygonLayout[2];
 	unsigned int numElements;
 	D3D11_BUFFER_DESC matrixBufferDesc;
@@ -96,6 +94,20 @@ bool TextureShaderClass::InitializeShader(ID3D11Device* device, HWND hwnd, CHAR*
 		return false;
 	}
 
+	// Compile the low alpha pixel shader code.
+	result = D3DX11CompileFromFile(lowAlphaPSFilename, NULL, NULL, "TexturePixelShader", "ps_4_0", D3D10_SHADER_ENABLE_STRICTNESS, 0, NULL, &lowAlphaPixelShaderBuffer, &errorMessage, NULL);
+	if (FAILED(result)){
+		// If the shader failed to compile it should have writen something to the error message.
+		if (errorMessage){
+			OutputShaderErrorMessage(errorMessage, hwnd, (WCHAR*)psFilename);
+		}
+		else{ // If there was  nothing in the error message then it simply could not find the file itself.
+			MessageBox(hwnd, psFilename, "Missing Shader File", MB_OK);
+		}
+
+		return false;
+	}
+
 	// Create the vertex shader from the buffer.
 	result = device->CreateVertexShader(vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), NULL, &m_vertexShader);
 	if (FAILED(result)){
@@ -103,7 +115,13 @@ bool TextureShaderClass::InitializeShader(ID3D11Device* device, HWND hwnd, CHAR*
 	}
 
 	// Create the pixel shader from the buffer.
-	result = device->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, &m_pixelShader);
+	result = device->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, &m_normalPixelShader);
+	if (FAILED(result)){
+		return false;
+	}
+
+	// Create the low alpha pixel shader from the buffer.
+	result = device->CreatePixelShader(lowAlphaPixelShaderBuffer->GetBufferPointer(), lowAlphaPixelShaderBuffer->GetBufferSize(), NULL, &m_lowAlphaPixelShader);
 	if (FAILED(result)){
 		return false;
 	}
@@ -141,6 +159,9 @@ bool TextureShaderClass::InitializeShader(ID3D11Device* device, HWND hwnd, CHAR*
 
 	pixelShaderBuffer->Release();
 	pixelShaderBuffer = 0;
+
+	lowAlphaPixelShaderBuffer->Release();
+	lowAlphaPixelShaderBuffer = 0;
 
 	// Setup the description of the dynamic matrix constant buffer that is in the vertex shader.
 	matrixBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
@@ -199,10 +220,15 @@ void TextureShaderClass::ShutdownShader(){
 		m_layout = 0;
 	}
 
-	// Release the pixel shader.
-	if (m_pixelShader){
-		m_pixelShader->Release();
-		m_pixelShader = 0;
+	// Release the pixel shaders.
+	if (m_lowAlphaPixelShader){
+		m_lowAlphaPixelShader->Release();
+		m_lowAlphaPixelShader = 0;
+	}
+
+	if (m_normalPixelShader){
+		m_normalPixelShader->Release();
+		m_normalPixelShader = 0;
 	}
 
 	// Release the vertex shader.
@@ -286,13 +312,23 @@ bool TextureShaderClass::SetShaderParameters(ID3D11DeviceContext* deviceContext,
 	return true;
 }
 
-void TextureShaderClass::RenderShader(ID3D11DeviceContext* deviceContext, int indexCount){
+void TextureShaderClass::RenderShader(ID3D11DeviceContext* deviceContext, int indexCount, PixelShaderType pixelShader){
 	// Set the vertex input layout.
 	deviceContext->IASetInputLayout(m_layout);
 
 	// Set the vertex and pixel shaders that will be used to render this triangle.
 	deviceContext->VSSetShader(m_vertexShader, NULL, 0);
-	deviceContext->PSSetShader(m_pixelShader, NULL, 0);
+
+	// Set the pixel shader based on the type specificed
+	switch (pixelShader){
+	case PSTYPE_NORMAL:
+		deviceContext->PSSetShader(m_normalPixelShader, NULL, 0);
+		break;
+
+	case PSTYPE_LOWALPHA:
+		deviceContext->PSSetShader(m_lowAlphaPixelShader, NULL, 0);
+		break;
+	}
 
 	// Set the sampler state in the pixel shader.
 	deviceContext->PSSetSamplers(0, 1, &m_sampleState);

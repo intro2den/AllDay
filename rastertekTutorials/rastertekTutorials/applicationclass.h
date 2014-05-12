@@ -62,7 +62,6 @@ private:
 	HexMapClass* m_TerrainMap;
 	HexMapClass* m_HexHighlight;
 	TextureShaderClass* m_TextureShader;
-	TextureShaderClass* m_LowAlphaTextureShader;
 	TextClass* m_Text;
 	FontShaderClass* m_FontShader;
 	TimerClass* m_Timer;

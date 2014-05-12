@@ -15,7 +15,6 @@ ApplicationClass::ApplicationClass(){
 	m_TerrainMap = 0;
 	m_HexHighlight = 0;
 	m_TextureShader = 0;
-	m_LowAlphaTextureShader = 0;
 	m_Text = 0;
 	m_FontShader = 0;
 	m_Timer = 0;
@@ -127,20 +126,7 @@ bool ApplicationClass::Initialize(HINSTANCE hinstance, HWND hwnd, int screenWidt
 	}
 
 	// Initialize the texture shader object.
-	result = m_TextureShader->Initialize(m_D3D->GetDevice(), hwnd, false);
-	if (!result){
-		MessageBox(hwnd, "Could not initialize the texture shader object.", "Error", MB_OK);
-		return false;
-	}
-
-	// Create the texture shader object.
-	m_LowAlphaTextureShader = new TextureShaderClass;
-	if (!m_LowAlphaTextureShader){
-		return false;
-	}
-
-	// Initialize the texture shader object.
-	result = m_LowAlphaTextureShader->Initialize(m_D3D->GetDevice(), hwnd, true);
+	result = m_TextureShader->Initialize(m_D3D->GetDevice(), hwnd);
 	if (!result){
 		MessageBox(hwnd, "Could not initialize the texture shader object.", "Error", MB_OK);
 		return false;
@@ -230,13 +216,6 @@ void ApplicationClass::Shutdown(){
 		m_Text->Shutdown();
 		delete m_Text;
 		m_Text = 0;
-	}
-
-	// Release the low alpha texture shader object
-	if (m_LowAlphaTextureShader){
-		m_LowAlphaTextureShader->Shutdown();
-		delete m_LowAlphaTextureShader;
-		m_LowAlphaTextureShader = 0;
 	}
 
 	// Release the texture shader object
@@ -546,7 +525,7 @@ bool ApplicationClass::RenderGraphics(){
 		return false;
 	}
 
-	result = m_TextureShader->Render(m_D3D->GetDeviceContext(), m_Background->GetIndexCount(), worldMatrix, viewMatrix, orthoMatrix, m_Background->GetTexture());
+	result = m_TextureShader->Render(m_D3D->GetDeviceContext(), m_Background->GetIndexCount(), worldMatrix, viewMatrix, orthoMatrix, m_Background->GetTexture(), PSTYPE_NORMAL);
 	if (!result){
 		return false;
 	}
@@ -565,7 +544,7 @@ bool ApplicationClass::RenderGraphics(){
 			}
 
 			// Render the bitmap with the texture shader.
-			result = m_TextureShader->Render(m_D3D->GetDeviceContext(), m_MainMenuButton->GetIndexCount(), worldMatrix, viewMatrix, orthoMatrix, m_MainMenuButton->GetTexture());
+			result = m_TextureShader->Render(m_D3D->GetDeviceContext(), m_MainMenuButton->GetIndexCount(), worldMatrix, viewMatrix, orthoMatrix, m_MainMenuButton->GetTexture(), PSTYPE_NORMAL);
 			if (!result){
 				return false;
 			}
@@ -592,7 +571,7 @@ bool ApplicationClass::RenderGraphics(){
 			return false;
 		}
 
-		result = m_TextureShader->Render(m_D3D->GetDeviceContext(), m_TerrainMap->GetIndexCount(), worldMatrix, viewMatrix, orthoMatrix, m_TerrainMap->GetTexture());
+		result = m_TextureShader->Render(m_D3D->GetDeviceContext(), m_TerrainMap->GetIndexCount(), worldMatrix, viewMatrix, orthoMatrix, m_TerrainMap->GetTexture(), PSTYPE_NORMAL);
 		if (!result){
 			return false;
 		}
@@ -613,8 +592,7 @@ bool ApplicationClass::RenderGraphics(){
 			if (fmod(cursorX, 1.5f * HEX_SIZE) >= 0.5f * HEX_SIZE){
 				// The X-position of the Hex that the cursor is over can be identified by the X-coordinate alone
 				hexX = (int)(cursorX / (1.5f * HEX_SIZE));
-			}
-			else{
+			} else{
 				// The cursor could be over a hex in either of 2 adjacent columns, will need to use both
 				// coordinates to determine the column
 
@@ -624,20 +602,21 @@ bool ApplicationClass::RenderGraphics(){
 
 				if (normalizedCursorX >= abs(normalizedCursorY)){
 					hexX = (int)(cursorX / (1.5f * HEX_SIZE));
-				}
-				else{
+				} else{
 					hexX = (int)(cursorX / (1.5f * HEX_SIZE)) - 1;
 				}
 			}
 
 			// Now that we know the column, we can identify the row using the Y-coordinate
 			hexY = (int)((cursorY - 0.5f * HEX_HEIGHT * abs(hexX % 2)) / HEX_HEIGHT);
+
+			// Integer division rounds towards 0, make sure that we catch all negative Y-coordinates as negative
 			if (cursorY - 0.5f * HEX_HEIGHT * abs(hexX % 2) < 0){
 				hexY = -1;
 			}
 
-			// Highlight only hexes that are actually on the map
-			if (hexX >= 0 && hexX < m_combatMapWidth && hexY >= 0 && m_combatMapHeight){
+			// Highlight only hexes that are actually on the map (non-negative coordinates, within bounds)
+			if (hexX >= 0 && hexX < m_combatMapWidth && hexY >= 0 && hexY < m_combatMapHeight){
 
 				// From the grid coordinates, calculate the absolute pixel coordinates to render the highlight to
 				highlightX = (int)(1.5f * HEX_SIZE * hexX);
@@ -652,7 +631,7 @@ bool ApplicationClass::RenderGraphics(){
 					return false;
 				}
 
-				result = m_LowAlphaTextureShader->Render(m_D3D->GetDeviceContext(), m_HexHighlight->GetIndexCount(), worldMatrix, viewMatrix, orthoMatrix, m_HexHighlight->GetTexture());
+				result = m_TextureShader->Render(m_D3D->GetDeviceContext(), m_HexHighlight->GetIndexCount(), worldMatrix, viewMatrix, orthoMatrix, m_HexHighlight->GetTexture(), PSTYPE_LOWALPHA);
 				if (!result){
 					return false;
 				}
@@ -689,7 +668,7 @@ bool ApplicationClass::RenderGraphics(){
 		return false;
 	}
 
-	result = m_TextureShader->Render(m_D3D->GetDeviceContext(), m_Mouse->GetIndexCount(), worldMatrix, viewMatrix, orthoMatrix, m_Mouse->GetTexture());
+	result = m_TextureShader->Render(m_D3D->GetDeviceContext(), m_Mouse->GetIndexCount(), worldMatrix, viewMatrix, orthoMatrix, m_Mouse->GetTexture(), PSTYPE_NORMAL);
 	if (!result){
 		return false;
 	}
