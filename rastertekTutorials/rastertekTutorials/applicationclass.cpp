@@ -452,6 +452,12 @@ bool ApplicationClass::HandleInput(float frameTime){
 				// Set the position of the camera back to the origin
 				m_Position->SetPosition(0.0f, 0.0f, -10.0f);
 				m_Camera->SetPosition(0.0f, 0.0f, -10.0f);
+				break;
+			}
+
+			// Move the first agent to whatever hex is currently highlighted
+			if (m_currentTileX >= 0 && m_currentTileX < m_combatMapWidth && m_currentTileY >= 0 && m_currentTileY < m_combatMapHeight){
+				m_Agents[0]->setPosition(m_currentTileX, m_currentTileY);
 			}
 		}
 
@@ -551,7 +557,7 @@ bool ApplicationClass::InitializeCombatMap(MapType mapType, int mapWidth, int ma
 	}
 
 	// Initialize a HexMap to highlight the tile that the user has the cursor over
-	m_AgentSprites = new BitmapClass();
+	m_AgentSprites = new SpriteClass();
 	if (!m_AgentSprites){
 		return false;
 	}
@@ -728,17 +734,16 @@ bool ApplicationClass::RenderGraphics(){
 
 			if (m_Agents[i]->getType() < AGENTTYPE_ACTIVE1){
 				// Render an inactive agent
-				result = m_AgentSprites->Render(m_D3D->GetDeviceContext(), agentX, agentY);
+				result = m_AgentSprites->Render(m_D3D->GetDeviceContext(), agentX, agentY, 0);
 				if (!result){
 					return false;
 				}
 			} else{
 				// Render an active agent
-				/*
-				result = m_AgentSprites->Render(m_D3D->GetDeviceContext(), agentX, agentY);
+				result = m_AgentSprites->Render(m_D3D->GetDeviceContext(), agentX, agentY, 1);
 				if (!result){
 					return false;
-				}*/
+				}
 			}
 
 

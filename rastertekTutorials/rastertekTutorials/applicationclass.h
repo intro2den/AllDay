@@ -27,6 +27,7 @@ const int MAX_AGENTS = 512;
 #include "timerclass.h"
 #include "positionclass.h"
 #include "activeagentclass.h"
+#include "spriteclass.h"
 
 ////////////////////////////////////////////////////////////////////////////////
 // Class name: ApplicationClass
@@ -76,5 +77,5 @@ private:
 	int m_currentTileX, m_currentTileY;
 
 	AgentClass** m_Agents;
-	BitmapClass* m_AgentSprites;
+	SpriteClass* m_AgentSprites;
 };
