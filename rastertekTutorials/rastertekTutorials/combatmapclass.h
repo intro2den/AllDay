@@ -29,7 +29,7 @@ public:
 	CombatMap();
 	~CombatMap();
 
-	bool Initialize(MapType mapType, int mapWidth, int mapHeight, int screenWidth, int screenHeight);
+	bool Initialize(MapType mapType, int mapWidth, int mapHeight);
 	void Shutdown();
 
 	bool GetTerrainArray(int*);

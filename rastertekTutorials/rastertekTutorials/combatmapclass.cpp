@@ -12,7 +12,7 @@ CombatMap::CombatMap(){
 CombatMap::~CombatMap(){
 }
 
-bool CombatMap::Initialize(MapType mapType, int mapWidth, int mapHeight, int screenWidth, int screenHeight){
+bool CombatMap::Initialize(MapType mapType, int mapWidth, int mapHeight){
 	bool result;
 	int i;
 

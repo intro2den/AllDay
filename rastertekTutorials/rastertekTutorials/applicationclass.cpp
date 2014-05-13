@@ -114,7 +114,7 @@ bool ApplicationClass::Initialize(HINSTANCE hinstance, HWND hwnd, int screenWidt
 		return false;
 	}
 
-	result = m_MainMenuButton->Initialize(m_D3D->GetDevice(), m_screenWidth, m_screenHeight, "../rastertekTutorials/data/hexagons.dds", m_screenWidth - 100, 50);
+	result = m_MainMenuButton->Initialize(m_D3D->GetDevice(), m_screenWidth, m_screenHeight, "../rastertekTutorials/data/ui_button.dds", m_screenWidth - 100, 50);
 	if (!result){
 		MessageBox(hwnd, "Could not initialize the main menu bitmap object.", "Error", MB_OK);
 		return false;
@@ -480,7 +480,7 @@ bool ApplicationClass::InitializeCombatMap(MapType mapType, int mapWidth, int ma
 		return false;
 	}
 
-	result = m_CombatMap->Initialize(mapType, m_combatMapWidth, m_combatMapHeight, m_screenWidth, m_screenHeight);
+	result = m_CombatMap->Initialize(mapType, m_combatMapWidth, m_combatMapHeight);
 	if (!result){
 		return false;
 	}
@@ -502,7 +502,7 @@ bool ApplicationClass::InitializeCombatMap(MapType mapType, int mapWidth, int ma
 		return false;
 	}
 
-	result = m_HexHighlight->Initialize(m_D3D->GetDevice(), m_screenWidth, m_screenHeight, "../rastertekTutorials/data/white.dds", 1, 1);
+	result = m_HexHighlight->Initialize(m_D3D->GetDevice(), m_screenWidth, m_screenHeight, "../rastertekTutorials/data/highlight_white.dds", 1, 1);
 	if (!result){
 		return false;
 	}
