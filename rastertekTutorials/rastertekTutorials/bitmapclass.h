@@ -31,6 +31,7 @@ public:
 
 	bool Initialize(ID3D11Device*, int, int, CHAR*, int, int);
 	void Shutdown();
+	bool SetDimensions(int, int);
 	bool Render(ID3D11DeviceContext*, int, int);
 
 	int GetIndexCount();
@@ -52,4 +53,5 @@ private:
 	int m_screenWidth, m_screenHeight;
 	int m_bitmapWidth, m_bitmapHeight;
 	int m_previousPosX, m_previousPosY;
+	bool m_resized;
 };

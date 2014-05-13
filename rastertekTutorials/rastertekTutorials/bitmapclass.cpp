@@ -30,6 +30,9 @@ bool BitmapClass::Initialize(ID3D11Device* device, int screenWidth, int screenHe
 	m_previousPosX = -1;
 	m_previousPosY = -1;
 
+	// Initialize the resized flag to false
+	m_resized = false;
+
 	// Initialize the vertex and index buffers.
 	result = InitializeBuffers(device);
 	if (!result){
@@ -53,6 +56,20 @@ void BitmapClass::Shutdown(){
 	ShutdownBuffers();
 
 	return;
+}
+
+bool BitmapClass::SetDimensions(int bitmapWidth, int bitmapHeight){
+	// Don't do anything if the bitmap already has the specified dimensions
+	if (m_bitmapWidth == bitmapWidth && m_bitmapHeight == bitmapHeight){
+		return true;
+	}
+
+	// Change the dimensions of the bitmap and set the resized flag to true so that the vertex buffer is properly updated for rendering
+	m_bitmapWidth = bitmapWidth;
+	m_bitmapHeight = bitmapHeight;
+	m_resized = true;
+
+	return true;
 }
 
 bool BitmapClass::Render(ID3D11DeviceContext* deviceContext, int positionX, int positionY){
@@ -186,15 +203,18 @@ bool BitmapClass::UpdateBuffers(ID3D11DeviceContext* deviceContext, int position
 	VertexType* verticesPtr;
 	HRESULT result;
 
-	// If the position we are rendering this bitmap to has not changed then don't update the vertex buffer since it
-	// currently has the correct parameters.
-	if ((positionX == m_previousPosX) && (positionY == m_previousPosY)){
+	// If the position we are rendering this bitmap to has not changed, and the bitmap has not been resized
+	// then don't update the vertex buffer since it currently has the correct parameters.
+	if ((positionX == m_previousPosX) && (positionY == m_previousPosY) && !m_resized){
 		return true;
 	}
 
 	// If it has changed then update the position it is being rendered to.
 	m_previousPosX = positionX;
 	m_previousPosY = positionY;
+
+	// Set the resized flag to false as the vertex buffer will be properly updated at the end of this call
+	m_resized = false;
 
 	// Calculate the screen coordinates of the left side of the bitmap.
 	left = (float)((m_screenWidth / 2) * -1) + (float)positionX;

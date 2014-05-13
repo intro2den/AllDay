@@ -8,9 +8,10 @@ ApplicationClass::ApplicationClass(){
 	m_Input = 0;
 	m_D3D = 0;
 	m_Camera = 0;
-	m_Background = 0;
-	m_MainMenuButton = 0;
+	m_MainBackground = 0;
+	m_StandardButton = 0;
 	m_Mouse = 0;
+	m_MenuBarBackground = 0;
 	m_CombatMap = 0;
 	m_TerrainMap = 0;
 	m_HexHighlight = 0;
@@ -97,24 +98,24 @@ bool ApplicationClass::Initialize(HINSTANCE hinstance, HWND hwnd, int screenWidt
 	m_Camera->SetPosition(cameraX, cameraY, cameraZ);
 
 	// Initialize the Background bitmap object
-	m_Background = new BitmapClass;
-	if (!m_Background){
+	m_MainBackground = new BitmapClass;
+	if (!m_MainBackground){
 		return false;
 	}
 
-	result = m_Background->Initialize(m_D3D->GetDevice(), m_screenWidth, m_screenHeight, "../rastertekTutorials/data/seafloor.dds", m_screenWidth, m_screenHeight);
+	result = m_MainBackground->Initialize(m_D3D->GetDevice(), m_screenWidth, m_screenHeight, "../rastertekTutorials/data/seafloor.dds", m_screenWidth, m_screenHeight);
 	if (!result){
 		MessageBox(hwnd, "Could not initialize the background object.", "Error", MB_OK);
 		return false;
 	}
 
 	// Initialize the Main Menu bitmap object
-	m_MainMenuButton = new BitmapClass;
-	if (!m_MainMenuButton){
+	m_StandardButton = new BitmapClass;
+	if (!m_StandardButton){
 		return false;
 	}
 
-	result = m_MainMenuButton->Initialize(m_D3D->GetDevice(), m_screenWidth, m_screenHeight, "../rastertekTutorials/data/ui_button.dds", m_screenWidth - 100, 50);
+	result = m_StandardButton->Initialize(m_D3D->GetDevice(), m_screenWidth, m_screenHeight, "../rastertekTutorials/data/ui_button.dds", m_screenWidth - 100, 50);
 	if (!result){
 		MessageBox(hwnd, "Could not initialize the main menu bitmap object.", "Error", MB_OK);
 		return false;
@@ -198,6 +199,9 @@ bool ApplicationClass::Initialize(HINSTANCE hinstance, HWND hwnd, int screenWidt
 
 // Shutdown function - shuts down and releases everything, shuts down window, cleans up handles
 void ApplicationClass::Shutdown(){
+	// Shutdown the CombatMap and release all associated objects
+	ShutdownCombatMap();
+
 	// Release the position object
 	if (m_Position){
 		delete m_Position;
@@ -231,27 +235,6 @@ void ApplicationClass::Shutdown(){
 		m_TextureShader = 0;
 	}
 
-	// Release the Highlight HexMap object
-	if (m_HexHighlight){
-		m_HexHighlight->Shutdown();
-		delete m_HexHighlight;
-		m_HexHighlight = 0;
-	}
-
-	// Release the terrain HexMap object
-	if (m_TerrainMap){
-		m_TerrainMap->Shutdown();
-		delete m_TerrainMap;
-		m_TerrainMap = 0;
-	}
-
-	// Release the Combat Map
-	if (m_CombatMap){
-		m_CombatMap->Shutdown();
-		delete m_CombatMap;
-		m_CombatMap = 0;
-	}
-
 	// Release the Cursor bitmap object
 	if (m_Mouse){
 		m_Mouse->Shutdown();
@@ -260,18 +243,18 @@ void ApplicationClass::Shutdown(){
 	}
 
 	// Release the Main Menu bitmap object
-	if (m_MainMenuButton){
-		m_MainMenuButton->Shutdown();
-		delete m_MainMenuButton;
-		m_MainMenuButton = 0;
+	if (m_StandardButton){
+		m_StandardButton->Shutdown();
+		delete m_StandardButton;
+		m_StandardButton = 0;
 	}
 
 
 	// Release the Background bitmap object
-	if (m_Background){
-		m_Background->Shutdown();
-		delete m_Background;
-		m_Background = 0;
+	if (m_MainBackground){
+		m_MainBackground->Shutdown();
+		delete m_MainBackground;
+		m_MainBackground = 0;
 	}
 
 	// Release the camera object.
@@ -348,8 +331,6 @@ bool ApplicationClass::HandleInput(float frameTime){
 	m_Position->SetFrameTime(frameTime);
 
 	// NOTE: Will also be using MainState/other state checks for rendering
-	// NOTE2: Processing of mouse input occurs while it is pressed down, and
-	//        should instead occur when the button is released (or initially pressed)
 
 	switch (m_MainState){
 	case MAINSTATE_MAINMENU:
@@ -444,8 +425,10 @@ bool ApplicationClass::HandleInput(float frameTime){
 		}
 
 		if (m_Input->WasLeftMouseClicked() == true){
-			// If the mouse is in the top left corner, return to the main menu
-			if (m_mouseX >= 0 && m_mouseX < 50 && m_mouseY >= 0 && m_mouseY < 50){
+			// If the mouse was clicked over the bottom right button on the combatmap menubar
+			// NOTE: Unless proper constants are set based on screen resolution, adding multiple buttons to press will quickly become a nightmare to handle
+			//       Handling a clicked hex is fine, however will need to find a better way to handle user input for buttons/menus.
+			if (m_mouseX >= (int)((float)(m_screenWidth)* 0.75) && m_mouseX <= ((int)((float)(m_screenWidth)* 0.75) + 100) && m_mouseY >= (m_screenHeight - 55) && m_mouseY <= (m_screenHeight - 25)){
 				m_MainState = MAINSTATE_MAINMENU;
 				ShutdownCombatMap();
 
@@ -456,6 +439,9 @@ bool ApplicationClass::HandleInput(float frameTime){
 			}
 
 			// Move the first agent to whatever hex is currently highlighted
+			// NOTE: Should check to ensure the cursor is not overtop of a menu/submenu when considering interaction with the map
+			//       Do not interact with a hex if the mouse is clicked and there is the background of a menu between the cursor and
+			//       the hex.
 			if (m_currentTileX >= 0 && m_currentTileX < m_combatMapWidth && m_currentTileY >= 0 && m_currentTileY < m_combatMapHeight){
 				m_Agents[0]->setPosition(m_currentTileX, m_currentTileY);
 			}
@@ -491,7 +477,7 @@ bool ApplicationClass::InitializeCombatMap(MapType mapType, int mapWidth, int ma
 		return false;
 	}
 
-	result = m_TerrainMap->Initialize(m_D3D->GetDevice(), m_screenWidth, m_screenHeight, "../rastertekTutorials/data/terrain.dds", m_combatMapWidth, m_combatMapHeight);
+	result = m_TerrainMap->Initialize(m_D3D->GetDevice(), m_screenWidth, m_screenHeight, "../rastertekTutorials/data/combatmap_terrain.dds", m_combatMapWidth, m_combatMapHeight);
 	if (!result){
 		return false;
 	}
@@ -509,12 +495,24 @@ bool ApplicationClass::InitializeCombatMap(MapType mapType, int mapWidth, int ma
 
 	// Adjust the bounds on the camera position to allow for proper scrolling
 	boundX = max(0, HEX_SIZE*(1.5f + 1.5f*(float)mapWidth) - (float)m_screenWidth);
-	boundY = min(0, -1.0f * HEX_HEIGHT*(1.5f + (float)mapHeight) + (float)m_screenHeight);
+	boundY = min(0, -1.0f * HEX_HEIGHT*(1.5f + (float)mapHeight) + (float)m_screenHeight - 100.0f);
 	boundZ = -10.0f;
 
 	m_Position->SetBounds(boundX, boundY, boundZ);
 
+	// Initialize the CombatMap UI elements
+	m_MenuBarBackground = new BitmapClass();
+	if (!m_MenuBarBackground){
+		return false;
+	}
+
+	result = m_MenuBarBackground->Initialize(m_D3D->GetDevice(), m_screenWidth, m_screenHeight, "../rastertekTutorials/data/ui_menubarbackground.dds", m_screenWidth, 100);
+	if (!result){
+		return false;
+	}
+
 	// Initialize Agents
+	// NOTE: This process will be subject to considerable change
 	m_Agents = new AgentClass*[MAX_AGENTS];
 	m_Agents[0] = new AgentClass();
 	if (!m_Agents[0]){
@@ -562,7 +560,7 @@ bool ApplicationClass::InitializeCombatMap(MapType mapType, int mapWidth, int ma
 		return false;
 	}
 
-	result = m_AgentSprites->Initialize(m_D3D->GetDevice(), m_screenWidth, m_screenHeight, "../rastertekTutorials/data/agentsprites.dds", HEX_SIZE, HEX_HEIGHT);
+	result = m_AgentSprites->Initialize(m_D3D->GetDevice(), m_screenWidth, m_screenHeight, "../rastertekTutorials/data/agentsprites.dds", (int)HEX_SIZE, (int)HEX_HEIGHT);
 	if (!result){
 		return false;
 	}
@@ -590,6 +588,13 @@ void ApplicationClass::ShutdownCombatMap(){
 
 		delete m_Agents;
 		m_Agents = 0;
+	}
+
+	// Release the MenuBarBackground Bitmap object
+	if (m_MenuBarBackground){
+		m_MenuBarBackground->Shutdown();
+		delete m_MenuBarBackground;
+		m_MenuBarBackground = 0;
 	}
 
 	// Release the Highlight HexMap object
@@ -641,13 +646,17 @@ bool ApplicationClass::RenderGraphics(){
 	// Turn off the Z buffer to begin all 2D rendering.
 	m_D3D->TurnZBufferOff();
 
+	// NOTE: Most of what is rendered - particularly UI elements should probably scale/adjust to the screen resolution
+	//       This should probably be done once most of the UI elements are implemented (to avoid continual restructuring)
+	//       however some initial work should be done before the UI gets complicated so there is something to build off of.
+
 	// Render the Background first
-	result = m_Background->Render(m_D3D->GetDeviceContext(), (int)cameraX, -(int)cameraY);
+	result = m_MainBackground->Render(m_D3D->GetDeviceContext(), (int)cameraX, -(int)cameraY);
 	if (!result){
 		return false;
 	}
 
-	result = m_TextureShader->Render(m_D3D->GetDeviceContext(), m_Background->GetIndexCount(), worldMatrix, viewMatrix, orthoMatrix, m_Background->GetTexture(), PSTYPE_NORMAL);
+	result = m_TextureShader->Render(m_D3D->GetDeviceContext(), m_MainBackground->GetIndexCount(), worldMatrix, viewMatrix, orthoMatrix, m_MainBackground->GetTexture(), PSTYPE_NORMAL);
 	if (!result){
 		return false;
 	}
@@ -657,16 +666,23 @@ bool ApplicationClass::RenderGraphics(){
 	switch (m_MainState){
 	case MAINSTATE_MAINMENU:
 		// Render the Main Menu buttons
+		
+		// First ensure the buttons have the proper dimensions
+		result = m_StandardButton->SetDimensions(m_screenWidth - 100, 50);
+		if (!result){
+			return false;
+		}
+
 		// NOTE: Will also want to render text on these buttons
 		for (i = 0; i < 2; i++){
 			// Put the bitmap vertex and index buffers on the graphics pipeline to prepare them for drawing.
-			result = m_MainMenuButton->Render(m_D3D->GetDeviceContext(), 50, 125 + 75 * i);
+			result = m_StandardButton->Render(m_D3D->GetDeviceContext(), 50, 125 + 75 * i);
 			if (!result){
 				return false;
 			}
 
 			// Render the bitmap with the texture shader.
-			result = m_TextureShader->Render(m_D3D->GetDeviceContext(), m_MainMenuButton->GetIndexCount(), worldMatrix, viewMatrix, orthoMatrix, m_MainMenuButton->GetTexture(), PSTYPE_NORMAL);
+			result = m_TextureShader->Render(m_D3D->GetDeviceContext(), m_StandardButton->GetIndexCount(), worldMatrix, viewMatrix, orthoMatrix, m_StandardButton->GetTexture(), PSTYPE_NORMAL);
 			if (!result){
 				return false;
 			}
@@ -724,6 +740,11 @@ bool ApplicationClass::RenderGraphics(){
 		}
 
 		// Render Agents
+		// Turn on alpha blending while rendering sprites
+		// NOTE: Currently neither the sprites nor the TextureShader object are configured to be able of
+		//       properly blending sprites onto the map - however we will need Alpha Blending on when they are.
+		m_D3D->TurnOnAlphaBlending();
+
 		for (i = 0; i < sizeof(m_Agents); i++){
 			// Get the position of the agent
 			m_Agents[i]->getPosition(agentX, agentY);
@@ -732,7 +753,7 @@ bool ApplicationClass::RenderGraphics(){
 			agentY = (int)(MAP_VERTICALOFFSET + HEX_HEIGHT*((float)agentY + 0.5f * fmod((float)agentX, 2.0f)));
 			agentX = (int)(MAP_HORIZONTALOFFSET + (HEX_SIZE / 2.0f) + (1.5f * HEX_SIZE * agentX));
 
-			if (m_Agents[i]->getType() < AGENTTYPE_ACTIVE1){
+			if (m_Agents[i]->getType() < AGENTTYPE_ACTIVEINACTIVESPLIT){
 				// Render an inactive agent
 				result = m_AgentSprites->Render(m_D3D->GetDeviceContext(), agentX, agentY, 0);
 				if (!result){
@@ -746,8 +767,44 @@ bool ApplicationClass::RenderGraphics(){
 				}
 			}
 
-
 			result = m_TextureShader->Render(m_D3D->GetDeviceContext(), m_AgentSprites->GetIndexCount(), worldMatrix, viewMatrix, orthoMatrix, m_AgentSprites->GetTexture(), PSTYPE_NORMAL);
+			if (!result){
+				return false;
+			}
+		}
+
+		// Turn off alpha blending after rendering the sprites.
+		m_D3D->TurnOffAlphaBlending();
+
+		// Render relevant UI elements (overlays, menus, etc.) that should currently be visible.
+		// NOTE: The elements involved are subject to change in the future
+
+		// Render the CombatMap menubar
+		result = m_MenuBarBackground->Render(m_D3D->GetDeviceContext(), (int)cameraX, m_screenHeight - 100 - (int)cameraY);
+		if (!result){
+			return false;
+		}
+
+		result = m_TextureShader->Render(m_D3D->GetDeviceContext(), m_MenuBarBackground->GetIndexCount(), worldMatrix, viewMatrix, orthoMatrix, m_MenuBarBackground->GetTexture(), PSTYPE_NORMAL);
+		if (!result){
+			return false;
+		}
+
+		// Render the buttons on the menubar
+		
+		// First ensure the buttons have the proper dimensions
+		result = m_StandardButton->SetDimensions(100, 30);
+		if (!result){
+			return false;
+		}
+
+		for (i = 0; i < 2; i++){
+			result = m_StandardButton->Render(m_D3D->GetDeviceContext(), (int)cameraX + (int)((float)(m_screenWidth)* 0.75f), m_screenHeight - 15 - 40 * (i + 1) - (int)cameraY);
+			if (!result){
+				return false;
+			}
+
+			result = m_TextureShader->Render(m_D3D->GetDeviceContext(), m_StandardButton->GetIndexCount(), worldMatrix, viewMatrix, orthoMatrix, m_StandardButton->GetTexture(), PSTYPE_NORMAL);
 			if (!result){
 				return false;
 			}

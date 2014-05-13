@@ -9,7 +9,10 @@
 enum AgentType{
 	AGENTTYPE_INACTIVE1,
 	AGENTTYPE_INACTIVE2,
-	AGENTTYPE_ACTIVE1 = 1000,
+
+	AGENTTYPE_ACTIVEINACTIVESPLIT, // All AgentTypes enumerated after this point are ActiveAgents, all before are InactiveAgents
+
+	AGENTTYPE_ACTIVE1,
 	AGENTTYPE_ACTIVE2
 };
 

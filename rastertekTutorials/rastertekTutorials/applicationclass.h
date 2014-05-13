@@ -58,9 +58,10 @@ private:
 	InputClass* m_Input;
 	D3DClass* m_D3D;
 	CameraClass* m_Camera;
-	BitmapClass* m_Background;
-	BitmapClass* m_MainMenuButton;
+	BitmapClass* m_MainBackground;
+	BitmapClass* m_StandardButton;
 	BitmapClass* m_Mouse;
+	BitmapClass* m_MenuBarBackground;
 	CombatMap* m_CombatMap;
 	HexMapClass* m_TerrainMap;
 	HexMapClass* m_HexHighlight;
@@ -69,13 +70,12 @@ private:
 	FontShaderClass* m_FontShader;
 	TimerClass* m_Timer;
 	PositionClass* m_Position;
+	AgentClass** m_Agents;
+	SpriteClass* m_AgentSprites;
 
 	MainState m_MainState;
 	int m_screenWidth, m_screenHeight;
 	int m_combatMapWidth, m_combatMapHeight;
 	int m_mouseX, m_mouseY;
 	int m_currentTileX, m_currentTileY;
-
-	AgentClass** m_Agents;
-	SpriteClass* m_AgentSprites;
 };
