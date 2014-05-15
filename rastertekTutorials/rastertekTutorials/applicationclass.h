@@ -78,4 +78,5 @@ private:
 	int m_combatMapWidth, m_combatMapHeight;
 	int m_mouseX, m_mouseY;
 	int m_currentTileX, m_currentTileY;
+	D3DXMATRIX m_UIViewMatrix;
 };

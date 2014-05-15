@@ -89,6 +89,7 @@ bool ApplicationClass::Initialize(HINSTANCE hinstance, HWND hwnd, int screenWidt
 	m_Camera->SetPosition(0.0f, 0.0f, -1.0f);
 	m_Camera->Render();
 	m_Camera->GetViewMatrix(baseViewMatrix);
+	m_UIViewMatrix = baseViewMatrix;
 
 	// Set the initial position of the camera.
 	cameraX = 0.0f;
@@ -127,7 +128,7 @@ bool ApplicationClass::Initialize(HINSTANCE hinstance, HWND hwnd, int screenWidt
 		return false;
 	}
 
-	result = m_Mouse->Initialize(m_D3D->GetDevice(), m_screenWidth, m_screenHeight, "../rastertekTutorials/data/cursor.dds", 50, 50);
+	result = m_Mouse->Initialize(m_D3D->GetDevice(), m_screenWidth, m_screenHeight, "../rastertekTutorials/data/cursor.dds", 32, 32);
 	if (!result){
 		MessageBox(hwnd, "Could not initialize the bitmap object.", "Error", MB_OK);
 		return false;
@@ -651,12 +652,12 @@ bool ApplicationClass::RenderGraphics(){
 	//       however some initial work should be done before the UI gets complicated so there is something to build off of.
 
 	// Render the Background first
-	result = m_MainBackground->Render(m_D3D->GetDeviceContext(), (int)cameraX, -(int)cameraY);
+	result = m_MainBackground->Render(m_D3D->GetDeviceContext(), 0, 0);
 	if (!result){
 		return false;
 	}
 
-	result = m_TextureShader->Render(m_D3D->GetDeviceContext(), m_MainBackground->GetIndexCount(), worldMatrix, viewMatrix, orthoMatrix, m_MainBackground->GetTexture(), PSTYPE_NORMAL);
+	result = m_TextureShader->Render(m_D3D->GetDeviceContext(), m_MainBackground->GetIndexCount(), worldMatrix, m_UIViewMatrix, orthoMatrix, m_MainBackground->GetTexture(), PSTYPE_NORMAL);
 	if (!result){
 		return false;
 	}
@@ -682,7 +683,7 @@ bool ApplicationClass::RenderGraphics(){
 			}
 
 			// Render the bitmap with the texture shader.
-			result = m_TextureShader->Render(m_D3D->GetDeviceContext(), m_StandardButton->GetIndexCount(), worldMatrix, viewMatrix, orthoMatrix, m_StandardButton->GetTexture(), PSTYPE_NORMAL);
+			result = m_TextureShader->Render(m_D3D->GetDeviceContext(), m_StandardButton->GetIndexCount(), worldMatrix, m_UIViewMatrix, orthoMatrix, m_StandardButton->GetTexture(), PSTYPE_NORMAL);
 			if (!result){
 				return false;
 			}
@@ -767,7 +768,7 @@ bool ApplicationClass::RenderGraphics(){
 				}
 			}
 
-			result = m_TextureShader->Render(m_D3D->GetDeviceContext(), m_AgentSprites->GetIndexCount(), worldMatrix, viewMatrix, orthoMatrix, m_AgentSprites->GetTexture(), PSTYPE_NORMAL);
+			result = m_TextureShader->Render(m_D3D->GetDeviceContext(), m_AgentSprites->GetIndexCount(), worldMatrix, viewMatrix, orthoMatrix, m_AgentSprites->GetTexture(), PSTYPE_SPRITE);
 			if (!result){
 				return false;
 			}
@@ -780,12 +781,12 @@ bool ApplicationClass::RenderGraphics(){
 		// NOTE: The elements involved are subject to change in the future
 
 		// Render the CombatMap menubar
-		result = m_MenuBarBackground->Render(m_D3D->GetDeviceContext(), (int)cameraX, m_screenHeight - 100 - (int)cameraY);
+		result = m_MenuBarBackground->Render(m_D3D->GetDeviceContext(), 0, m_screenHeight - 100);
 		if (!result){
 			return false;
 		}
 
-		result = m_TextureShader->Render(m_D3D->GetDeviceContext(), m_MenuBarBackground->GetIndexCount(), worldMatrix, viewMatrix, orthoMatrix, m_MenuBarBackground->GetTexture(), PSTYPE_NORMAL);
+		result = m_TextureShader->Render(m_D3D->GetDeviceContext(), m_MenuBarBackground->GetIndexCount(), worldMatrix, m_UIViewMatrix, orthoMatrix, m_MenuBarBackground->GetTexture(), PSTYPE_NORMAL);
 		if (!result){
 			return false;
 		}
@@ -799,12 +800,12 @@ bool ApplicationClass::RenderGraphics(){
 		}
 
 		for (i = 0; i < 2; i++){
-			result = m_StandardButton->Render(m_D3D->GetDeviceContext(), (int)cameraX + (int)((float)(m_screenWidth)* 0.75f), m_screenHeight - 15 - 40 * (i + 1) - (int)cameraY);
+			result = m_StandardButton->Render(m_D3D->GetDeviceContext(), (int)((float)(m_screenWidth)* 0.75f), m_screenHeight - 15 - 40 * (i + 1));
 			if (!result){
 				return false;
 			}
 
-			result = m_TextureShader->Render(m_D3D->GetDeviceContext(), m_StandardButton->GetIndexCount(), worldMatrix, viewMatrix, orthoMatrix, m_StandardButton->GetTexture(), PSTYPE_NORMAL);
+			result = m_TextureShader->Render(m_D3D->GetDeviceContext(), m_StandardButton->GetIndexCount(), worldMatrix, m_UIViewMatrix, orthoMatrix, m_StandardButton->GetTexture(), PSTYPE_NORMAL);
 			if (!result){
 				return false;
 			}
@@ -828,20 +829,20 @@ bool ApplicationClass::RenderGraphics(){
 		return false;
 	}
 
+	// Render the cursor
+	result = m_Mouse->Render(m_D3D->GetDeviceContext(), m_mouseX, m_mouseY);
+	if (!result){
+		return false;
+	}
+
+	result = m_TextureShader->Render(m_D3D->GetDeviceContext(), m_Mouse->GetIndexCount(), worldMatrix, m_UIViewMatrix, orthoMatrix, m_Mouse->GetTexture(), PSTYPE_SPRITE);
+	if (!result){
+		return false;
+	}
+
 	// Turn off alpha blending after rendering the text and cursor
 	m_D3D->TurnOffAlphaBlending();
-
-	// Render the cursor
-	result = m_Mouse->Render(m_D3D->GetDeviceContext(), m_mouseX + (int)cameraX, m_mouseY - (int)cameraY);
-	if (!result){
-		return false;
-	}
-
-	result = m_TextureShader->Render(m_D3D->GetDeviceContext(), m_Mouse->GetIndexCount(), worldMatrix, viewMatrix, orthoMatrix, m_Mouse->GetTexture(), PSTYPE_NORMAL);
-	if (!result){
-		return false;
-	}
-
+	
 	// Turn the Z buffer back on now that all 2D rendering has completed.
 	m_D3D->TurnZBufferOn();
 

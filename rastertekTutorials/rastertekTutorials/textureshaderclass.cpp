@@ -7,6 +7,7 @@ TextureShaderClass::TextureShaderClass(){
 	m_vertexShader = 0;
 	m_normalPixelShader = 0;
 	m_lowAlphaPixelShader = 0;
+	m_spritePixelShader = 0;
 	m_layout = 0;
 	m_matrixBuffer = 0;
 	m_sampleState = 0;
@@ -22,7 +23,7 @@ bool TextureShaderClass::Initialize(ID3D11Device* device, HWND hwnd){
 	bool result;
 
 	// Initialize the vertex and pixel shaders.
-	result = InitializeShader(device, hwnd, "../rastertekTutorials/texture.vs", "../rastertekTutorials/texture.ps", "../rastertekTutorials/lowalphatexture.ps");
+	result = InitializeShader(device, hwnd, "../rastertekTutorials/texture.vs", "../rastertekTutorials/texture.ps", "../rastertekTutorials/lowalphatexture.ps", "../rastertekTutorials/sprite.ps");
 	if (!result){
 		return false;
 	}
@@ -52,12 +53,13 @@ bool TextureShaderClass::Render(ID3D11DeviceContext* deviceContext, int indexCou
 	return true;
 }
 
-bool TextureShaderClass::InitializeShader(ID3D11Device* device, HWND hwnd, CHAR* vsFilename, CHAR* psFilename, CHAR* lowAlphaPSFilename){
+bool TextureShaderClass::InitializeShader(ID3D11Device* device, HWND hwnd, CHAR* vsFilename, CHAR* normalPSFilename, CHAR* lowAlphaPSFilename, CHAR* spritePSFilename){
 	HRESULT result;
 	ID3D10Blob* errorMessage;
 	ID3D10Blob* vertexShaderBuffer;
 	ID3D10Blob* pixelShaderBuffer;
 	ID3D10Blob* lowAlphaPixelShaderBuffer;
+	ID3D10Blob* spritePixelShaderBuffer;
 	D3D11_INPUT_ELEMENT_DESC polygonLayout[2];
 	unsigned int numElements;
 	D3D11_BUFFER_DESC matrixBufferDesc;
@@ -67,6 +69,8 @@ bool TextureShaderClass::InitializeShader(ID3D11Device* device, HWND hwnd, CHAR*
 	errorMessage = 0;
 	vertexShaderBuffer = 0;
 	pixelShaderBuffer = 0;
+	lowAlphaPixelShaderBuffer = 0;
+	spritePixelShaderBuffer = 0;
 
 	// Compile the vertex shader code.
 	result = D3DX11CompileFromFile(vsFilename, NULL, NULL, "TextureVertexShader", "vs_4_0", D3D10_SHADER_ENABLE_STRICTNESS, 0, NULL, &vertexShaderBuffer, &errorMessage, NULL);
@@ -82,13 +86,13 @@ bool TextureShaderClass::InitializeShader(ID3D11Device* device, HWND hwnd, CHAR*
 	}
 
 	// Compile the pixel shader code.
-	result = D3DX11CompileFromFile(psFilename, NULL, NULL, "TexturePixelShader", "ps_4_0", D3D10_SHADER_ENABLE_STRICTNESS, 0, NULL, &pixelShaderBuffer, &errorMessage, NULL);
+	result = D3DX11CompileFromFile(normalPSFilename, NULL, NULL, "TexturePixelShader", "ps_4_0", D3D10_SHADER_ENABLE_STRICTNESS, 0, NULL, &pixelShaderBuffer, &errorMessage, NULL);
 	if (FAILED(result)){
 		// If the shader failed to compile it should have writen something to the error message.
 		if (errorMessage){
-			OutputShaderErrorMessage(errorMessage, hwnd, (WCHAR*)psFilename);
+			OutputShaderErrorMessage(errorMessage, hwnd, (WCHAR*)normalPSFilename);
 		} else{ // If there was  nothing in the error message then it simply could not find the file itself.
-			MessageBox(hwnd, psFilename, "Missing Shader File", MB_OK);
+			MessageBox(hwnd, normalPSFilename, "Missing Shader File", MB_OK);
 		}
 
 		return false;
@@ -99,10 +103,24 @@ bool TextureShaderClass::InitializeShader(ID3D11Device* device, HWND hwnd, CHAR*
 	if (FAILED(result)){
 		// If the shader failed to compile it should have writen something to the error message.
 		if (errorMessage){
-			OutputShaderErrorMessage(errorMessage, hwnd, (WCHAR*)psFilename);
+			OutputShaderErrorMessage(errorMessage, hwnd, (WCHAR*)lowAlphaPSFilename);
 		}
 		else{ // If there was  nothing in the error message then it simply could not find the file itself.
-			MessageBox(hwnd, psFilename, "Missing Shader File", MB_OK);
+			MessageBox(hwnd, lowAlphaPSFilename, "Missing Shader File", MB_OK);
+		}
+
+		return false;
+	}
+
+	// Compile the sprite pixel shader code.
+	result = D3DX11CompileFromFile(spritePSFilename, NULL, NULL, "TexturePixelShader", "ps_4_0", D3D10_SHADER_ENABLE_STRICTNESS, 0, NULL, &spritePixelShaderBuffer, &errorMessage, NULL);
+	if (FAILED(result)){
+		// If the shader failed to compile it should have writen something to the error message.
+		if (errorMessage){
+			OutputShaderErrorMessage(errorMessage, hwnd, (WCHAR*)spritePSFilename);
+		}
+		else{ // If there was  nothing in the error message then it simply could not find the file itself.
+			MessageBox(hwnd, spritePSFilename, "Missing Shader File", MB_OK);
 		}
 
 		return false;
@@ -122,6 +140,12 @@ bool TextureShaderClass::InitializeShader(ID3D11Device* device, HWND hwnd, CHAR*
 
 	// Create the low alpha pixel shader from the buffer.
 	result = device->CreatePixelShader(lowAlphaPixelShaderBuffer->GetBufferPointer(), lowAlphaPixelShaderBuffer->GetBufferSize(), NULL, &m_lowAlphaPixelShader);
+	if (FAILED(result)){
+		return false;
+	}
+
+	// Create the sprite pixel shader from the buffer.
+	result = device->CreatePixelShader(spritePixelShaderBuffer->GetBufferPointer(), spritePixelShaderBuffer->GetBufferSize(), NULL, &m_spritePixelShader);
 	if (FAILED(result)){
 		return false;
 	}
@@ -162,6 +186,9 @@ bool TextureShaderClass::InitializeShader(ID3D11Device* device, HWND hwnd, CHAR*
 
 	lowAlphaPixelShaderBuffer->Release();
 	lowAlphaPixelShaderBuffer = 0;
+
+	spritePixelShaderBuffer->Release();
+	spritePixelShaderBuffer = 0;
 
 	// Setup the description of the dynamic matrix constant buffer that is in the vertex shader.
 	matrixBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
@@ -221,6 +248,11 @@ void TextureShaderClass::ShutdownShader(){
 	}
 
 	// Release the pixel shaders.
+	if (m_spritePixelShader){
+		m_spritePixelShader->Release();
+		m_spritePixelShader = 0;
+	}
+
 	if (m_lowAlphaPixelShader){
 		m_lowAlphaPixelShader->Release();
 		m_lowAlphaPixelShader = 0;
@@ -327,6 +359,10 @@ void TextureShaderClass::RenderShader(ID3D11DeviceContext* deviceContext, int in
 
 	case PSTYPE_LOWALPHA:
 		deviceContext->PSSetShader(m_lowAlphaPixelShader, NULL, 0);
+		break;
+
+	case PSTYPE_SPRITE:
+		deviceContext->PSSetShader(m_spritePixelShader, NULL, 0);
 		break;
 	}
 
