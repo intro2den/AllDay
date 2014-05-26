@@ -18,110 +18,167 @@ void ActiveAgentClass::Move(int mapWidth, int mapHeight, int *costArray, int tar
 }
 
 bool ActiveAgentClass::Search(int mapWidth, int mapHeight, int *costArray, int targetX, int targetY, Pathnode *path){
-	// Find and return the minimum cost path from the agent's current postion to the target coordinates if one exists
-	int currX, currY;
+	std::list <Pathnode*> queue;
+	std::list <Pathnode*> deleteList;
 
-	getPosition(currX, currY);
-	Pathnode queue[1024] = {};
+    int x,y;
+    getPosition(&x,&y);
+    bool success = false;
 
-	Pathnode temp;
-	temp.tileX = currX;
-	temp.tileY = currY;
-	temp.cost = 0;
-	temp.prev = nullptr;
+	//Create first node of agents current location
+	Pathnode* temp = new Pathnode;
+	temp->tileX = x;
+	temp->tileY = y;
+	temp->cost = 0;
+	temp->in = false;
+	temp->prev = NULL;
 
-	queue[0] = temp;
-	/*
-	while (queue[0].tileX != targetX || queue[0].tileY != targetY){
-		int index = queue[0].tileX*mapHeight + queue[0].tileY;
-		if (queue[0].tileX % 2 == 0){
-			temp.cost = costArray[index - 1];
-			temp.tileX = queue[0].tileX;
-			temp.tileY = queue[0].tileY - 1;
-			temp.prev = &queue[0];
-			queue[sizeof(queue)-1] = temp;
+	queue.push_back(temp);
 
-			temp.cost = costArray[index + mapHeight - 1];
-			temp.tileX = queue[0].tileX+1;
-			temp.tileY = queue[0].tileY - 1;
-			temp.prev = &queue[0];
-			queue[sizeof(queue)-1] = temp;
-
-			temp.cost = costArray[index + mapHeight];
-			temp.tileX = queue[0].tileX + 1;
-			temp.tileY = queue[0].tileY;
-			temp.prev = &queue[0];
-			queue[sizeof(queue)-1] = temp;
-
-			temp.cost = costArray[index + 1];
-			temp.tileX = queue[0].tileX;
-			temp.tileY = queue[0].tileY+1;
-			temp.prev = &queue[0];
-			queue[sizeof(queue)-1] = temp;
-
-			temp.cost = costArray[index - mapHeight];
-			temp.tileX = queue[0].tileX - 1;
-			temp.tileY = queue[0].tileY;
-			temp.prev = &queue[0];
-			queue[sizeof(queue)-1] = temp;
-
-			temp.cost = costArray[index - mapHeight - 1];
-			temp.tileX = queue[0].tileX - 1;
-			temp.tileY = queue[0].tileY - 1;
-			temp.prev = &queue[0];
-			queue[sizeof(queue)-1] = temp;
+    //search loop
+	while (!queue.empty()){
+		//found target hex
+		if (queue.front()->tileX == targetX && queue.front()->tileY == targetY){
+			path = queue.front();
+			temp = path;
+			//go through path to marking every node in it
+			while (temp != NULL){
+				temp->in = true;
+				temp = temp->prev;
+			}
+			success = true;
+			break;
 		}
+
+		int index = queue.front()->tileX*mapHeight + queue.front()->tileY;
+		//if tile in even column
+		if (queue.front()->tileX % 2 == 0){
+            //add the neighbor six hexs to the queue
+            //Note need to add if statements to determine if hex is a valid neighbor
+			Pathnode* temp = new Pathnode;
+
+			temp->cost = costArray[index - 1];
+			temp->tileX = queue.front()->tileX;
+			temp->tileY = queue.front()->tileY - 1;
+			temp->prev = queue.front();
+			temp->in = false;
+			queue.push_back(temp);
+			deleteList.push_back(temp);
+			temp = new Pathnode;
+
+			temp->cost = costArray[index + mapHeight - 1];
+			temp->tileX = queue.front()->tileX + 1;
+			temp->tileY = queue.front()->tileY - 1;
+			temp->prev = queue.front();
+			temp->in = false;
+			queue.push_back(temp);
+			deleteList.push_back(temp);
+			temp = new Pathnode;
+
+			temp->cost = costArray[index + mapHeight];
+			temp->tileX = queue.front()->tileX + 1;
+			temp->tileY = queue.front()->tileY;
+			temp->prev = queue.front();
+			temp->in = false;
+			queue.push_back(temp);
+			deleteList.push_back(temp);
+			temp = new Pathnode;
+
+			temp->cost = costArray[index + 1];
+			temp->tileX = queue.front()->tileX;
+			temp->tileY = queue.front()->tileY + 1;
+			temp->prev = queue.front();
+			temp->in = false;
+			queue.push_back(temp);
+			deleteList.push_back(temp);
+			temp = new Pathnode;
+
+			temp->cost = costArray[index - mapHeight];
+			temp->tileX = queue.front()->tileX - 1;
+			temp->tileY = queue.front()->tileY;
+			temp->prev = queue.front();
+			temp->in = false;
+			queue.push_back(temp);
+			deleteList.push_back(temp);
+			temp = new Pathnode;
+
+			temp->cost = costArray[index - mapHeight - 1];
+			temp->tileX = queue.front()->tileX - 1;
+			temp->tileY = queue.front()->tileY - 1;
+			temp->prev = queue.front();
+			temp->in = false;
+			queue.push_back(temp);
+			deleteList.push_back(temp);
+			temp = new Pathnode;
+		}
+		//tile is in odd column
 		else {
-			temp.cost = costArray[index - 1];
-			temp.tileX = queue[0].tileX;
-			temp.tileY = queue[0].tileY - 1;
-			temp.prev = &queue[0];
-			queue[sizeof(queue)-1] = temp;
+            //add the neighbor six hexs to the queue
+            //Note need to add if statements to determine if hex is a valid neighbor
+			temp->cost = costArray[index - 1];
+			temp->tileX = queue.front()->tileX;
+			temp->tileY = queue.front()->tileY - 1;
+			temp->prev = queue.front();
+			temp->in = false;
+			queue.push_back(temp);
+			deleteList.push_back(temp);
+			temp = new Pathnode;
 
-			temp.cost = costArray[index + mapHeight];
-			temp.tileX = queue[0].tileX + 1;
-			temp.tileY = queue[0].tileY;
-			temp.prev = &queue[0];
-			queue[sizeof(queue)-1] = temp;
+			temp->cost = costArray[index + mapHeight];
+			temp->tileX = queue.front()->tileX + 1;
+			temp->tileY = queue.front()->tileY;
+			temp->prev = queue.front();
+			temp->in = false;
+			queue.push_back(temp);
+			deleteList.push_back(temp);
+			temp = new Pathnode;
 
-			temp.cost = costArray[index + mapHeight + 1];
-			temp.tileX = queue[0].tileX + 1;
-			temp.tileY = queue[0].tileY + 1;
-			temp.prev = &queue[0];
-			queue[sizeof(queue)-1] = temp;
+			temp->cost = costArray[index + mapHeight + 1];
+			temp->tileX = queue.front()->tileX + 1;
+			temp->tileY = queue.front()->tileY + 1;
+			temp->prev = queue.front();
+			temp->in = false;
+			queue.push_back(temp);
+			deleteList.push_back(temp);
+			temp = new Pathnode;
 
-			temp.cost = costArray[index + 1];
-			temp.tileX = queue[0].tileX;
-			temp.tileY = queue[0].tileY + 1;
-			temp.prev = &queue[0];
-			queue[sizeof(queue)-1] = temp;
+			temp->cost = costArray[index + 1];
+			temp->tileX = queue.front()->tileX;
+			temp->tileY = queue.front()->tileY + 1;
+			temp->prev = queue.front();
+			temp->in = false;
+			queue.push_back(temp);
+			deleteList.push_back(temp);
+			temp = new Pathnode;
 
-			temp.cost = costArray[index - mapHeight + 1];
-			temp.tileX = queue[0].tileX - 1;
-			temp.tileY = queue[0].tileY + 1;
-			temp.prev = &queue[0];
-			queue[sizeof(queue)-1] = temp;
+			temp->cost = costArray[index - mapHeight + 1];
+			temp->tileX = queue.front()->tileX - 1;
+			temp->tileY = queue.front()->tileY + 1;
+			temp->prev = queue.front();
+			temp->in = false;
+			queue.push_back(temp);
+			deleteList.push_back(temp);
+			temp = new Pathnode;
 
-			temp.cost = costArray[index - mapHeight];
-			temp.tileX = queue[0].tileX - 1;
-			temp.tileY = queue[0].tileY;
-			temp.prev = &queue[0];
-			queue[sizeof(queue)-1] = temp;
+			temp->cost = costArray[index - mapHeight];
+			temp->tileX = queue.front()->tileX - 1;
+			temp->tileY = queue.front()->tileY;
+			temp->prev = queue.front();
+			temp->in = false;
+			queue.push_back(temp);
+			deleteList.push_back(temp);
 		}
-		
-		
-		/* indexing
-		int index2 = index -1;
-		int index3 = index + mapHeight - 1 (even) | index + mapHeight (odd);
-		int index4 = index + mapHeight (even) | index + mapHeight+1 (odd);
-		int index5 = index + 1;
-		int index6 = index - mapHeight (even) | index - mapHeight+1 (odd);
-		int index7 = index - mapHeight - 1 (even) | index - mapHeight (odd);
+		queue.pop_front();
+		queue.sort(compare);
+	}
+    //clear all nodes not in path
+	std::list<Pathnode*>::iterator it;
+	for (it = deleteList.begin(); it != deleteList.end(); ++it){
+		if ((*it)->in == false){
+			free(*it);
+		}
+	}
 
-		odd true = queue[0].tileX % 2 == 1;
-		even true = queue[0].tileX % 2 == 0;
-		*/
-	//}
-	
-	return false;
+    return success;
+
 }
