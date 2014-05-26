@@ -17,6 +17,10 @@ void ActiveAgentClass::Move(int mapWidth, int mapHeight, int *costArray, int tar
 	}
 }
 
+bool ActiveAgentClass::compare(Pathnode* x, Pathnode* y){
+	return x->cost < y->cost;
+}
+
 bool ActiveAgentClass::Search(int mapWidth, int mapHeight, int *costArray, int targetX, int targetY, Pathnode *path){
 	std::list <Pathnode*> queue;
 	std::list <Pathnode*> deleteList;
