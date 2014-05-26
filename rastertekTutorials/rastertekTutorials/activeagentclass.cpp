@@ -17,9 +17,6 @@ void ActiveAgentClass::Move(int mapWidth, int mapHeight, int *costArray, int tar
 	}
 }
 
-bool ActiveAgentClass::compare(Pathnode* x, Pathnode* y){
-	return x->cost < y->cost;
-}
 
 bool ActiveAgentClass::Search(int mapWidth, int mapHeight, int *costArray, int targetX, int targetY, Pathnode *path){
 	std::list <Pathnode*> queue;
@@ -61,7 +58,7 @@ bool ActiveAgentClass::Search(int mapWidth, int mapHeight, int *costArray, int t
             //Note need to add if statements to determine if hex is a valid neighbor
 			Pathnode* temp = new Pathnode;
 
-			temp->cost = costArray[index - 1];
+			temp->cost = costArray[index - 1]+queue.front()->cost;
 			temp->tileX = queue.front()->tileX;
 			temp->tileY = queue.front()->tileY - 1;
 			temp->prev = queue.front();
@@ -70,7 +67,7 @@ bool ActiveAgentClass::Search(int mapWidth, int mapHeight, int *costArray, int t
 			deleteList.push_back(temp);
 			temp = new Pathnode;
 
-			temp->cost = costArray[index + mapHeight - 1];
+			temp->cost = costArray[index + mapHeight - 1]+queue.front()->cost;
 			temp->tileX = queue.front()->tileX + 1;
 			temp->tileY = queue.front()->tileY - 1;
 			temp->prev = queue.front();
@@ -79,7 +76,7 @@ bool ActiveAgentClass::Search(int mapWidth, int mapHeight, int *costArray, int t
 			deleteList.push_back(temp);
 			temp = new Pathnode;
 
-			temp->cost = costArray[index + mapHeight];
+			temp->cost = costArray[index + mapHeight]+queue.front()->cost;
 			temp->tileX = queue.front()->tileX + 1;
 			temp->tileY = queue.front()->tileY;
 			temp->prev = queue.front();
@@ -88,7 +85,7 @@ bool ActiveAgentClass::Search(int mapWidth, int mapHeight, int *costArray, int t
 			deleteList.push_back(temp);
 			temp = new Pathnode;
 
-			temp->cost = costArray[index + 1];
+			temp->cost = costArray[index + 1]+queue.front()->cost;
 			temp->tileX = queue.front()->tileX;
 			temp->tileY = queue.front()->tileY + 1;
 			temp->prev = queue.front();
@@ -97,7 +94,7 @@ bool ActiveAgentClass::Search(int mapWidth, int mapHeight, int *costArray, int t
 			deleteList.push_back(temp);
 			temp = new Pathnode;
 
-			temp->cost = costArray[index - mapHeight];
+			temp->cost = costArray[index - mapHeight]+queue.front()->cost;
 			temp->tileX = queue.front()->tileX - 1;
 			temp->tileY = queue.front()->tileY;
 			temp->prev = queue.front();
@@ -106,7 +103,7 @@ bool ActiveAgentClass::Search(int mapWidth, int mapHeight, int *costArray, int t
 			deleteList.push_back(temp);
 			temp = new Pathnode;
 
-			temp->cost = costArray[index - mapHeight - 1];
+			temp->cost = costArray[index - mapHeight - 1]+queue.front()->cost;
 			temp->tileX = queue.front()->tileX - 1;
 			temp->tileY = queue.front()->tileY - 1;
 			temp->prev = queue.front();
@@ -119,7 +116,7 @@ bool ActiveAgentClass::Search(int mapWidth, int mapHeight, int *costArray, int t
 		else {
             //add the neighbor six hexs to the queue
             //Note need to add if statements to determine if hex is a valid neighbor
-			temp->cost = costArray[index - 1];
+			temp->cost = costArray[index - 1]+queue.front()->cost;
 			temp->tileX = queue.front()->tileX;
 			temp->tileY = queue.front()->tileY - 1;
 			temp->prev = queue.front();
@@ -128,7 +125,7 @@ bool ActiveAgentClass::Search(int mapWidth, int mapHeight, int *costArray, int t
 			deleteList.push_back(temp);
 			temp = new Pathnode;
 
-			temp->cost = costArray[index + mapHeight];
+			temp->cost = costArray[index + mapHeight]+queue.front()->cost;
 			temp->tileX = queue.front()->tileX + 1;
 			temp->tileY = queue.front()->tileY;
 			temp->prev = queue.front();
@@ -137,7 +134,7 @@ bool ActiveAgentClass::Search(int mapWidth, int mapHeight, int *costArray, int t
 			deleteList.push_back(temp);
 			temp = new Pathnode;
 
-			temp->cost = costArray[index + mapHeight + 1];
+			temp->cost = costArray[index + mapHeight + 1]+queue.front()->cost;
 			temp->tileX = queue.front()->tileX + 1;
 			temp->tileY = queue.front()->tileY + 1;
 			temp->prev = queue.front();
@@ -146,7 +143,7 @@ bool ActiveAgentClass::Search(int mapWidth, int mapHeight, int *costArray, int t
 			deleteList.push_back(temp);
 			temp = new Pathnode;
 
-			temp->cost = costArray[index + 1];
+			temp->cost = costArray[index + 1]+queue.front()->cost;
 			temp->tileX = queue.front()->tileX;
 			temp->tileY = queue.front()->tileY + 1;
 			temp->prev = queue.front();
@@ -155,7 +152,7 @@ bool ActiveAgentClass::Search(int mapWidth, int mapHeight, int *costArray, int t
 			deleteList.push_back(temp);
 			temp = new Pathnode;
 
-			temp->cost = costArray[index - mapHeight + 1];
+			temp->cost = costArray[index - mapHeight + 1]+queue.front()->cost;
 			temp->tileX = queue.front()->tileX - 1;
 			temp->tileY = queue.front()->tileY + 1;
 			temp->prev = queue.front();
@@ -164,7 +161,7 @@ bool ActiveAgentClass::Search(int mapWidth, int mapHeight, int *costArray, int t
 			deleteList.push_back(temp);
 			temp = new Pathnode;
 
-			temp->cost = costArray[index - mapHeight];
+			temp->cost = costArray[index - mapHeight]+queue.front()->cost;
 			temp->tileX = queue.front()->tileX - 1;
 			temp->tileY = queue.front()->tileY;
 			temp->prev = queue.front();

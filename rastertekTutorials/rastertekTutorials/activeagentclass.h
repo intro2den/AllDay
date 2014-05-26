@@ -21,7 +21,9 @@ public:
 
 private:
 	virtual bool Search(int, int, int*, int, int, Pathnode*);
-	bool compare(Pathnode*, Pathnode*);
 
 };
 
+bool compare(Pathnode* x, Pathnode* y){
+	return x->cost < y->cost;
+}
