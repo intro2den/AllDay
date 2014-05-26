@@ -22,8 +22,9 @@ bool ActiveAgentClass::Search(int mapWidth, int mapHeight, int *costArray, int t
 	std::list <Pathnode*> queue;
 	std::list <Pathnode*> deleteList;
 
-    int x,y;
-    getPosition(&x,&y);
+	int x = 0;
+	int y = 0;
+    getPosition(x, y);
     bool success = false;
 
 	//Create first node of agents current location
