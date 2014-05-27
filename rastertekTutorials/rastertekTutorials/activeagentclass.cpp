@@ -1,5 +1,9 @@
 #include "activeagentclass.h"
 
+bool compare2(Pathnode* x, Pathnode* y){
+	return x->cost < y->cost;
+}
+
 ActiveAgentClass::ActiveAgentClass(){
 }
 
@@ -171,7 +175,7 @@ bool ActiveAgentClass::Search(int mapWidth, int mapHeight, int *costArray, int t
 			deleteList.push_back(temp);
 		}
 		queue.pop_front();
-		queue.sort(compare);
+		queue.sort(compare2);
 	}
     //clear all nodes not in path
 	std::list<Pathnode*>::iterator it;
