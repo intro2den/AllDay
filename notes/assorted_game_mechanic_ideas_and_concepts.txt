@@ -1,0 +1,316 @@
+The topics discussed are in no particular order, nor is this a complete set of
+topics. This is mostly brainstorming and suggestion, most of it is subject to
+change as the development and fleshing out of mechanics continues.
+
+--------------------
+Party Mechanics
+
+ - When starting a new game the player creates/chooses 4-6 characters to form
+   their core (permanent) party
+   - Optionally allow the player to use as few as 1 character
+
+ - Optionally, have recruitable characters the player can use to augment their
+   core party
+   - There should be limits on overall party size (6-8?) and possibly on the
+     number of recruited characters in the party at any given time.
+
+   - Consider having the option of player interaction with these characters
+     throughout the game (character backstory and plot development)
+
+   - Consider having incompatibilities between some recruitable characters and
+     other characters or player decisions. (Player's choices impact options)
+
+   - Consider making these characters slightly limited and/or unique (in 
+     abilities, skills, etc.) relative to the player's core party characters.
+
+   - Alternatively, these characters could act as semi-expendable hirelings
+     - Virtually no individual character depth
+     - Replaceable upon death (within some reasonable upper bound)
+     - Possibly have a fairly low cost of replacement
+     - Can still restrict, or provide additional benefits based on player 
+      decisions
+
+
+ - Optionally, have secondary game mode where the player can replace their core
+   party members in a more free form setting, separate from the storyline.
+
+
+--------------------
+Agents (Conceptual)
+
+Agents are generally interactive elements on the environments they are in.
+Ranging from boulders, bushes and trees to chests, doors and walls are Inactive
+Agents. Player characters, allies and enemies, along with all other Agents 
+capable of independent action are Active Agents.
+
+On the Combat Map, most Agents occupy a single tile and generally only one
+Agent may be present in any given tile at a time. Some (probably most) Agents
+act as barriers to movement. There are however some exceptions:
+ - Some especially large agents may span multiple tiles, such as logs or large
+   creatures.
+ - Consider allowing some agents to occupy the same tile (or tiles) together,
+   ex. A small creature within a bush, or multiple smaller creatures/Agents
+   in one tile.
+
+Some (generally Inactive) Agents have interactive options. Generally most
+interactions are available to player characters, however not all interactions
+are available to all Agents.
+ - Mechanical operations such as using a key to open a lock (or even opening a
+   door) aren't available to Agents that lack the capacity to complete the
+   operation
+ - Interactions requiring considerable strength, magic, or a specific ability
+   are not available to Agents that don't meet these requirements.
+
+Active Agents are generally capable of taking several different actions. In
+addition to being able to interact with adjacent Agents, most Active Agents
+are able to move, turn, attack other Agents and use any skills, spells or
+special items that are available to them.
+
+Some Agents may be affected by various Effects, as a result of an ability or
+item, or some other cause. Effects can be beneficial or punitive and come in
+several different forms:
+ - Some Effects inflict or heal damage
+ - Effects can positively or negatively affect an Agent's attributes
+ - A few Effects can cause additional Effects
+ - Some Effects only have an effect when other actions occur
+
+
+
+--------------------
+Vital Statistics (Might want another name for these)
+
+ - Health/Hit Points/Life (etc.)
+   The primary Vital Stat of all Active Agents is Health. The more an Agent
+   has, the more damage it can take before dying (or suffering other negative
+   effects). While maximizing the maximum Health of a character is not
+   particularly important for many roles, every character should be very
+   concerned about letting their current Health drop too low.
+
+
+ - Mana/Spell Points/Arcane Power (etc.)
+   Used for almost all magic abilities, Mana is of great importance to any
+   Agent that casts spells. Having more Mana allows an agent to channel or cast
+   more powerful spells more often before needing to restore their Mana through
+   the use of items, Mana Flows or Mana Springs.
+
+ - Stamina/Energy (Optional)
+   Instead of, or in addition to cooldown timers on ability use, Stamina is a
+   representation of capacity for (extreme) physical (and mental) exertion.
+   Having more Stamina allows an Agent to use more powerful abilities more
+   often before needing to rest or use items or spells to restore their
+   Stamina.
+   - Unlike Mana, Stamina regenerates naturally.
+   - Consider temporarily slowing or stopping Stamina regeneration when certain
+     abilities are used
+   - Some spells use both Mana and Stamina
+   - Ideally, standard Active Agent actions (moving, attacking, etc.) should
+     not impact Stamina nor Stamina regeneration.
+
+ - Magic Saturation (Optional)
+   Casting spells "saturates" the caster. Under normal conditions, below an
+   Agent's capacity, this has now effect. Exceeding capacity has undesirable
+   effects upon an Agent, as they can no longer control the arcane energy that
+   they are wielding. These effects include damage to the Agent, failed or
+   backfired spells, and in extreme cases, death.
+   - Saturation decreases when the caster does not cast spells
+   - Agents with the appropriate abilities can increase the saturation
+     generated by an active enemy spell caster.
+   - Several options for implementation.
+
+ - Action Points (AP)
+   Agents are limited, even in the most basic actions, such as movement, by
+   time. An Agent's AP determine how much it can do in a single turn of combat,
+   and when an Agent runs out of AP, they are incapable of further actions.
+   (with some possible exceptions)
+
+
+The value ranges we use for each of these Vital Statistics and any factors that
+change the current and maximum/capacity values for a given Agent will
+ultimately be arbitrary, however the range of values we use should be
+"reasonable" and "understandable".
+
+By "reasonable" and "understandable" I mean not large for the sake of being
+large. Ideally, with the exception of Health (and changes to current Health),
+no values come close to exceeding 4 digit numbers. Larger values allow for more
+variation, however exceedingly large values are less meaningful.
+
+ - Health
+   Here we have arguably the largest range of values to play with. Balancing
+   aside, we have a couple important decisions to make:
+   - How large the gap should be between characters at the start of the game
+     and characters at the end of the game should be
+   - The kind of value ranges we want for damage and healing (tight/wide/etc.)
+   - The general area we want Health to top out at for Agents (of all kinds).
+
+ - Mana
+   With Mana, a lot will come down to how we handle spells, and the costs of
+   spells, however some of the same decisions will need to be made here as will
+   be made for Health:
+   - The gap between characters at the start and end of the game.
+   - The gap between lower and higher cost spells, with respect to Mana cost
+   - The availability of higher cost spells to characters with no method of
+     Mana recovery/regeneration at various stages of the game
+
+   Most (or all) Agents do not naturally regenerate Mana, instead Agents must
+   rely upon items, Mana Flows and Mana Springs to restore their Mana.
+   - Some items may increase the maximum Mana of an Agent
+   - Other items will restore the current Mana of an Agent, with some limits
+     on use (Number of uses, amount of Mana restored, etc.)
+   - Mana Flows and Springs are not all created equally.
+
+   Ideally, spell casting Agents should not be tethered to Mana Springs to
+   make a significant impact in Combat, however there should be limits to
+   maintaining that impact over time.
+
+ - Stamina
+   Similar to Mana, the values we use come down to how we handle abilities and
+   their costs.
+   - The gap between characters at the start and end of the game shouldn't be
+     particularly wide - with regards to both how much an Agent can do, and the
+    time it takes to regenerate.
+   - Ideally Stamina should be a restricting factor on ability use instead of
+     cooldowns.
+   - Stamina should generally not be a concern for Agents that are only casting
+     spells.
+
+   Unlike Mana, Stamina naturally regenerates over time.
+   - Consider items and abilities that can restore some Stamina (limited)
+   - Consider temporarily slowing or stopping Stamina regeneration when certain
+     abilities are used
+
+ - Magic Saturation (Saturation)
+   While it would be rather redundant to tie Saturation directly to the Mana
+   cost of spells, intuitively however, the values should at least be
+   correlated. Similarly, Saturation capacity shouldn't necessarily scale
+   alongside an Agent's maximum Mana, some Agents can safely wield far more
+   arcane energy than they can store while others can store far more than they
+   are able to use over a reasonable period of time.
+   - Ideally, Player Characters in particular should only need to worry about
+     exceeding their capacity should they decide to cast several powerful
+     spells in quick succession, or if they are continuously casting for a
+     fairly long period of time.
+   - Similar to Stamina, Magic Saturation should be a restricting factor on
+     spell use instead of cooldowns.
+
+   Saturation gradually decreases over time while the Agent is not casting
+   spells. This decay should be fast enough to allow the Agent to remain fairly
+   active, but not so quick as to effectively invalidate the entire mechanic.
+   - Neither decay, nor the build up of Saturation necessarily need to be
+     constant, perhaps some sort of increase in the speed of both as they
+     continue.
+
+   Certain abilities should be capable of increasing the saturation generated
+   by an active enemy spell caster, providing a method of slowing or stopping
+   their casting or forcing them to exceed their Saturation capacity.
+
+ - Action Points
+   Player characters provide the standard for Action Points, other Agents may
+   have different AP per turn and different costs for various actions, but the
+   base values will be balanced around the player's Agents.
+   - On average terrain, a player character should be able to move 4 tiles.
+   - If no other actions are taken, a player character should be able to attack
+     twice in a single turn (or take 2 equivalent cost actions).
+   - There should be terrain (or support for terrain in the values we use) for
+     terrain that a player character can move 3 tiles and 5 tiles per turn over
+    
+   A couple possible options:
+   - Base AP per turn of 20
+     Supports terrain that allows 1-6 moves per turn (costs between 3-20) and
+     modifiers to adjust # possible move by changing movement costs.
+
+   - Base AP per turn of 25
+     Supports terrain that allows 1-6 moves per turn, slightly more potential
+     variety than 20 AP.
+
+   Optionally we could allow for some overflow of unused AP between turns,
+   specifically about enough overflow for 1 additional move on average terrain.
+   This could add a bit of additional depth to combat.
+
+
+
+--------------------
+Turns (in Combat)
+
+The way we implement the turn sequence for combat has a huge impact on both the
+feel and flow of the gameplay, and has implications for balancing. As such, our
+final implementation should be carefully considered.
+
+Some general options:
+ - Agent-by-Agent Initiative
+   Turns are agent specific, higher initiative go first with some tie-breaking
+   done at the start used for the duration of the combat. Even if 2 or more of
+   a single player's Agents tie the order of Agents acting is fixed, the first
+   must act, and be finished acting, before the second begins its turn.
+   - Players have no choice of which Agent to use at any given time
+   - AI similarly looks at Agent actions in a fixed order of Agents acting.
+   - Ex. Combat in the Heroes of Might & Magic series.
+
+ - Player-by-Player
+   Turns are player specific, alternating between players (in a fixed order).
+   A player then has the option of ordering their Agents' actions for that turn
+   as they see fit. An Agent may take an action, wait until other Agents have
+   acted and then take another action (AP allowing).
+   - Huge flexibility relative to Agent-by-Agent with regards to the order of
+     actions taken.
+   - Widely used in Turn-Based games (most? in some variation)
+
+ - Player-by-Player Initiative
+   Agent-by-Agent, except that in the event of a tie between Agents of a single
+   player, the player uses all tied Agents similar to Player-by-Player instead
+   of having a fixed order for the Agents to act in.
+
+   Optionally, if one player has a series of Agents with different initiative
+   values and no other player has Agents that would act between these turns,
+   allow that player to use all of those Agents. In the event that all of one
+   player's Agents have higher initiative than that of any other Agent in
+   combat, the system operates like Player-by-Player.
+   - More flexibility than Agent-by-Agent, but turns are generally not as
+     overwhelming as Player-by-Player (chance to respond to some actions)
+   - Maintains some depth of an Initiative system with depth from sequencing
+     actions
+   - Probably not widely used (if at all)
+
+Optionally, we could implement all 3 options (and/or other alternatives) and
+allow the player to choose between them at the start of a new game (or during).
+
+
+With respect to Effects that act every turn (damage, healing, Mana restoration
+from Springs/Flows, Stamina/Action Point recovery, decay of Magic Saturation,
+etc.), these can be handled in a few different ways, possibly varying between
+each thing:
+ - Full Effect/change at the start of the affected Agent's turn
+ - Full Effect/change at the end of the affected Agent's turn
+ - Partial Effect/change at both the start and end of the affected Agent's turn
+   - The parts sum to the full effect
+   - Can control/balance the split on an Effect by Effect basis
+   - Provides some time to respond to the Effect, but allows the Effect to
+     still have some impact
+   - Can implement both other options as special cases, and can optionally
+     allow the player to decide between 3-4 cases (Coded partial, 100-0, 0-100,
+     50-50 splits)
+
+
+
+--------------------
+Player Characters, Character Classes
+
+A significant part of a given character's flavour comes (or should come) from
+their class. While the implementation of a class system can be done in a number
+of ways, there are a few principles that we should apply (as best as we can) to
+the design of the game, gameplay:
+ - With a couple possible exceptions per class, no single specific class should
+   be required to access a particular part of the game (side quests, secret or
+   hidden areas, locks, traps, etc.)
+   ie. Every part of the game that is restricted to a subset of classes (if
+   any) must have at least 2 classes with access to it.
+   
+ - Any combination of classes, and by extension, any class on its own, must be
+   capable of completing the core storyline.
+   ie. If a player want to use only spell casters, no spell casters, or
+   anything inbetween, they should be able to complete the core game content,
+   even using only a single class.
+   This isn't to say that it should be a comparable experience to playing with
+   a mix (or at least 2 or 3) of classes, infact, it should be significantly
+   more difficult to play through the game, however it should not be
+   impossible, as allowing a player to invest significant time in an impossible
+   cause is arguably poor game design.

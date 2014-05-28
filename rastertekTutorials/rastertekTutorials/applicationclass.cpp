@@ -694,7 +694,7 @@ bool ApplicationClass::RenderGraphics(){
 	case MAINSTATE_COMBATMAP:
 		// Render the Combat Map and associated UI/appropriate overlays
 
-		// Render the terrain first
+		// Render the terrain first - create an array
 		terrain = new int[m_combatMapWidth*m_combatMapHeight];
 		if (!terrain){
 			return false;
@@ -809,6 +809,12 @@ bool ApplicationClass::RenderGraphics(){
 			if (!result){
 				return false;
 			}
+		}
+
+		// Release the array created for terrain rendering
+		if (terrain){
+			delete terrain;
+			terrain = 0;
 		}
 
 		break;
