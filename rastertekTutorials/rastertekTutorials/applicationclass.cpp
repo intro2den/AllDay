@@ -731,8 +731,6 @@ bool ApplicationClass::RenderGraphics(){
 				return false;
 			}
 
-			
-
 			result = m_TextureShader->Render(m_D3D->GetDeviceContext(), m_HexHighlight->GetIndexCount(), worldMatrix, viewMatrix, orthoMatrix, m_HexHighlight->GetTexture(), PSTYPE_LOWALPHA);
 			if (!result){
 				return false;
@@ -741,8 +739,6 @@ bool ApplicationClass::RenderGraphics(){
 			// Turn off alpha blending
 			m_D3D->TurnOffAlphaBlending();
 		}
-		//Fix memory leak but may want to find a better place for this
-		free(terrain);
 
 		// Render Agents
 		// Turn on alpha blending while rendering sprites
