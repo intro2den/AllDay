@@ -154,7 +154,6 @@ bool InputClass::ReadKeyboard(){
 bool InputClass::ReadMouse(){
 	HRESULT result;
 	POINT point;
-	BOOL in_bounds;
 	
 	// Calculate the position of the cursor with respect to the application window
 	result = GetCursorPos(&point);
@@ -166,29 +165,18 @@ bool InputClass::ReadMouse(){
 	if (FAILED(result)){
 		return false;
 	}
-	
+
 	m_mouseX = point.x;
 	m_mouseY = point.y;
 
-	// Only read the mouse device if the cursor is within the application window (will otherwise use results of last read)
-	// NOTE: May not want to check for bounds
-	//   - move mouse off application with button in one state
-	//   - move back over with other state
-	//   - unintended behaviour occurs (ex. mouse pressed behaviour)
-	//   Is this avoidable?
-	in_bounds = (m_mouseX > 0 && m_mouseY > 0 && m_mouseX < m_screenWidth && m_mouseY < m_screenHeight);
-
-	if (in_bounds){
-		// Read the mouse device.
-		result = m_mouse->GetDeviceState(sizeof(DIMOUSESTATE), (LPVOID)&m_mouseState);
-		if (FAILED(result)){
-			// If the mouse lost focus or was not acquired then try to get control back.
-			if ((result == DIERR_INPUTLOST) || (result == DIERR_NOTACQUIRED)){
-				m_mouse->Acquire();
-			}
-			else{
-				return false;
-			}
+	// Read the mouse device.
+	result = m_mouse->GetDeviceState(sizeof(DIMOUSESTATE), (LPVOID)&m_mouseState);
+	if (FAILED(result)){
+		// If the mouse lost focus or was not acquired then try to get control back.
+		if ((result == DIERR_INPUTLOST) || (result == DIERR_NOTACQUIRED)){
+			m_mouse->Acquire();
+		} else{
+			return false;
 		}
 	}
 

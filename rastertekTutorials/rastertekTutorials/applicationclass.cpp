@@ -324,12 +324,16 @@ bool ApplicationClass::Frame(){
 
 // Handle all user input
 bool ApplicationClass::HandleInput(float frameTime){
-	bool result, scrolling;
+	bool result;
+	bool cursorInBounds, scrolling;
 	float posX, posY, posZ;
 	float cursorX, cursorY, normalizedCursorX, normalizedCursorY;
 
 	// Set the frame time for calculating the updated position.
 	m_Position->SetFrameTime(frameTime);
+
+	// Determine weather the cursor is within window bounds or not
+	cursorInBounds = (m_mouseX >= 0 && m_mouseX < m_screenWidth && m_mouseY >= 0 && m_mouseY < m_screenHeight);
 
 	// NOTE: Will also be using MainState/other state checks for rendering
 
@@ -364,19 +368,19 @@ bool ApplicationClass::HandleInput(float frameTime){
 		// Scroll the camera if the cursor is near the edge of the window
 		// or if the user is pressing the corresponding arrow keys
 		// Scroll Up/Forward
-		scrolling = (m_Input->IsUpPressed() || (m_mouseY >= 0 && m_mouseY < 20));
+		scrolling = (m_Input->IsUpPressed() || (cursorInBounds && m_mouseY < 20));
 		m_Position->MoveForward(scrolling);
 
 		// Scroll Down/Backward
-		scrolling = (m_Input->IsDownPressed() || (m_mouseY > m_screenHeight - 20 && m_mouseY <= m_screenHeight));
+		scrolling = (m_Input->IsDownPressed() || (m_mouseY > m_screenHeight - 20 && cursorInBounds));
 		m_Position->MoveBackward(scrolling);
 
 		// Scroll Left
-		scrolling = (m_Input->IsLeftPressed() || (m_mouseX >= 0 && m_mouseX < 20));
+		scrolling = (m_Input->IsLeftPressed() || (cursorInBounds && m_mouseX < 20));
 		m_Position->MoveLeft(scrolling);
 
 		// Scroll Right
-		scrolling = (m_Input->IsRightPressed() || (m_mouseX > m_screenWidth - 20 && m_mouseX <= m_screenWidth));
+		scrolling = (m_Input->IsRightPressed() || (m_mouseX > m_screenWidth - 20 && cursorInBounds));
 		m_Position->MoveRight(scrolling);
 
 		// Update the position of the camera
