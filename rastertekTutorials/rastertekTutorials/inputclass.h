@@ -35,7 +35,9 @@ public:
 	bool IsEscapePressed();
 	void GetMouseLocation(int&, int&);
 	bool IsLeftMousePressed();
+	bool IsRightMousePressed();
 	bool WasLeftMouseClicked();
+	bool WasRightMouseClicked();
 
 	bool IsUpPressed();
 	bool IsDownPressed();
@@ -56,6 +58,7 @@ private:
 
 	int m_screenWidth, m_screenHeight;
 	int m_mouseX, m_mouseY;
-	bool m_leftMousePressed, m_leftMouseReleased;
+	bool m_leftMousePressed, m_rightMousePressed;
+	bool m_leftMouseReleased, m_rightMouseReleased;
 	HWND m_hwnd;
 };

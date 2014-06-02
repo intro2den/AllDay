@@ -52,6 +52,7 @@ bool ApplicationClass::Initialize(HINSTANCE hinstance, HWND hwnd, int screenWidt
 	// Initialize the coordinates for the currently highlighted tile (for the CombatMap - initially invalid coordinates)
 	m_currentTileX = -1;
 	m_currentTileY = -1;
+	m_cursorOverTile = false;
 
 	// Create the input object.  The input object will be used to handle reading the keyboard and mouse input from the user.
 	m_Input = new InputClass;
@@ -387,46 +388,54 @@ bool ApplicationClass::HandleInput(float frameTime){
 		m_Position->GetPosition(posX, posY, posZ);
 		m_Camera->SetPosition(posX, posY, posZ);
 
-		// Find the coordinates of the hex that the cursor is overtop of this frame
+		// Find the coordinates of the hex that the cursor is overtop of this frame - if the cursor is over the map
+		m_currentTileX = -1;
+		m_currentTileY = -1;
+		m_cursorOverTile = false;
 
-		// Calculate the actual cursor position relative to the map
-		cursorX = (float)m_mouseX + posX - MAP_HORIZONTALOFFSET;
-		cursorY = (float)m_mouseY - posY - MAP_VERTICALOFFSET;
+		if (cursorInBounds && m_mouseY < m_screenHeight - COMBAT_MENU_HEIGHT){
+			// Calculate the actual cursor position relative to the map
+			cursorX = (float)m_mouseX + posX - MAP_HORIZONTALOFFSET;
+			cursorY = (float)m_mouseY - posY - MAP_VERTICALOFFSET;
 
-		// Calculate the grid coordinates for the hex the cursor is over
-		m_currentTileX = (int)(cursorX / (1.5f * HEX_SIZE));
-
-		// Use the X-coordinate of the cursor to find the column
-		if (fmod(cursorX, 1.5f * HEX_SIZE) >= 0.5f * HEX_SIZE){
-			// The X-position of the Hex that the cursor is over can be identified by the X-coordinate alone
+			// Calculate the grid coordinates for the hex the cursor is over
 			m_currentTileX = (int)(cursorX / (1.5f * HEX_SIZE));
-		}
-		else{
-			// The cursor could be over a hex in either of 2 adjacent columns, will need to use both
-			// coordinates to determine the column
 
-			// Normalize the coordinates to be relative the origin
-			normalizedCursorX = abs(fmod(cursorX, 1.5f * HEX_SIZE)) / (0.5f * HEX_SIZE);
-			normalizedCursorY = abs((fmod(cursorY + 0.5f * HEX_HEIGHT * (float)(abs(m_currentTileX % 2)), HEX_HEIGHT)) - 0.5f * HEX_HEIGHT) / (0.5f * HEX_HEIGHT);
-
-			if (normalizedCursorX >= abs(normalizedCursorY)){
+			// Use the X-coordinate of the cursor to find the column
+			if (fmod(cursorX, 1.5f * HEX_SIZE) >= 0.5f * HEX_SIZE){
+				// The X-position of the Hex that the cursor is over can be identified by the X-coordinate alone
 				m_currentTileX = (int)(cursorX / (1.5f * HEX_SIZE));
+			} else{
+				// The cursor could be over a hex in either of 2 adjacent columns, will need to use both
+				// coordinates to determine the column
+
+				// Normalize the coordinates to be relative the origin
+				normalizedCursorX = abs(fmod(cursorX, 1.5f * HEX_SIZE)) / (0.5f * HEX_SIZE);
+				normalizedCursorY = abs((fmod(cursorY + 0.5f * HEX_HEIGHT * (float)(abs(m_currentTileX % 2)), HEX_HEIGHT)) - 0.5f * HEX_HEIGHT) / (0.5f * HEX_HEIGHT);
+
+				if (normalizedCursorX >= abs(normalizedCursorY)){
+					m_currentTileX = (int)(cursorX / (1.5f * HEX_SIZE));
+				} else{
+					m_currentTileX = (int)(cursorX / (1.5f * HEX_SIZE)) - 1;
+				}
 			}
-			else{
-				m_currentTileX = (int)(cursorX / (1.5f * HEX_SIZE)) - 1;
+
+			// Now that we know the column, we can identify the row using the Y-coordinate
+			m_currentTileY = (int)((cursorY - 0.5f * HEX_HEIGHT * abs(m_currentTileX % 2)) / HEX_HEIGHT);
+
+			// Integer division rounds towards 0, make sure that we catch all negative X- and Y-coordinates as negative
+			if (cursorX < 0){
+				m_currentTileX = -1;
 			}
-		}
 
-		// Now that we know the column, we can identify the row using the Y-coordinate
-		m_currentTileY = (int)((cursorY - 0.5f * HEX_HEIGHT * abs(m_currentTileX % 2)) / HEX_HEIGHT);
+			if (cursorY - 0.5f * HEX_HEIGHT * abs(m_currentTileX % 2) < 0){
+				m_currentTileY = -1;
+			}
 
-		// Integer division rounds towards 0, make sure that we catch all negative X- and Y-coordinates as negative
-		if (cursorX < 0){
-			m_currentTileX = -1;
-		}
-
-		if (cursorY - 0.5f * HEX_HEIGHT * abs(m_currentTileX % 2) < 0){
-			m_currentTileY = -1;
+			// Set the cursorOverTile flag to true if the cursor is over a hex on the map
+			if (m_currentTileX >= 0 && m_currentTileX < m_combatMapWidth && m_currentTileY >= 0 && m_currentTileY < m_combatMapHeight){
+				m_cursorOverTile = true;
+			}
 		}
 
 		if (m_Input->WasLeftMouseClicked() == true){
@@ -437,17 +446,31 @@ bool ApplicationClass::HandleInput(float frameTime){
 				m_MainState = MAINSTATE_MAINMENU;
 				ShutdownCombatMap();
 
+				// Set the cursorOverTile flag to false
+				m_cursorOverTile = false;
+
 				// Set the position of the camera back to the origin
 				m_Position->SetPosition(0.0f, 0.0f, -10.0f);
 				m_Camera->SetPosition(0.0f, 0.0f, -10.0f);
 				break;
 			}
 
+			// If the left mouse button was clicked over a tile, different behaviour can occur.
+			// NOTE: There will be probably be some state handling here if the player has an action selected
+			//       or if they are simply selecting an Agent. Currently we just select the Agent that is in
+			//       the highlighted Hex if one exists at those coordinates
+			if (m_cursorOverTile){
+				// TODO: Check for an Agent in the highlighted hex, if there is one, select it.
+				break;
+			}
+		}
+
+		if (m_Input->WasRightMouseClicked() == true){
 			// Move the first agent to whatever hex is currently highlighted
 			// NOTE: Should check to ensure the cursor is not overtop of a menu/submenu when considering interaction with the map
 			//       Do not interact with a hex if the mouse is clicked and there is the background of a menu between the cursor and
 			//       the hex.
-			if (m_currentTileX >= 0 && m_currentTileX < m_combatMapWidth && m_currentTileY >= 0 && m_currentTileY < m_combatMapHeight){
+			if (m_cursorOverTile){
 				m_Agents[0]->setPosition(m_currentTileX, m_currentTileY);
 			}
 		}
@@ -466,6 +489,7 @@ bool ApplicationClass::InitializeCombatMap(MapType mapType, int mapWidth, int ma
 	m_combatMapWidth = mapWidth;
 	m_combatMapHeight = mapHeight;
 
+	// Initialize the new Combat Map
 	m_CombatMap = new CombatMap();
 	if (!m_CombatMap){
 		return false;
@@ -500,7 +524,7 @@ bool ApplicationClass::InitializeCombatMap(MapType mapType, int mapWidth, int ma
 
 	// Adjust the bounds on the camera position to allow for proper scrolling
 	boundX = max(0, HEX_SIZE*(1.5f + 1.5f*(float)mapWidth) - (float)m_screenWidth);
-	boundY = min(0, -1.0f * HEX_HEIGHT*(1.5f + (float)mapHeight) + (float)m_screenHeight - 100.0f);
+	boundY = min(0, -1.0f * HEX_HEIGHT*(1.5f + (float)mapHeight) + (float)m_screenHeight - float(COMBAT_MENU_HEIGHT));
 	boundZ = -10.0f;
 
 	m_Position->SetBounds(boundX, boundY, boundZ);
@@ -511,7 +535,7 @@ bool ApplicationClass::InitializeCombatMap(MapType mapType, int mapWidth, int ma
 		return false;
 	}
 
-	result = m_MenuBarBackground->Initialize(m_D3D->GetDevice(), m_screenWidth, m_screenHeight, "../rastertekTutorials/data/ui_menubarbackground.dds", m_screenWidth, 100);
+	result = m_MenuBarBackground->Initialize(m_D3D->GetDevice(), m_screenWidth, m_screenHeight, "../rastertekTutorials/data/ui_menubarbackground.dds", m_screenWidth, COMBAT_MENU_HEIGHT);
 	if (!result){
 		return false;
 	}
@@ -720,8 +744,7 @@ bool ApplicationClass::RenderGraphics(){
 		}
 
 		// Highlight only hexes that are actually on the map (non-negative coordinates, within bounds)
-		if (m_currentTileX >= 0 && m_currentTileX < m_combatMapWidth && m_currentTileY >= 0 && m_currentTileY < m_combatMapHeight){
-
+		if (m_cursorOverTile){
 			// From the grid coordinates, calculate the absolute pixel coordinates to render the highlight to
 			highlightX = (int)(1.5f * HEX_SIZE * m_currentTileX);
 			highlightY = (int)(HEX_HEIGHT * (m_currentTileY + 0.5 * abs(m_currentTileX % 2)));
@@ -785,7 +808,7 @@ bool ApplicationClass::RenderGraphics(){
 		// NOTE: The elements involved are subject to change in the future
 
 		// Render the CombatMap menubar
-		result = m_MenuBarBackground->Render(m_D3D->GetDeviceContext(), 0, m_screenHeight - 100);
+		result = m_MenuBarBackground->Render(m_D3D->GetDeviceContext(), 0, m_screenHeight - COMBAT_MENU_HEIGHT);
 		if (!result){
 			return false;
 		}

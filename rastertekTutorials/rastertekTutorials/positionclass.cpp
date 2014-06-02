@@ -62,15 +62,13 @@ void PositionClass::MoveForward(bool keydown){
 	if (keydown){
 		m_forwardSpeed += m_frameTime * POSITION_ACCELLERATION;
 
-		if (m_forwardSpeed > (m_frameTime * POSITION_MAXSPEED))
-		{
+		if (m_forwardSpeed > (m_frameTime * POSITION_MAXSPEED)){
 			m_forwardSpeed = m_frameTime * POSITION_MAXSPEED;
 		}
 	} else{ // Slow down
 		m_forwardSpeed -= m_frameTime * POSITION_DECELLERATION;
 
-		if (m_forwardSpeed < 0.0f)
-		{
+		if (m_forwardSpeed < 0.0f){
 			m_forwardSpeed = 0.0f;
 		}
 	}
@@ -92,16 +90,13 @@ void PositionClass::MoveBackward(bool keydown){
 	if (keydown){
 		m_backwardSpeed += m_frameTime * POSITION_ACCELLERATION;
 
-		if (m_backwardSpeed > (m_frameTime * POSITION_MAXSPEED))
-		{
+		if (m_backwardSpeed > (m_frameTime * POSITION_MAXSPEED)){
 			m_backwardSpeed = m_frameTime * POSITION_MAXSPEED;
 		}
-	}
-	else{ // Slow down
+	} else{ // Slow down
 		m_backwardSpeed -= m_frameTime * POSITION_DECELLERATION;
 
-		if (m_backwardSpeed < 0.0f)
-		{
+		if (m_backwardSpeed < 0.0f){
 			m_backwardSpeed = 0.0f;
 		}
 	}
@@ -123,16 +118,13 @@ void PositionClass::MoveLeft(bool keydown){
 	if (keydown){
 		m_leftSpeed += m_frameTime * POSITION_ACCELLERATION;
 
-		if (m_leftSpeed > (m_frameTime * POSITION_MAXSPEED))
-		{
+		if (m_leftSpeed > (m_frameTime * POSITION_MAXSPEED)){
 			m_leftSpeed = m_frameTime * POSITION_MAXSPEED;
 		}
-	}
-	else{ // Slow down
+	} else{ // Slow down
 		m_leftSpeed -= m_frameTime * POSITION_DECELLERATION;
 
-		if (m_leftSpeed < 0.0f)
-		{
+		if (m_leftSpeed < 0.0f){
 			m_leftSpeed = 0.0f;
 		}
 	}
@@ -154,16 +146,13 @@ void PositionClass::MoveRight(bool keydown){
 	if (keydown){
 		m_rightSpeed += m_frameTime * POSITION_ACCELLERATION;
 
-		if (m_rightSpeed > (m_frameTime * POSITION_MAXSPEED))
-		{
+		if (m_rightSpeed > (m_frameTime * POSITION_MAXSPEED)){
 			m_rightSpeed = m_frameTime * POSITION_MAXSPEED;
 		}
-	}
-	else{ // Slow down
+	} else{ // Slow down
 		m_rightSpeed -= m_frameTime * POSITION_DECELLERATION;
 
-		if (m_rightSpeed < 0.0f)
-		{
+		if (m_rightSpeed < 0.0f){
 			m_rightSpeed = 0.0f;
 		}
 	}

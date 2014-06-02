@@ -196,6 +196,17 @@ void InputClass::ProcessInput(){
 		m_leftMousePressed = true;
 	}
 
+	// Update the rightMousePressed and rightMouseReleased flags
+	m_rightMouseReleased = false;
+	if (!m_mouseState.rgbButtons[1] && m_rightMousePressed){
+		m_rightMousePressed = false;
+		m_rightMouseReleased = true;
+	}
+
+	if (m_mouseState.rgbButtons[1]){
+		m_rightMousePressed = true;
+	}
+
 	return;
 }
 
@@ -218,8 +229,16 @@ bool InputClass::IsLeftMousePressed(){
 	return m_leftMousePressed;
 }
 
+bool InputClass::IsRightMousePressed(){
+	return m_rightMousePressed;
+}
+
 bool InputClass::WasLeftMouseClicked(){
 	return m_leftMouseReleased;
+}
+
+bool InputClass::WasRightMouseClicked(){
+	return m_rightMouseReleased;
 }
 
 bool InputClass::IsUpPressed(){

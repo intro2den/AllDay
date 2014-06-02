@@ -11,6 +11,7 @@ const bool VSYNC_ENABLED = true;
 const float SCREEN_DEPTH = 1000.0f;
 const float SCREEN_NEAR = 0.1f;
 const int MAX_AGENTS = 512;
+const int COMBAT_MENU_HEIGHT = 100;
 
 ////////////////////
 // CLASS INCLUDES //
@@ -78,5 +79,6 @@ private:
 	int m_combatMapWidth, m_combatMapHeight;
 	int m_mouseX, m_mouseY;
 	int m_currentTileX, m_currentTileY;
+	bool m_cursorOverTile;
 	D3DXMATRIX m_UIViewMatrix;
 };

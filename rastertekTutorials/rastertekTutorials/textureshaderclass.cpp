@@ -104,8 +104,7 @@ bool TextureShaderClass::InitializeShader(ID3D11Device* device, HWND hwnd, CHAR*
 		// If the shader failed to compile it should have writen something to the error message.
 		if (errorMessage){
 			OutputShaderErrorMessage(errorMessage, hwnd, (WCHAR*)lowAlphaPSFilename);
-		}
-		else{ // If there was  nothing in the error message then it simply could not find the file itself.
+		} else{ // If there was  nothing in the error message then it simply could not find the file itself.
 			MessageBox(hwnd, lowAlphaPSFilename, "Missing Shader File", MB_OK);
 		}
 
@@ -118,8 +117,7 @@ bool TextureShaderClass::InitializeShader(ID3D11Device* device, HWND hwnd, CHAR*
 		// If the shader failed to compile it should have writen something to the error message.
 		if (errorMessage){
 			OutputShaderErrorMessage(errorMessage, hwnd, (WCHAR*)spritePSFilename);
-		}
-		else{ // If there was  nothing in the error message then it simply could not find the file itself.
+		} else{ // If there was  nothing in the error message then it simply could not find the file itself.
 			MessageBox(hwnd, spritePSFilename, "Missing Shader File", MB_OK);
 		}
 
