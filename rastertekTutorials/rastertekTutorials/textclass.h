@@ -35,6 +35,7 @@ public:
 	bool Render(ID3D11DeviceContext*, D3DXMATRIX, D3DXMATRIX);
 
 	bool SetMousePosition(int, int, ID3D11DeviceContext*);
+	bool SetSelectedAgent(int, ID3D11DeviceContext*);
 
 private:
 	bool InitializeSentence(SentenceType**, int, ID3D11Device*);
@@ -49,7 +50,7 @@ private:
 	D3DXMATRIX m_baseViewMatrix;
 	SentenceType* m_sentence1;
 	SentenceType* m_sentence2;
-	SentenceType* m_sentence3;
-	SentenceType* m_sentence4;
-	SentenceType* m_sentence5;
+	SentenceType* m_selectedAgent;
+	SentenceType* m_cursorXCoordinate;
+	SentenceType* m_cursorYCoordinate;
 };

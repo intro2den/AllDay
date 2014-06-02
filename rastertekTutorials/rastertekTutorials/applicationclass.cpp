@@ -54,6 +54,9 @@ bool ApplicationClass::Initialize(HINSTANCE hinstance, HWND hwnd, int screenWidt
 	m_currentTileY = -1;
 	m_cursorOverTile = false;
 
+	// Initialize the index of the currently selected Agent to -1, there are no Agents to be selected on initialization
+	m_selectedAgent = -1;
+
 	// Create the input object.  The input object will be used to handle reading the keyboard and mouse input from the user.
 	m_Input = new InputClass;
 	if (!m_Input){
@@ -329,6 +332,9 @@ bool ApplicationClass::HandleInput(float frameTime){
 	bool cursorInBounds, scrolling;
 	float posX, posY, posZ;
 	float cursorX, cursorY, normalizedCursorX, normalizedCursorY;
+	bool agentFound;
+	int agentX, agentY;
+	int i;
 
 	// Set the frame time for calculating the updated position.
 	m_Position->SetFrameTime(frameTime);
@@ -444,10 +450,20 @@ bool ApplicationClass::HandleInput(float frameTime){
 			//       Handling a clicked hex is fine, however will need to find a better way to handle user input for buttons/menus.
 			if (m_mouseX >= (int)((float)(m_screenWidth)* 0.75) && m_mouseX <= ((int)((float)(m_screenWidth)* 0.75) + 100) && m_mouseY >= (m_screenHeight - 55) && m_mouseY <= (m_screenHeight - 25)){
 				m_MainState = MAINSTATE_MAINMENU;
-				ShutdownCombatMap();
 
 				// Set the cursorOverTile flag to false
 				m_cursorOverTile = false;
+				
+				// Deselect any selected Agent and update the associated sentence
+				m_selectedAgent = -1;
+				result = m_Text->SetSelectedAgent(m_selectedAgent, m_D3D->GetDeviceContext());
+				if (!result){
+					return false;
+				}
+
+				// Shutdown the Combat Map and all associated data structures
+				ShutdownCombatMap();
+
 
 				// Set the position of the camera back to the origin
 				m_Position->SetPosition(0.0f, 0.0f, -10.0f);
@@ -460,7 +476,39 @@ bool ApplicationClass::HandleInput(float frameTime){
 			//       or if they are simply selecting an Agent. Currently we just select the Agent that is in
 			//       the highlighted Hex if one exists at those coordinates
 			if (m_cursorOverTile){
-				// TODO: Check for an Agent in the highlighted hex, if there is one, select it.
+				// NOTE: This is primarily proof of concept, additional work will need to be done if multiple
+				//       agents are present in the hex, and for any other necessary checks related to Agent
+				//       selection.
+				agentFound = false;
+
+				// Check if an agent is in the hex that was just selected
+				for (i = 0; i < sizeof(m_Agents); i++){
+					m_Agents[i]->getPosition(agentX, agentY);
+					if (agentX == m_currentTileX && agentY == m_currentTileY){
+						// An agent is in the selected hex
+						agentFound = true;
+
+						// Update the ID of the selected Agent
+						m_selectedAgent = i;
+						result = m_Text->SetSelectedAgent(m_selectedAgent, m_D3D->GetDeviceContext());
+						if (!result){
+							return false;
+						}
+
+						// For now we only care about the first Agent found, break
+						break;
+					}
+				}
+
+				// If no agent was found in the tile, unselect any selected Agent
+				if (!agentFound){
+					m_selectedAgent = -1;
+					result = m_Text->SetSelectedAgent(m_selectedAgent, m_D3D->GetDeviceContext());
+					if (!result){
+						return false;
+					}
+				}
+
 				break;
 			}
 		}
@@ -470,8 +518,8 @@ bool ApplicationClass::HandleInput(float frameTime){
 			// NOTE: Should check to ensure the cursor is not overtop of a menu/submenu when considering interaction with the map
 			//       Do not interact with a hex if the mouse is clicked and there is the background of a menu between the cursor and
 			//       the hex.
-			if (m_cursorOverTile){
-				m_Agents[0]->setPosition(m_currentTileX, m_currentTileY);
+			if (m_cursorOverTile && m_selectedAgent >= 0){
+				m_Agents[m_selectedAgent]->setPosition(m_currentTileX, m_currentTileY);
 			}
 		}
 

@@ -8,9 +8,9 @@ TextClass::TextClass(){
 	m_FontShader = 0;
 	m_sentence1 = 0;
 	m_sentence2 = 0;
-	m_sentence3 = 0;
-	m_sentence4 = 0;
-	m_sentence5 = 0;
+	m_selectedAgent = 0;
+	m_cursorXCoordinate = 0;
+	m_cursorYCoordinate = 0;
 }
 
 TextClass::TextClass(const TextClass& other){
@@ -80,28 +80,28 @@ bool TextClass::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceCont
 	}
 
 	// Initialize the third sentence.
-	result = InitializeSentence(&m_sentence3, 16, device);
+	result = InitializeSentence(&m_selectedAgent, 16, device);
 
 	// Now update the sentence vertex buffer with the new string information.
-	result = UpdateSentence(m_sentence3, "Goodbye", 100, 400, 1.0f, 1.0f, 0.0f, deviceContext);
+	result = UpdateSentence(m_selectedAgent, "", 20, m_screenHeight - 80, 1.0f, 1.0f, 1.0f, deviceContext);
 	if (!result){
 		return false;
 	}
 
 	// Initialize the fourth sentence.
-	result = InitializeSentence(&m_sentence4, 16, device);
+	result = InitializeSentence(&m_cursorXCoordinate, 16, device);
 
 	// Now update the sentence vertex buffer with the new string information.
-	result = UpdateSentence(m_sentence4, "0", 20, 20, 1.0f, 1.0f, 1.0f, deviceContext);
+	result = UpdateSentence(m_cursorXCoordinate, "", 20, 20, 1.0f, 1.0f, 1.0f, deviceContext);
 	if (!result){
 		return false;
 	}
 
 	// Initialize the fifth sentence.
-	result = InitializeSentence(&m_sentence5, 16, device);
+	result = InitializeSentence(&m_cursorYCoordinate, 16, device);
 
 	// Now update the sentence vertex buffer with the new string information.
-	result = UpdateSentence(m_sentence5, "0", 20, 40, 1.0f, 1.0f, 1.0f, deviceContext);
+	result = UpdateSentence(m_cursorYCoordinate, "", 20, 40, 1.0f, 1.0f, 1.0f, deviceContext);
 	if (!result){
 		return false;
 	}
@@ -117,13 +117,13 @@ void TextClass::Shutdown(){
 	ReleaseSentence(&m_sentence2);
 
 	// Release the third sentence.
-	ReleaseSentence(&m_sentence3);
+	ReleaseSentence(&m_selectedAgent);
 
 	// Release the fourth sentence.
-	ReleaseSentence(&m_sentence4);
+	ReleaseSentence(&m_cursorXCoordinate);
 
 	// Release the fifth sentence.
-	ReleaseSentence(&m_sentence5);
+	ReleaseSentence(&m_cursorYCoordinate);
 
 	// Release the font shader object.
 	if (m_FontShader){
@@ -157,20 +157,20 @@ bool TextClass::Render(ID3D11DeviceContext* deviceContext, D3DXMATRIX worldMatri
 		return false;
 	}
 
-	// Draw the third sentence.
-	result = RenderSentence(deviceContext, m_sentence3, worldMatrix, orthoMatrix);
+	// Draw the sentence indicating which agent is selected
+	result = RenderSentence(deviceContext, m_selectedAgent, worldMatrix, orthoMatrix);
 	if (!result){
 		return false;
 	}
 
-	// Draw the fourth sentence.
-	result = RenderSentence(deviceContext, m_sentence4, worldMatrix, orthoMatrix);
+	// Draw the sentence with the X coordinate of the mouse.
+	result = RenderSentence(deviceContext, m_cursorXCoordinate, worldMatrix, orthoMatrix);
 	if (!result){
 		return false;
 	}
 
-	// Draw the fifth sentence.
-	result = RenderSentence(deviceContext, m_sentence5, worldMatrix, orthoMatrix);
+	// Draw the sentence with the Y coordinate of the mouse.
+	result = RenderSentence(deviceContext, m_cursorYCoordinate, worldMatrix, orthoMatrix);
 	if (!result){
 		return false;
 	}
@@ -191,7 +191,7 @@ bool TextClass::SetMousePosition(int mouseX, int mouseY, ID3D11DeviceContext* de
 	strcat_s(mouseString, tempString);
 
 	// Update the sentence vertex buffer with the new string information.
-	result = UpdateSentence(m_sentence4, mouseString, 20, 20, 1.0f, 1.0f, 1.0f, deviceContext);
+	result = UpdateSentence(m_cursorXCoordinate, mouseString, 20, 20, 1.0f, 1.0f, 1.0f, deviceContext);
 	if (!result){
 		return false;
 	}
@@ -204,7 +204,34 @@ bool TextClass::SetMousePosition(int mouseX, int mouseY, ID3D11DeviceContext* de
 	strcat_s(mouseString, tempString);
 
 	// Update the sentence vertex buffer with the new string information.
-	result = UpdateSentence(m_sentence5, mouseString, 20, 40, 1.0f, 1.0f, 1.0f, deviceContext);
+	result = UpdateSentence(m_cursorYCoordinate, mouseString, 20, 40, 1.0f, 1.0f, 1.0f, deviceContext);
+	if (!result){
+		return false;
+	}
+
+	return true;
+}
+
+bool TextClass::SetSelectedAgent(int agentID, ID3D11DeviceContext* deviceContext){
+	// Update the selectedAgent string with the ID of the currently selected Agent.
+	// If a negative value is provided as the ID, empty the string.
+	char tempString[16];
+	char newString[16];
+	bool result;
+
+	if (agentID >= 0){
+		// Convert the agentID into string format.
+		_itoa_s(agentID, tempString, 10);
+
+		// Set up the selectedAgent string
+		strcpy_s(newString, "Agent ");
+		strcat_s(newString, tempString);
+	} else{
+		strcpy_s(newString, "");
+	}
+
+	// Update the sentence vertex buffer with the new string information.
+	result = UpdateSentence(m_selectedAgent, newString, 20, m_screenHeight - 80, 1.0f, 1.0f, 1.0f, deviceContext);
 	if (!result){
 		return false;
 	}
@@ -418,4 +445,3 @@ bool TextClass::RenderSentence(ID3D11DeviceContext* deviceContext, SentenceType*
 
 	return true;
 }
-

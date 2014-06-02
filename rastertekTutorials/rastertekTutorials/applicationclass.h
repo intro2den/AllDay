@@ -80,5 +80,6 @@ private:
 	int m_mouseX, m_mouseY;
 	int m_currentTileX, m_currentTileY;
 	bool m_cursorOverTile;
+	int m_selectedAgent;
 	D3DXMATRIX m_UIViewMatrix;
 };
