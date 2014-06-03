@@ -37,6 +37,7 @@ bool ApplicationClass::Initialize(HINSTANCE hinstance, HWND hwnd, int screenWidt
 	bool result;
 	float cameraX, cameraY, cameraZ;
 	D3DXMATRIX baseViewMatrix;
+	int i;
 	
 	// Keep track of the screen width and height for bounding the camera, dynamic bitmap initialization and/or scaling(?)
 	m_screenWidth = screenWidth;
@@ -56,6 +57,16 @@ bool ApplicationClass::Initialize(HINSTANCE hinstance, HWND hwnd, int screenWidt
 
 	// Initialize the index of the currently selected Agent to -1, there are no Agents to be selected on initialization
 	m_selectedAgent = -1;
+
+	// Set the current number of Agents to 0
+	m_numAgents = 0;
+
+	// Initialize the CombatMap specific arrays, AgentInitiative, AgentBeganTurn, AgentEndedTurn
+	for (i = 0; i < MAX_AGENTS; i++){
+		m_agentInitiative[i] = -1;
+		m_agentBeganTurn[i] = false;
+		m_agentEndedTurn[i] = false;
+	}
 
 	// Create the input object.  The input object will be used to handle reading the keyboard and mouse input from the user.
 	m_Input = new InputClass;
@@ -335,6 +346,7 @@ bool ApplicationClass::HandleInput(float frameTime){
 	bool agentFound;
 	int agentX, agentY;
 	int agentIndex;
+	int i;
 
 	// Set the frame time for calculating the updated position.
 	m_Position->SetFrameTime(frameTime);
@@ -453,6 +465,16 @@ bool ApplicationClass::HandleInput(float frameTime){
 
 				// Set the cursorOverTile flag to false
 				m_cursorOverTile = false;
+
+				// Set numAgents to 0
+				m_numAgents = 0;
+
+				// Reset the CombatMap specific arrays
+				for (i = 0; i < MAX_AGENTS; i++){
+					m_agentInitiative[i] = -1;
+					m_agentBeganTurn[i] = false;
+					m_agentEndedTurn[i] = false;
+				}
 				
 				// Deselect any selected Agent and update the associated sentence
 				result = SetSelectedAgent(-1);
@@ -462,7 +484,6 @@ bool ApplicationClass::HandleInput(float frameTime){
 
 				// Shutdown the Combat Map and all associated data structures
 				ShutdownCombatMap();
-
 
 				// Set the position of the camera back to the origin
 				m_Position->SetPosition(0.0f, 0.0f, -10.0f);
@@ -481,7 +502,7 @@ bool ApplicationClass::HandleInput(float frameTime){
 				agentFound = false;
 
 				// Check if an agent is in the hex that was just selected
-				for (agentIndex = 0; agentIndex < sizeof(m_Agents); agentIndex++){
+				for (agentIndex = 0; agentIndex < m_numAgents; agentIndex++){
 					m_Agents[agentIndex]->getPosition(agentX, agentY);
 					if (agentX == m_currentTileX && agentY == m_currentTileY){
 						// An agent is in the selected hex
@@ -611,8 +632,10 @@ bool ApplicationClass::InitializeCombatMap(MapType mapType, int mapWidth, int ma
 	}
 
 	// Initialize Agents
-	// NOTE: This process will be subject to considerable change
+	// NOTE: This process will be subject to considerable change, currently used for Proof of Concept
 	m_Agents = new AgentClass*[MAX_AGENTS];
+
+	// Initialize an Agent
 	m_Agents[0] = new AgentClass();
 	if (!m_Agents[0]){
 		return false;
@@ -623,6 +646,9 @@ bool ApplicationClass::InitializeCombatMap(MapType mapType, int mapWidth, int ma
 		return false;
 	}
 
+	m_numAgents++;
+
+	// Initialize a 2nd Agent
 	m_Agents[1] = new AgentClass();
 	if (!m_Agents[1]){
 		return false;
@@ -633,6 +659,9 @@ bool ApplicationClass::InitializeCombatMap(MapType mapType, int mapWidth, int ma
 		return false;
 	}
 
+	m_numAgents++;
+
+	// Initialize a 3rd Agent
 	m_Agents[2] = new AgentClass();
 	if (!m_Agents[2]){
 		return false;
@@ -643,6 +672,9 @@ bool ApplicationClass::InitializeCombatMap(MapType mapType, int mapWidth, int ma
 		return false;
 	}
 
+	m_numAgents++;
+
+	// Initialize a 4th Agent
 	m_Agents[3] = new AgentClass();
 	if (!m_Agents[3]){
 		return false;
@@ -652,6 +684,45 @@ bool ApplicationClass::InitializeCombatMap(MapType mapType, int mapWidth, int ma
 	if (!result){
 		return false;
 	}
+
+	m_numAgents++;
+
+	// Initialize a 5th Agent
+	m_Agents[4] = new AgentClass();
+	if (!m_Agents[4]){
+		return false;
+	}
+
+	result = m_Agents[4]->Initialize(AGENTTYPE_ACTIVE2, 5, 7);
+	if (!result){
+		return false;
+	}
+
+	m_numAgents++;
+
+	// Initialize a 6th Agent
+	m_Agents[5] = new AgentClass();
+	if (!m_Agents[5]){
+		return false;
+	}
+
+	result = m_Agents[5]->Initialize(AGENTTYPE_ACTIVE1, 7, 3);
+	if (!result){
+		return false;
+	}
+
+	m_numAgents++;
+
+	// Set the values in the AgentInitiative array to the initiative of the corresponding agent for each index
+	// NOTE: This is purely for proof of concept - checking the initiative of each Active Agent directly instead
+	//       of keeping track through this array would be more direct. Accessing the array by index may be faster
+	//       than an additional function call to each Agent however.
+	m_agentInitiative[0] = 10;
+	m_agentInitiative[1] = 7;
+	m_agentInitiative[2] = -1;
+	m_agentInitiative[3] = -1;
+	m_agentInitiative[4] = 5;
+	m_agentInitiative[5] = 9;
 
 	// Initialize a HexMap to highlight the tile that the user has the cursor over
 	m_AgentSprites = new SpriteClass();
@@ -680,7 +751,7 @@ void ApplicationClass::ShutdownCombatMap(){
 
 	// Release the Agents
 	if (m_Agents){
-		for (i = 0; i < sizeof(m_Agents); i++){
+		for (i = 0; i < m_numAgents; i++){
 			delete m_Agents[i];
 			m_Agents[i] = 0;
 		}
@@ -839,11 +910,9 @@ bool ApplicationClass::RenderGraphics(){
 
 		// Render Agents
 		// Turn on alpha blending while rendering sprites
-		// NOTE: Currently neither the sprites nor the TextureShader object are configured to be able of
-		//       properly blending sprites onto the map - however we will need Alpha Blending on when they are.
 		m_D3D->TurnOnAlphaBlending();
 
-		for (i = 0; i < sizeof(m_Agents); i++){
+		for (i = 0; i < m_numAgents; i++){
 			// Get the position of the agent
 			m_Agents[i]->getPosition(agentX, agentY);
 			

@@ -82,5 +82,13 @@ private:
 	int m_currentTileX, m_currentTileY;
 	bool m_cursorOverTile;
 	int m_selectedAgent;
+	int m_numAgents;
+
+	// These arrays may become obsolete at some point, currently used for
+	// the Turn system in the CombatMap
+	int m_agentInitiative[MAX_AGENTS];
+	bool m_agentBeganTurn[MAX_AGENTS];
+	bool m_agentEndedTurn[MAX_AGENTS];
+
 	D3DXMATRIX m_UIViewMatrix;
 };
