@@ -334,7 +334,7 @@ bool ApplicationClass::HandleInput(float frameTime){
 	float cursorX, cursorY, normalizedCursorX, normalizedCursorY;
 	bool agentFound;
 	int agentX, agentY;
-	int i;
+	int agentIndex;
 
 	// Set the frame time for calculating the updated position.
 	m_Position->SetFrameTime(frameTime);
@@ -455,8 +455,7 @@ bool ApplicationClass::HandleInput(float frameTime){
 				m_cursorOverTile = false;
 				
 				// Deselect any selected Agent and update the associated sentence
-				m_selectedAgent = -1;
-				result = m_Text->SetSelectedAgent(m_selectedAgent, m_D3D->GetDeviceContext());
+				result = SetSelectedAgent(-1);
 				if (!result){
 					return false;
 				}
@@ -482,15 +481,14 @@ bool ApplicationClass::HandleInput(float frameTime){
 				agentFound = false;
 
 				// Check if an agent is in the hex that was just selected
-				for (i = 0; i < sizeof(m_Agents); i++){
-					m_Agents[i]->getPosition(agentX, agentY);
+				for (agentIndex = 0; agentIndex < sizeof(m_Agents); agentIndex++){
+					m_Agents[agentIndex]->getPosition(agentX, agentY);
 					if (agentX == m_currentTileX && agentY == m_currentTileY){
 						// An agent is in the selected hex
 						agentFound = true;
 
 						// Update the ID of the selected Agent
-						m_selectedAgent = i;
-						result = m_Text->SetSelectedAgent(m_selectedAgent, m_D3D->GetDeviceContext());
+						result = SetSelectedAgent(agentIndex);
 						if (!result){
 							return false;
 						}
@@ -502,8 +500,7 @@ bool ApplicationClass::HandleInput(float frameTime){
 
 				// If no agent was found in the tile, unselect any selected Agent
 				if (!agentFound){
-					m_selectedAgent = -1;
-					result = m_Text->SetSelectedAgent(m_selectedAgent, m_D3D->GetDeviceContext());
+					result = SetSelectedAgent(-1);
 					if (!result){
 						return false;
 					}
@@ -527,6 +524,31 @@ bool ApplicationClass::HandleInput(float frameTime){
 	}
 
 	return true;
+}
+
+bool ApplicationClass::SetSelectedAgent(int agentID){
+	// Set m_selectedAgent, update the selectedAgent string in the Text object and do all pathfinding for the newly selected
+	// Agent.
+	// NOTE: Currently not checking if the newly selected Agent is already selected - it may be worth checking.
+	bool result;
+
+	m_selectedAgent = agentID;
+	result = m_Text->SetSelectedAgent(agentID, m_D3D->GetDeviceContext);
+	if (!result){
+		return false;
+	}
+
+	//////////////////////////////////////////////
+	// TODO: Do pathfinding for the selected Agent from its current position on the map to all tiles on the map.
+	//       Unreachable tiles should be specially denoted in some way that is easy to check without adding unnessesary
+	//       bulk to the data structure used, perhaps a cost of -1 or similar. Create an ENUM/Constant if necessary.
+	//       If an Inactive Agent or No Agent is selected, the data structure storing the results should be updated
+	//       in such a way as to reflect that no movement is possible to any hex.
+	//////////////////////////////////////////////
+
+
+	return true;
+
 }
 
 // Initialize a new Combat Map - this should happen when entering the CombatMap MainState (entering the Combat Map)

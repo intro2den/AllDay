@@ -50,7 +50,8 @@ public:
 	bool Frame();
 
 private:
-	bool HandleInput(float); // Requires timer
+	bool HandleInput(float);
+	bool SetSelectedAgent(int);
 	bool InitializeCombatMap(MapType, int, int);
 	void ShutdownCombatMap();
 	bool RenderGraphics();
