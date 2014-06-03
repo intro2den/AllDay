@@ -533,7 +533,7 @@ bool ApplicationClass::SetSelectedAgent(int agentID){
 	bool result;
 
 	m_selectedAgent = agentID;
-	result = m_Text->SetSelectedAgent(agentID, m_D3D->GetDeviceContext);
+	result = m_Text->SetSelectedAgent(agentID, m_D3D->GetDeviceContext());
 	if (!result){
 		return false;
 	}
