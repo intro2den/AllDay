@@ -370,6 +370,12 @@ bool ApplicationClass::HandleInput(float frameTime){
 						return false;
 					}
 				}
+
+				// Set appropriate Menu Text
+				result = m_Text->SetCombatMapText(m_D3D->GetDeviceContext());
+				if (!result){
+					return false;
+				}
 			}
 			// Second option exits the application
 			if (m_mouseX > 50 && m_mouseX < 750 && m_mouseY > 200 && m_mouseY < 250){
@@ -463,6 +469,13 @@ bool ApplicationClass::HandleInput(float frameTime){
 			if (m_mouseX >= (int)((float)(m_screenWidth)* 0.75) && m_mouseX <= ((int)((float)(m_screenWidth)* 0.75) + 100) && m_mouseY >= (m_screenHeight - 55) && m_mouseY <= (m_screenHeight - 25)){
 				m_MainState = MAINSTATE_MAINMENU;
 
+
+				// Set appropriate Menu Text
+				result = m_Text->SetMainMenuText(m_D3D->GetDeviceContext());
+				if (!result){
+					return false;
+				}
+
 				// Set the cursorOverTile flag to false
 				m_cursorOverTile = false;
 
@@ -537,7 +550,13 @@ bool ApplicationClass::HandleInput(float frameTime){
 			//       Do not interact with a hex if the mouse is clicked and there is the background of a menu between the cursor and
 			//       the hex.
 			if (m_cursorOverTile && m_selectedAgent >= 0){
-				m_Agents[m_selectedAgent]->setPosition(m_currentTileX, m_currentTileY);
+				// Only move the selected Agent if it is that Agent's turn, otherwise display an appropriate error message
+				if (m_agentBeganTurn[m_selectedAgent] && !m_agentEndedTurn[m_selectedAgent]){
+					m_Agents[m_selectedAgent]->setPosition(m_currentTileX, m_currentTileY);
+				} else{
+					// TODO: Display a string informing the player that the current Agent can not be moved (and why)
+					//       for a few seconds.
+				}
 			}
 		}
 
@@ -633,15 +652,17 @@ bool ApplicationClass::InitializeCombatMap(MapType mapType, int mapWidth, int ma
 
 	// Initialize Agents
 	// NOTE: This process will be subject to considerable change, currently used for Proof of Concept
+	// NOTE2: Currently sequentially initializing Agents in an array based on the current number of Agents
+	//        May reimplement Agents using a list (or two).
 	m_Agents = new AgentClass*[MAX_AGENTS];
 
 	// Initialize an Agent
-	m_Agents[0] = new AgentClass();
-	if (!m_Agents[0]){
+	m_Agents[m_numAgents] = new AgentClass();
+	if (!m_Agents[m_numAgents]){
 		return false;
 	}
 
-	result = m_Agents[0]->Initialize(AGENTTYPE_ACTIVE1, 0, 0);
+	result = m_Agents[m_numAgents]->Initialize(AGENTTYPE_ACTIVE1, 0, 0);
 	if (!result){
 		return false;
 	}
@@ -649,12 +670,12 @@ bool ApplicationClass::InitializeCombatMap(MapType mapType, int mapWidth, int ma
 	m_numAgents++;
 
 	// Initialize a 2nd Agent
-	m_Agents[1] = new AgentClass();
-	if (!m_Agents[1]){
+	m_Agents[m_numAgents] = new AgentClass();
+	if (!m_Agents[m_numAgents]){
 		return false;
 	}
 
-	result = m_Agents[1]->Initialize(AGENTTYPE_ACTIVE2, 2, 0);
+	result = m_Agents[m_numAgents]->Initialize(AGENTTYPE_ACTIVE2, 2, 0);
 	if (!result){
 		return false;
 	}
@@ -662,12 +683,12 @@ bool ApplicationClass::InitializeCombatMap(MapType mapType, int mapWidth, int ma
 	m_numAgents++;
 
 	// Initialize a 3rd Agent
-	m_Agents[2] = new AgentClass();
-	if (!m_Agents[2]){
+	m_Agents[m_numAgents] = new AgentClass();
+	if (!m_Agents[m_numAgents]){
 		return false;
 	}
 
-	result = m_Agents[2]->Initialize(AGENTTYPE_INACTIVE1, 1, 16);
+	result = m_Agents[m_numAgents]->Initialize(AGENTTYPE_INACTIVE1, 1, 16);
 	if (!result){
 		return false;
 	}
@@ -675,12 +696,12 @@ bool ApplicationClass::InitializeCombatMap(MapType mapType, int mapWidth, int ma
 	m_numAgents++;
 
 	// Initialize a 4th Agent
-	m_Agents[3] = new AgentClass();
-	if (!m_Agents[3]){
+	m_Agents[m_numAgents] = new AgentClass();
+	if (!m_Agents[m_numAgents]){
 		return false;
 	}
 
-	result = m_Agents[3]->Initialize(AGENTTYPE_INACTIVE2, 3, 5);
+	result = m_Agents[m_numAgents]->Initialize(AGENTTYPE_INACTIVE2, 3, 5);
 	if (!result){
 		return false;
 	}
@@ -688,12 +709,12 @@ bool ApplicationClass::InitializeCombatMap(MapType mapType, int mapWidth, int ma
 	m_numAgents++;
 
 	// Initialize a 5th Agent
-	m_Agents[4] = new AgentClass();
-	if (!m_Agents[4]){
+	m_Agents[m_numAgents] = new AgentClass();
+	if (!m_Agents[m_numAgents]){
 		return false;
 	}
 
-	result = m_Agents[4]->Initialize(AGENTTYPE_ACTIVE2, 5, 7);
+	result = m_Agents[m_numAgents]->Initialize(AGENTTYPE_ACTIVE2, 5, 7);
 	if (!result){
 		return false;
 	}
@@ -701,12 +722,12 @@ bool ApplicationClass::InitializeCombatMap(MapType mapType, int mapWidth, int ma
 	m_numAgents++;
 
 	// Initialize a 6th Agent
-	m_Agents[5] = new AgentClass();
-	if (!m_Agents[5]){
+	m_Agents[m_numAgents] = new AgentClass();
+	if (!m_Agents[m_numAgents]){
 		return false;
 	}
 
-	result = m_Agents[5]->Initialize(AGENTTYPE_ACTIVE1, 7, 3);
+	result = m_Agents[m_numAgents]->Initialize(AGENTTYPE_ACTIVE1, 7, 3);
 	if (!result){
 		return false;
 	}
@@ -966,7 +987,7 @@ bool ApplicationClass::RenderGraphics(){
 		}
 
 		for (i = 0; i < 2; i++){
-			result = m_StandardButton->Render(m_D3D->GetDeviceContext(), (int)((float)(m_screenWidth)* 0.75f), m_screenHeight - 15 - 40 * (i + 1));
+			result = m_StandardButton->Render(m_D3D->GetDeviceContext(), (int)((float)(m_screenWidth)* 0.75f), m_screenHeight - 55 - 40 * i);
 			if (!result){
 				return false;
 			}

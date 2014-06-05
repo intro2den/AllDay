@@ -34,6 +34,8 @@ public:
 	void Shutdown();
 	bool Render(ID3D11DeviceContext*, D3DXMATRIX, D3DXMATRIX);
 
+	bool SetMainMenuText(ID3D11DeviceContext*);
+	bool SetCombatMapText(ID3D11DeviceContext*);
 	bool SetMousePosition(int, int, ID3D11DeviceContext*);
 	bool SetSelectedAgent(int, ID3D11DeviceContext*);
 
@@ -48,8 +50,8 @@ private:
 	FontShaderClass* m_FontShader;
 	int m_screenWidth, m_screenHeight;
 	D3DXMATRIX m_baseViewMatrix;
-	SentenceType* m_sentence1;
-	SentenceType* m_sentence2;
+	SentenceType* m_menuText1;
+	SentenceType* m_menuText2;
 	SentenceType* m_selectedAgent;
 	SentenceType* m_cursorXCoordinate;
 	SentenceType* m_cursorYCoordinate;

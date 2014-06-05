@@ -6,8 +6,8 @@
 TextClass::TextClass(){
 	m_Font = 0;
 	m_FontShader = 0;
-	m_sentence1 = 0;
-	m_sentence2 = 0;
+	m_menuText1 = 0;
+	m_menuText2 = 0;
 	m_selectedAgent = 0;
 	m_cursorXCoordinate = 0;
 	m_cursorYCoordinate = 0;
@@ -55,52 +55,49 @@ bool TextClass::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceCont
 		return false;
 	}
 
-	// Initialize the first sentence.
-	result = InitializeSentence(&m_sentence1, 16, device);
+	// Initialize menu text for the Main Menu
+	result = InitializeSentence(&m_menuText1, 16, device);
 	if (!result){
 		return false;
 	}
 
-	// Now update the sentence vertex buffer with the new string information.
-	result = UpdateSentence(m_sentence1, "Hello", 100, 300, 1.0f, 1.0f, 1.0f, deviceContext);
+	result = InitializeSentence(&m_menuText2, 16, device);
 	if (!result){
 		return false;
 	}
 
-	// Initialize the second sentence.
-	result = InitializeSentence(&m_sentence2, 32, device);
+	result = SetMainMenuText(deviceContext);
 	if (!result){
 		return false;
 	}
 
-	// Now update the sentence vertex buffer with the new string information
-	result = UpdateSentence(m_sentence2, "I am a new sentence", 100, 350, 0.5f, 0.5f, 1.0f, deviceContext);
-	if (!result){
-		return false;
-	}
-
-	// Initialize the third sentence.
+	// Initialize a sentence to display the currently selected Agent
 	result = InitializeSentence(&m_selectedAgent, 16, device);
+	if (!result){
+		return false;
+	}
 
-	// Now update the sentence vertex buffer with the new string information.
 	result = UpdateSentence(m_selectedAgent, "", 20, m_screenHeight - 80, 1.0f, 1.0f, 1.0f, deviceContext);
 	if (!result){
 		return false;
 	}
 
-	// Initialize the fourth sentence.
+	// Initialize 2 sentences to display the cursor coordinates, initialize both to empty strings
 	result = InitializeSentence(&m_cursorXCoordinate, 16, device);
+	if (!result){
+		return false;
+	}
 
-	// Now update the sentence vertex buffer with the new string information.
 	result = UpdateSentence(m_cursorXCoordinate, "", 20, 20, 1.0f, 1.0f, 1.0f, deviceContext);
 	if (!result){
 		return false;
 	}
 
-	// Initialize the fifth sentence.
 	result = InitializeSentence(&m_cursorYCoordinate, 16, device);
+	if (!result){
+		return false;
+	}
 
-	// Now update the sentence vertex buffer with the new string information.
 	result = UpdateSentence(m_cursorYCoordinate, "", 20, 40, 1.0f, 1.0f, 1.0f, deviceContext);
 	if (!result){
 		return false;
@@ -111,10 +108,10 @@ bool TextClass::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceCont
 
 void TextClass::Shutdown(){
 	// Release the first sentence.
-	ReleaseSentence(&m_sentence1);
+	ReleaseSentence(&m_menuText1);
 
 	// Release the second sentence.
-	ReleaseSentence(&m_sentence2);
+	ReleaseSentence(&m_menuText2);
 
 	// Release the third sentence.
 	ReleaseSentence(&m_selectedAgent);
@@ -146,13 +143,13 @@ bool TextClass::Render(ID3D11DeviceContext* deviceContext, D3DXMATRIX worldMatri
 	bool result;
 
 	// Draw the first sentence.
-	result = RenderSentence(deviceContext, m_sentence1, worldMatrix, orthoMatrix);
+	result = RenderSentence(deviceContext, m_menuText1, worldMatrix, orthoMatrix);
 	if (!result){
 		return false;
 	}
 
 	// Draw the second sentence.
-	result = RenderSentence(deviceContext, m_sentence2, worldMatrix, orthoMatrix);
+	result = RenderSentence(deviceContext, m_menuText2, worldMatrix, orthoMatrix);
 	if (!result){
 		return false;
 	}
@@ -171,6 +168,48 @@ bool TextClass::Render(ID3D11DeviceContext* deviceContext, D3DXMATRIX worldMatri
 
 	// Draw the sentence with the Y coordinate of the mouse.
 	result = RenderSentence(deviceContext, m_cursorYCoordinate, worldMatrix, orthoMatrix);
+	if (!result){
+		return false;
+	}
+
+	return true;
+}
+
+bool TextClass::SetMainMenuText(ID3D11DeviceContext* deviceContext){
+	// Update all MenuText strings to display labels for each option on the Main Menu
+	bool result;
+
+	// NOTE: Positioning is currently fixed and does not change with other elements in the UI,
+	//       such as the button the text is meant to be a part of. This will have to change,
+	//       particularly when we support multiple resolutions (Text size may also need to change)
+
+	result = UpdateSentence(m_menuText1, "Enter CombatMap", 65, 146, 0.0f, 0.0f, 0.0f, deviceContext);
+	if (!result){
+		return false;
+	}
+
+	result = UpdateSentence(m_menuText2, "Exit Application", 65, 221, 0.0f, 0.0f, 0.0f, deviceContext);
+	if (!result){
+		return false;
+	}
+
+	return true;
+}
+
+bool TextClass::SetCombatMapText(ID3D11DeviceContext* deviceContext){
+	// Update all MenuText strings to display labels for each option on the CombatMap Menu Bar
+	bool result;
+
+	// NOTE: Positioning is currently fixed and does not change with other elements in the UI,
+	//       such as the button the text is meant to be a part of. This will have to change,
+	//       particularly when we support multiple resolutions (Text size may also need to change)
+
+	result = UpdateSentence(m_menuText1, "End Turn", (int)(m_screenWidth * 0.75f) + 5, m_screenHeight - 84, 0.0f, 0.0f, 0.0f, deviceContext);
+	if (!result){
+		return false;
+	}
+
+	result = UpdateSentence(m_menuText2, "Main Menu", (int)(m_screenWidth * 0.75f) + 5, m_screenHeight - 44, 0.0f, 0.0f, 0.0f, deviceContext);
 	if (!result){
 		return false;
 	}
