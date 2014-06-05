@@ -317,10 +317,12 @@ bool ApplicationClass::Frame(){
 	// Get the location of the mouse from the input object,
 	m_Input->GetMouseLocation(m_mouseX, m_mouseY);
 
-	// Set the location of the mouse
-	result = m_Text->SetMousePosition(m_mouseX, m_mouseY, m_D3D->GetDeviceContext());
-	if (!result){
-		return false;
+	// If the mouse is over the window, update the text strings displaying the cursor coordinates
+	if (m_mouseX >= 0 && m_mouseX < m_screenWidth && m_mouseY >= 0 && m_mouseY < m_screenHeight){
+		result = m_Text->SetMousePosition(m_mouseX, m_mouseY, m_D3D->GetDeviceContext());
+		if (!result){
+			return false;
+		}
 	}
 
 	result = HandleInput(m_Timer->GetTime());
@@ -376,6 +378,11 @@ bool ApplicationClass::HandleInput(float frameTime){
 				if (!result){
 					return false;
 				}
+
+				// Begin the first round of Combat
+				NextTurn();
+
+				break;
 			}
 			// Second option exits the application
 			if (m_mouseX > 50 && m_mouseX < 750 && m_mouseY > 200 && m_mouseY < 250){
@@ -462,13 +469,20 @@ bool ApplicationClass::HandleInput(float frameTime){
 			}
 		}
 
+		// Handle user input (aside from Camera movement) relevant to the CombatMap
 		if (m_Input->WasLeftMouseClicked() == true){
-			// If the mouse was clicked over the bottom right button on the combatmap menubar
+			// Left Click - Check for clicking on Menu Buttons, map tiles
 			// NOTE: Unless proper constants are set based on screen resolution, adding multiple buttons to press will quickly become a nightmare to handle
 			//       Handling a clicked hex is fine, however will need to find a better way to handle user input for buttons/menus.
-			if (m_mouseX >= (int)((float)(m_screenWidth)* 0.75) && m_mouseX <= ((int)((float)(m_screenWidth)* 0.75) + 100) && m_mouseY >= (m_screenHeight - 55) && m_mouseY <= (m_screenHeight - 25)){
-				m_MainState = MAINSTATE_MAINMENU;
 
+			// If the End Turn button was clicked, End Turn
+			if (m_mouseX >= (int)(m_screenWidth * 0.75f) && m_mouseX < ((int)(m_screenWidth * 0.75f) + 100) && m_mouseY >= (m_screenHeight - 95) && m_mouseY < (m_screenHeight - 65)){
+				EndTurn();
+			}
+
+			// If the Main Menu button was clicked, Shutdown the CombatMap and return to the Main Menu
+			if (m_mouseX >= (int)(m_screenWidth * 0.75f) && m_mouseX < ((int)(m_screenWidth * 0.75f) + 100) && m_mouseY >= (m_screenHeight - 55) && m_mouseY < (m_screenHeight - 25)){
+				m_MainState = MAINSTATE_MAINMENU;
 
 				// Set appropriate Menu Text
 				result = m_Text->SetMainMenuText(m_D3D->GetDeviceContext());
@@ -588,7 +602,73 @@ bool ApplicationClass::SetSelectedAgent(int agentID){
 
 
 	return true;
+}
 
+void ApplicationClass::NextTurn(){
+	// Determine which player, and which of their Agents are able to act for the
+	// next turn of Combat.
+	// NOTE: Currently not differentiating between players and only selecting a
+	//       single Agent to act at a time.
+	int highestInitiative;
+	int nextActingAgent;
+	int i;
+
+	// TODO: Implement proper Initiative system, find and begin the turn of all
+	//       appropriate Agents with respect to system specifications.
+
+	// Initialize the highest initiative to be lower than all valid initiative values
+	highestInitiative = -1;
+
+	// Find the fastest Agent which has not started nor ended their turn
+	for (i = 0; i < m_numAgents; i++){
+		if (!m_agentBeganTurn[i] && !m_agentEndedTurn[i] && m_agentInitiative[i] > highestInitiative){
+			highestInitiative = m_agentInitiative[i];
+			nextActingAgent = i;
+		}
+	}
+
+	// Begin the turn of all Agents that will be able to act for the next turn of Combat
+	m_agentBeganTurn[nextActingAgent] = true;
+
+	return;
+}
+
+void ApplicationClass::EndTurn(){
+	// End the turn of all Agents which have started but not yet ended their turn
+	// If all Agents have ended their turn at this point, begin a new round of turns.
+	int i;
+	bool endOfRound;
+
+	// Assume the round is ending, if an Agent has not started their turn yet, then
+	// the round is not yet ending
+	endOfRound = true;
+
+	// End the turn of all Agents which have started but not ended their turn and determine
+	// if the round is ending or not.
+	for (i = 0; i < m_numAgents; i++){
+		if (!m_agentBeganTurn[i] && m_agentInitiative[i] >= 0){
+			endOfRound = false;
+		}
+
+		if (m_agentBeganTurn[i] && !m_agentEndedTurn[i]){
+			// End this agent's turn
+			m_agentEndedTurn[i] = true;
+		}
+	}
+
+	// If the round is over, begin a new round
+	// NOTE: May want to move this behaviour into its own function - be able to call it at the start of combat as well
+	if (endOfRound){
+		for (i = 0; i < m_numAgents; i++){
+			m_agentBeganTurn[i] = false;
+			m_agentEndedTurn[i] = false;
+		}
+	}
+
+	// Start the next turn
+	NextTurn();
+
+	return;
 }
 
 // Initialize a new Combat Map - this should happen when entering the CombatMap MainState (entering the Combat Map)

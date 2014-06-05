@@ -52,6 +52,8 @@ public:
 private:
 	bool HandleInput(float);
 	bool SetSelectedAgent(int);
+	void NextTurn();
+	void EndTurn();
 	bool InitializeCombatMap(MapType, int, int);
 	void ShutdownCombatMap();
 	bool RenderGraphics();
