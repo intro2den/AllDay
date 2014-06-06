@@ -61,8 +61,9 @@ bool ApplicationClass::Initialize(HINSTANCE hinstance, HWND hwnd, int screenWidt
 	// Set the current number of Agents to 0
 	m_numAgents = 0;
 
-	// Initialize the CombatMap specific arrays, AgentInitiative, AgentBeganTurn, AgentEndedTurn
+	// Initialize the CombatMap specific arrays: agentOwner agentInitiative, agentBeganTurn, agentEndedTurn
 	for (i = 0; i < MAX_AGENTS; i++){
+		m_agentOwner[i] = -1;
 		m_agentInitiative[i] = -1;
 		m_agentBeganTurn[i] = false;
 		m_agentEndedTurn[i] = false;
@@ -498,6 +499,7 @@ bool ApplicationClass::HandleInput(float frameTime){
 
 				// Reset the CombatMap specific arrays
 				for (i = 0; i < MAX_AGENTS; i++){
+					m_agentOwner[i] = -1;
 					m_agentInitiative[i] = -1;
 					m_agentBeganTurn[i] = false;
 					m_agentEndedTurn[i] = false;
@@ -609,8 +611,8 @@ void ApplicationClass::NextTurn(){
 	// next turn of Combat.
 	// NOTE: Currently not differentiating between players and only selecting a
 	//       single Agent to act at a time.
-	int highestInitiative;
-	int nextActingAgent;
+	int highestInitiative, highestOpposingInitiative;
+	int nextActingPlayer;
 	int i;
 
 	// TODO: Implement proper Initiative system, find and begin the turn of all
@@ -618,17 +620,60 @@ void ApplicationClass::NextTurn(){
 
 	// Initialize the highest initiative to be lower than all valid initiative values
 	highestInitiative = -1;
+	highestOpposingInitiative = -1;
 
-	// Find the fastest Agent which has not started nor ended their turn
+	// Initialize the nextActing player to an invalid ID
+	nextActingPlayer = -1;
+
+	// Determine which player's Agents will have their turn next and the minimum initiative
+	// required for them to have that turn. In the event of a tie, a lower agentOwner value
+	// takes precedence.
 	for (i = 0; i < m_numAgents; i++){
-		if (!m_agentBeganTurn[i] && !m_agentEndedTurn[i] && m_agentInitiative[i] > highestInitiative){
-			highestInitiative = m_agentInitiative[i];
-			nextActingAgent = i;
+		if (!m_agentBeganTurn[i] && !m_agentEndedTurn[i] && m_agentOwner[i] >= 0){
+			// Check agentOwner to determine tiebreaking behaviour
+			if (m_agentOwner[i] < nextActingPlayer){
+				// Compare initiative, this agent wins ties
+				if (m_agentInitiative[i] >= highestInitiative){
+					// New fastest agent, the minimum initiative to act is the previous
+					// highestInitiative
+					highestOpposingInitiative = highestInitiative;
+					highestInitiative = m_agentInitiative[i];
+					nextActingPlayer = m_agentOwner[i];
+				} else if (m_agentInitiative[i] > highestOpposingInitiative){
+					// This agent is the fastest owned by a different player, the minimum
+					// initiative to act is this agent's initiative + 1
+					highestOpposingInitiative = m_agentInitiative[i] + 1;
+				}
+
+			} else if (m_agentOwner[i] == nextActingPlayer && m_agentInitiative[i] > highestInitiative){
+				// New fastest agent is owned by the same player - update highestInitiative
+				highestInitiative = m_agentInitiative[i];
+
+			} else if (m_agentOwner[i] > nextActingPlayer){
+				// Compare initiative, this agent loses ties
+				if (m_agentInitiative[i] > highestInitiative){
+					// New fastest agent, the minimum initiative to act is the previous
+					// highestInitiative + 1
+					highestOpposingInitiative = highestInitiative + 1;
+					highestInitiative = m_agentInitiative[i];
+					nextActingPlayer = m_agentOwner[i];
+				} else if (m_agentInitiative[i] > highestOpposingInitiative){
+					// This agent is the fastest owned by a different player, the minimum
+					// initiative to act is this agent's initiative
+					highestOpposingInitiative = m_agentInitiative[i];
+				}
+			}
 		}
 	}
 
 	// Begin the turn of all Agents that will be able to act for the next turn of Combat
-	m_agentBeganTurn[nextActingAgent] = true;
+	for (i = 0; i < m_numAgents; i++){
+		// To act, the Agent must not have already acted this round, meet the minimum
+		// initiative requirement and be owned by the next acting player.
+		if (!m_agentBeganTurn[i] && m_agentInitiative[i] >= highestOpposingInitiative && m_agentOwner[i] == nextActingPlayer){
+			m_agentBeganTurn[i] = true;
+		}
+	}
 
 	return;
 }
@@ -807,23 +852,62 @@ bool ApplicationClass::InitializeCombatMap(MapType mapType, int mapWidth, int ma
 		return false;
 	}
 
-	result = m_Agents[m_numAgents]->Initialize(AGENTTYPE_ACTIVE1, 7, 3);
+	result = m_Agents[m_numAgents]->Initialize(AGENTTYPE_ACTIVE3, 7, 3);
 	if (!result){
 		return false;
 	}
 
 	m_numAgents++;
 
-	// Set the values in the AgentInitiative array to the initiative of the corresponding agent for each index
-	// NOTE: This is purely for proof of concept - checking the initiative of each Active Agent directly instead
-	//       of keeping track through this array would be more direct. Accessing the array by index may be faster
-	//       than an additional function call to each Agent however.
+	// Initialize a 7th Agent
+	m_Agents[m_numAgents] = new AgentClass();
+	if (!m_Agents[m_numAgents]){
+		return false;
+	}
+
+	result = m_Agents[m_numAgents]->Initialize(AGENTTYPE_ACTIVE4, 7, 5);
+	if (!result){
+		return false;
+	}
+
+	m_numAgents++;
+
+	// Initialize an 8th Agent
+	m_Agents[m_numAgents] = new AgentClass();
+	if (!m_Agents[m_numAgents]){
+		return false;
+	}
+
+	result = m_Agents[m_numAgents]->Initialize(AGENTTYPE_ACTIVE4, 9, 3);
+	if (!result){
+		return false;
+	}
+
+	m_numAgents++;
+
+	// Set the values in the agentOwner array to the ID of the player which owns the corresponding agent for each index
+	// NOTE: This is purely for proof of concept - checking Agent ownership will be done more directly in a proper
+	//       implementation.
+	m_agentOwner[0] = 0;
+	m_agentOwner[1] = 0;
+	m_agentOwner[2] = -1;
+	m_agentOwner[3] = -1;
+	m_agentOwner[4] = 0;
+	m_agentOwner[5] = 1;
+	m_agentOwner[6] = 1;
+	m_agentOwner[7] = 1;
+
+	// Set the values in the agentInitiative array to the initiative of the corresponding agent for each index
+	// NOTE: This is purely for proof of concept - checking the initiative of each Active Agent will be done more
+	//       directly in a proper implementation.
 	m_agentInitiative[0] = 10;
 	m_agentInitiative[1] = 7;
 	m_agentInitiative[2] = -1;
 	m_agentInitiative[3] = -1;
 	m_agentInitiative[4] = 5;
-	m_agentInitiative[5] = 9;
+	m_agentInitiative[5] = 7;
+	m_agentInitiative[6] = 5;
+	m_agentInitiative[7] = 4;
 
 	// Initialize a HexMap to highlight the tile that the user has the cursor over
 	m_AgentSprites = new SpriteClass();
@@ -1021,18 +1105,10 @@ bool ApplicationClass::RenderGraphics(){
 			agentY = (int)(MAP_VERTICALOFFSET + HEX_HEIGHT*((float)agentY + 0.5f * fmod((float)agentX, 2.0f)));
 			agentX = (int)(MAP_HORIZONTALOFFSET + (HEX_SIZE / 2.0f) + (1.5f * HEX_SIZE * agentX));
 
-			if (m_Agents[i]->getType() < AGENTTYPE_ACTIVEINACTIVESPLIT){
-				// Render an inactive agent
-				result = m_AgentSprites->Render(m_D3D->GetDeviceContext(), agentX, agentY, 0);
-				if (!result){
-					return false;
-				}
-			} else{
-				// Render an active agent
-				result = m_AgentSprites->Render(m_D3D->GetDeviceContext(), agentX, agentY, 1);
-				if (!result){
-					return false;
-				}
+			// Render the agent using its SpriteID
+			result = m_AgentSprites->Render(m_D3D->GetDeviceContext(), agentX, agentY, m_Agents[i]->getSpriteID());
+			if (!result){
+				return false;
 			}
 
 			result = m_TextureShader->Render(m_D3D->GetDeviceContext(), m_AgentSprites->GetIndexCount(), worldMatrix, viewMatrix, orthoMatrix, m_AgentSprites->GetTexture(), PSTYPE_SPRITE);

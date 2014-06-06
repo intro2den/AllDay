@@ -200,29 +200,29 @@ bool SpriteClass::UpdateBuffers(ID3D11DeviceContext* deviceContext, int position
 		return false;
 	}
 
-	// NOTE: The texture coordinates currently assume 2 sprites - will need to set a constant with the number of total sprites
+	// NOTE: The texture coordinates currently assume 5 sprites - will need to set a constant with the number of total sprites
 	//       Also, possible changes will be required for animation - consider splitting sprites into categories (animated/static)
 
 	// Load the vertex array with data.
 	// First triangle.
 	vertices[0].position = D3DXVECTOR3(left, top, 0.0f);  // Top left.
-	vertices[0].texture = D3DXVECTOR2((float)spriteID / 2.0f, 0.0f);
+	vertices[0].texture = D3DXVECTOR2((float)spriteID / 5.0f, 0.0f);
 
 	vertices[1].position = D3DXVECTOR3(right, bottom, 0.0f);  // Bottom right.
-	vertices[1].texture = D3DXVECTOR2(((float)spriteID + 1.0f) / 2.0f, 1.0f);
+	vertices[1].texture = D3DXVECTOR2(((float)spriteID + 1.0f) / 5.0f, 1.0f);
 
 	vertices[2].position = D3DXVECTOR3(left, bottom, 0.0f);  // Bottom left.
-	vertices[2].texture = D3DXVECTOR2((float)spriteID / 2.0f, 1.0f);
+	vertices[2].texture = D3DXVECTOR2((float)spriteID / 5.0f, 1.0f);
 
 	// Second triangle.
 	vertices[3].position = D3DXVECTOR3(left, top, 0.0f);  // Top left.
-	vertices[3].texture = D3DXVECTOR2((float)spriteID / 2.0f, 0.0f);
+	vertices[3].texture = D3DXVECTOR2((float)spriteID / 5.0f, 0.0f);
 
 	vertices[4].position = D3DXVECTOR3(right, top, 0.0f);  // Top right.
-	vertices[4].texture = D3DXVECTOR2(((float)spriteID + 1.0f) / 2.0f, 0.0f);
+	vertices[4].texture = D3DXVECTOR2(((float)spriteID + 1.0f) / 5.0f, 0.0f);
 
 	vertices[5].position = D3DXVECTOR3(right, bottom, 0.0f);  // Bottom right.
-	vertices[5].texture = D3DXVECTOR2(((float)spriteID + 1.0f) / 2.0f, 1.0f);
+	vertices[5].texture = D3DXVECTOR2(((float)spriteID + 1.0f) / 5.0f, 1.0f);
 
 	// Lock the vertex buffer so it can be written to.
 	result = deviceContext->Map(m_vertexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);

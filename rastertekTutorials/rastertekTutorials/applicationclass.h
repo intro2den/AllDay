@@ -88,6 +88,7 @@ private:
 
 	// These arrays may become obsolete at some point, currently used for
 	// the Turn system in the CombatMap
+	int m_agentOwner[MAX_AGENTS];
 	int m_agentInitiative[MAX_AGENTS];
 	bool m_agentBeganTurn[MAX_AGENTS];
 	bool m_agentEndedTurn[MAX_AGENTS];
