@@ -76,7 +76,7 @@ bool ApplicationClass::Initialize(HINSTANCE hinstance, HWND hwnd, int screenWidt
 	}
 
 	// Initialize the input object.
-	result = m_Input->Initialize(hinstance, hwnd, m_screenWidth, m_screenHeight);
+	result = m_Input->Initialize(hinstance, hwnd);
 	if (!result){
 		MessageBox(hwnd, "Could not initialize the input object.", "Error", MB_OK);
 		return false;
@@ -609,14 +609,9 @@ bool ApplicationClass::SetSelectedAgent(int agentID){
 void ApplicationClass::NextTurn(){
 	// Determine which player, and which of their Agents are able to act for the
 	// next turn of Combat.
-	// NOTE: Currently not differentiating between players and only selecting a
-	//       single Agent to act at a time.
 	int highestInitiative, highestOpposingInitiative;
 	int nextActingPlayer;
 	int i;
-
-	// TODO: Implement proper Initiative system, find and begin the turn of all
-	//       appropriate Agents with respect to system specifications.
 
 	// Initialize the highest initiative to be lower than all valid initiative values
 	highestInitiative = -1;
@@ -645,7 +640,7 @@ void ApplicationClass::NextTurn(){
 					highestOpposingInitiative = m_agentInitiative[i] + 1;
 				}
 
-			} else if (m_agentOwner[i] == nextActingPlayer && m_agentInitiative[i] > highestInitiative){
+				} else if (m_agentOwner[i] == nextActingPlayer && m_agentInitiative[i] > highestInitiative){
 				// New fastest agent is owned by the same player - update highestInitiative
 				highestInitiative = m_agentInitiative[i];
 
@@ -1166,8 +1161,6 @@ bool ApplicationClass::RenderGraphics(){
 	// Sanity Check for rendering text
 
 	// The Font Engine also renders in 2D
-	// NOTE: 3D Rendering should generally happen AFTER 2D Rendering, but Font Rendering should probably happen AFTER 3D Rendering
-	//       so this isn't the exact ordering/structure that will or should be used.
 
 	// Turn on the alpha blending before rendering the text and cursor.
 	m_D3D->TurnOnAlphaBlending();

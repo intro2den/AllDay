@@ -16,21 +16,19 @@ InputClass::InputClass(const InputClass& other){
 InputClass::~InputClass(){
 }
 
-bool InputClass::Initialize(HINSTANCE hinstance, HWND hwnd, int screenWidth, int screenHeight){
+bool InputClass::Initialize(HINSTANCE hinstance, HWND hwnd){
 	HRESULT result;
 	m_hwnd = hwnd;
-
-	// Store the screen size which will be used for positioning the mouse cursor.
-	m_screenWidth = screenWidth;
-	m_screenHeight = screenHeight;
 
 	// Initialize the location of the mouse on the screen.
 	m_mouseX = 0;
 	m_mouseY = 0;
 
-	// Initialize the leftMousePressed and leftMouseReleased flags to false
+	// Initialize the flags associated with mouse input to false
 	m_leftMousePressed = false;
+	m_rightMousePressed = false;
 	m_leftMouseReleased = false;
+	m_rightMouseReleased = false;
 
 	// Initialize the main direct input interface.
 	result = DirectInput8Create(hinstance, DIRECTINPUT_VERSION, IID_IDirectInput8, (void**)&m_directInput, NULL);
@@ -50,8 +48,8 @@ bool InputClass::Initialize(HINSTANCE hinstance, HWND hwnd, int screenWidth, int
 		return false;
 	}
 
-	// Set the cooperative level of the keyboard to not share with other programs.
-	result = m_keyboard->SetCooperativeLevel(hwnd, DISCL_FOREGROUND | DISCL_EXCLUSIVE);
+	// Set the cooperative level of the keyboard to share with other programs.
+	result = m_keyboard->SetCooperativeLevel(hwnd, DISCL_FOREGROUND | DISCL_NONEXCLUSIVE);
 	if (FAILED(result)){
 		return false;
 	}

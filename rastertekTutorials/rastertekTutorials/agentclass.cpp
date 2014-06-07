@@ -1,7 +1,6 @@
 #include "agentclass.h"
 
 AgentClass::AgentClass(){
-	m_heading = 0;
 }
 
 AgentClass::~AgentClass(){
@@ -44,8 +43,10 @@ bool AgentClass::Initialize(AgentType agentType, int posX, int posY){
 		break;
 	}
 
+	// Set the Agent's position as provided and set its heading to 0
 	m_posX = posX;
 	m_posY = posY;
+	m_heading = 0;
 
 	return true;
 }

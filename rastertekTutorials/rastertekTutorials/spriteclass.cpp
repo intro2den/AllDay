@@ -82,9 +82,10 @@ bool SpriteClass::InitializeBuffers(ID3D11Device* device){
 	HRESULT result;
 	int i;
 
-	///////////////////////////////////
 	// NOTE: This is currently hardcoded to make a rectangular bitmap
-	///////////////////////////////////
+	//       which may or may not be an issue later with rendering larger
+	//       agents.
+
 	// Set the number of vertices in the vertex array.
 	m_vertexCount = 6;
 

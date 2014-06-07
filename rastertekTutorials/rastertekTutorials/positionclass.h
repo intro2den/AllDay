@@ -12,8 +12,8 @@
 // GLOBALS //
 /////////////
 const float POSITION_MAXSPEED = 0.5f;
-const float POSITION_ACCELLERATION = 0.05f;
-const float POSITION_DECELLERATION = 0.035f;
+const float POSITION_ACCELERATION = 0.05f;
+const float POSITION_DECELERATION = 0.035f;
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -44,6 +44,5 @@ private:
 
 	float m_frameTime;
 
-	float m_forwardSpeed, m_backwardSpeed;
-	float m_leftSpeed, m_rightSpeed;
+	float m_forwardSpeed, m_backwardSpeed, m_leftSpeed, m_rightSpeed;
 };

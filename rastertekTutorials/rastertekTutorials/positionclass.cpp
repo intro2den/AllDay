@@ -57,16 +57,16 @@ void PositionClass::SetFrameTime(float time){
 	return;
 }
 
-void PositionClass::MoveForward(bool keydown){
-	// Update the forward speed movement based on the frame time and whether the user is holding the key down or not.
-	if (keydown){
-		m_forwardSpeed += m_frameTime * POSITION_ACCELLERATION;
+void PositionClass::MoveForward(bool moving){
+	// Update the forward movement speed based on the frame time and whether the user is attempting to scroll the camera or not.
+	if (moving){
+		m_forwardSpeed += m_frameTime * POSITION_ACCELERATION;
 
 		if (m_forwardSpeed > (m_frameTime * POSITION_MAXSPEED)){
 			m_forwardSpeed = m_frameTime * POSITION_MAXSPEED;
 		}
 	} else{ // Slow down
-		m_forwardSpeed -= m_frameTime * POSITION_DECELLERATION;
+		m_forwardSpeed -= m_frameTime * POSITION_DECELERATION;
 
 		if (m_forwardSpeed < 0.0f){
 			m_forwardSpeed = 0.0f;
@@ -85,16 +85,16 @@ void PositionClass::MoveForward(bool keydown){
 	return;
 }
 
-void PositionClass::MoveBackward(bool keydown){
-	// Update the backward speed movement based on the frame time and whether the user is holding the key down or not.
-	if (keydown){
-		m_backwardSpeed += m_frameTime * POSITION_ACCELLERATION;
+void PositionClass::MoveBackward(bool moving){
+	// Update the backward movement speed based on the frame time and whether the user is attempting to scroll the camera or not.
+	if (moving){
+		m_backwardSpeed += m_frameTime * POSITION_ACCELERATION;
 
 		if (m_backwardSpeed > (m_frameTime * POSITION_MAXSPEED)){
 			m_backwardSpeed = m_frameTime * POSITION_MAXSPEED;
 		}
 	} else{ // Slow down
-		m_backwardSpeed -= m_frameTime * POSITION_DECELLERATION;
+		m_backwardSpeed -= m_frameTime * POSITION_DECELERATION;
 
 		if (m_backwardSpeed < 0.0f){
 			m_backwardSpeed = 0.0f;
@@ -113,16 +113,16 @@ void PositionClass::MoveBackward(bool keydown){
 	return;
 }
 
-void PositionClass::MoveLeft(bool keydown){
-	// Update the left speed movement based on the frame time and whether the user is holding the key down or not.
-	if (keydown){
-		m_leftSpeed += m_frameTime * POSITION_ACCELLERATION;
+void PositionClass::MoveLeft(bool moving){
+	// Update the left movement speed based on the frame time and whether the user is attempting to scroll the camera or not.
+	if (moving){
+		m_leftSpeed += m_frameTime * POSITION_ACCELERATION;
 
 		if (m_leftSpeed > (m_frameTime * POSITION_MAXSPEED)){
 			m_leftSpeed = m_frameTime * POSITION_MAXSPEED;
 		}
 	} else{ // Slow down
-		m_leftSpeed -= m_frameTime * POSITION_DECELLERATION;
+		m_leftSpeed -= m_frameTime * POSITION_DECELERATION;
 
 		if (m_leftSpeed < 0.0f){
 			m_leftSpeed = 0.0f;
@@ -141,16 +141,16 @@ void PositionClass::MoveLeft(bool keydown){
 	return;
 }
 
-void PositionClass::MoveRight(bool keydown){
-	// Update the right speed movement based on the frame time and whether the user is holding the key down or not.
-	if (keydown){
-		m_rightSpeed += m_frameTime * POSITION_ACCELLERATION;
+void PositionClass::MoveRight(bool moving){
+	// Update the right movement speed based on the frame time and whether the user is attempting to scroll the camera or not.
+	if (moving){
+		m_rightSpeed += m_frameTime * POSITION_ACCELERATION;
 
 		if (m_rightSpeed > (m_frameTime * POSITION_MAXSPEED)){
 			m_rightSpeed = m_frameTime * POSITION_MAXSPEED;
 		}
 	} else{ // Slow down
-		m_rightSpeed -= m_frameTime * POSITION_DECELLERATION;
+		m_rightSpeed -= m_frameTime * POSITION_DECELERATION;
 
 		if (m_rightSpeed < 0.0f){
 			m_rightSpeed = 0.0f;

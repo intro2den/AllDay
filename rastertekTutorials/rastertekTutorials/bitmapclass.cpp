@@ -103,9 +103,10 @@ bool BitmapClass::InitializeBuffers(ID3D11Device* device){
 	HRESULT result;
 	int i;
 
-	///////////////////////////////////
 	// NOTE: This is currently hardcoded to make a rectangular bitmap
-	///////////////////////////////////
+	//       which will not be an issue unless we decide to render
+	//       other shapes.
+
 	// Set the number of vertices in the vertex array.
 	m_vertexCount = 6;
 

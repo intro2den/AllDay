@@ -21,11 +21,17 @@ bool CombatMap::Initialize(MapType mapType, int mapWidth, int mapHeight){
 		return false;
 	}
 
+	// Store the map dimensions
 	m_mapWidth = mapWidth;
 	m_mapHeight = mapHeight;
 
+	// Initialize an array of Terrain pointers
 	m_terrain = new Terrain*[m_mapWidth*m_mapHeight];
+	if (!m_terrain){
+		return false;
+	}
 
+	// Create Terrain objects for each type of Terrain that may appear on the combat map.
 	grassTerrain = new Terrain();
 	if (!grassTerrain){
 		return false;
@@ -92,6 +98,7 @@ void CombatMap::Shutdown(){
 }
 
 bool CombatMap::GetTerrainArray(int *terrain){
+	// Set the values in the array terrain to the TerrainType of corresponding tiles
 	int i;
 
 	for (i = 0; i < m_mapWidth * m_mapHeight; i++){
