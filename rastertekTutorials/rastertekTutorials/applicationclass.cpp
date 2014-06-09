@@ -354,6 +354,12 @@ bool ApplicationClass::HandleInput(float frameTime){
 	// Set the frame time for calculating the updated position.
 	m_Position->SetFrameTime(frameTime);
 
+	// Update the frame time for any existing error messages
+	result = m_Text->Frame(frameTime, m_D3D->GetDeviceContext());
+	if (!result){
+		return false;
+	}
+
 	// Determine weather the cursor is within window bounds or not
 	cursorInBounds = (m_mouseX >= 0 && m_mouseX < m_screenWidth && m_mouseY >= 0 && m_mouseY < m_screenHeight);
 
@@ -367,6 +373,13 @@ bool ApplicationClass::HandleInput(float frameTime){
 			// First option changes MainState to CombatMap
 			if (m_mouseX > 50 && m_mouseX < 750 && m_mouseY > 125 && m_mouseY < 175){
 				m_MainState = MAINSTATE_COMBATMAP;
+
+				// Clear all error messages on state change
+				result = m_Text->ClearErrors(m_D3D->GetDeviceContext());
+				if (!result){
+					return false;
+				}
+
 				if (!m_CombatMap){
 					result = InitializeCombatMap((MapType)(rand() % 2), 32, 32);
 					if (!result){
@@ -485,6 +498,12 @@ bool ApplicationClass::HandleInput(float frameTime){
 			if (m_mouseX >= (int)(m_screenWidth * 0.75f) && m_mouseX < ((int)(m_screenWidth * 0.75f) + 100) && m_mouseY >= (m_screenHeight - 55) && m_mouseY < (m_screenHeight - 25)){
 				m_MainState = MAINSTATE_MAINMENU;
 
+				// Clear all error messages on state change
+				result = m_Text->ClearErrors(m_D3D->GetDeviceContext());
+				if (!result){
+					return false;
+				}
+
 				// Set appropriate Menu Text
 				result = m_Text->SetMainMenuText(m_D3D->GetDeviceContext());
 				if (!result){
@@ -572,6 +591,11 @@ bool ApplicationClass::HandleInput(float frameTime){
 				} else{
 					// TODO: Display a string informing the player that the current Agent can not be moved (and why)
 					//       for a few seconds.
+					result = m_Text->NewErrorMessage("The selected Agent isn't active.", m_D3D->GetDeviceContext());
+					if (!result){
+						return false;
+					}
+
 				}
 			}
 		}

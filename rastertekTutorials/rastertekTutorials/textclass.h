@@ -3,6 +3,12 @@
 ////////////////////////////////////////////////////////////////////////////////
 #pragma once
 
+/////////////
+// GLOBAlS //
+/////////////
+const int MAX_ERROR_LENGTH = 40;
+const float MAX_ERROR_TIME = 5000.0f;
+
 ////////////////////
 // CLASS INCLUDES //
 ////////////////////
@@ -32,10 +38,15 @@ public:
 
 	bool Initialize(ID3D11Device*, ID3D11DeviceContext*, HWND, int, int, D3DXMATRIX);
 	void Shutdown();
+	bool Frame(float, ID3D11DeviceContext*);
 	bool Render(ID3D11DeviceContext*, D3DXMATRIX, D3DXMATRIX);
 
 	bool SetMainMenuText(ID3D11DeviceContext*);
 	bool SetCombatMapText(ID3D11DeviceContext*);
+
+	bool NewErrorMessage(char*, ID3D11DeviceContext*);
+	bool ClearErrors(ID3D11DeviceContext*);
+
 	bool SetMousePosition(int, int, ID3D11DeviceContext*);
 	bool SetSelectedAgent(int, ID3D11DeviceContext*);
 
@@ -50,8 +61,15 @@ private:
 	FontShaderClass* m_FontShader;
 	int m_screenWidth, m_screenHeight;
 	D3DXMATRIX m_baseViewMatrix;
+	
 	SentenceType* m_menuText1;
 	SentenceType* m_menuText2;
+
+	SentenceType* m_errorText1;
+	SentenceType* m_errorText2;
+	char m_secondErrorString[MAX_ERROR_LENGTH];
+	float m_errorTime1, m_errorTime2;
+
 	SentenceType* m_selectedAgent;
 	SentenceType* m_cursorXCoordinate;
 	SentenceType* m_cursorYCoordinate;

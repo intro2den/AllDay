@@ -8,6 +8,8 @@ TextClass::TextClass(){
 	m_FontShader = 0;
 	m_menuText1 = 0;
 	m_menuText2 = 0;
+	m_errorText1 = 0;
+	m_errorText2 = 0;
 	m_selectedAgent = 0;
 	m_cursorXCoordinate = 0;
 	m_cursorYCoordinate = 0;
@@ -71,6 +73,23 @@ bool TextClass::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceCont
 		return false;
 	}
 
+	// Initialize sentences for the displaying of error messages
+	result = InitializeSentence(&m_errorText1, 40, device);
+	if (!result){
+		return false;
+	}
+
+	result = InitializeSentence(&m_errorText2, 40, device);
+	if (!result){
+		return false;
+	}
+
+	// There should be no errors at initialization
+	result = ClearErrors(deviceContext);
+	if (!result){
+		return false;
+	}
+
 	// Initialize a sentence to display the currently selected Agent
 	result = InitializeSentence(&m_selectedAgent, 16, device);
 	if (!result){
@@ -107,19 +126,19 @@ bool TextClass::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceCont
 }
 
 void TextClass::Shutdown(){
-	// Release the first sentence.
+	// Release the menu sentences.
 	ReleaseSentence(&m_menuText1);
-
-	// Release the second sentence.
 	ReleaseSentence(&m_menuText2);
 
-	// Release the third sentence.
+	// Release the error sentences.
+	ReleaseSentence(&m_errorText1);
+	ReleaseSentence(&m_errorText2);
+
+	// Release the selectedAgent sentence.
 	ReleaseSentence(&m_selectedAgent);
 
-	// Release the fourth sentence.
+	// Release the cursor coordinate sentences.
 	ReleaseSentence(&m_cursorXCoordinate);
-
-	// Release the fifth sentence.
 	ReleaseSentence(&m_cursorYCoordinate);
 
 	// Release the font shader object.
@@ -139,16 +158,63 @@ void TextClass::Shutdown(){
 	return;
 }
 
+bool TextClass::Frame(float frameTime, ID3D11DeviceContext* deviceContext){
+	// Update the time that each error message has been displayed, if an error message has been
+	// displayed for the maximum amount of time, remove it.
+	bool result;
+	
+	// The second error message is only active if it hasn't already expired
+	if (m_errorTime2 < MAX_ERROR_TIME){
+		m_errorTime2 = min(m_errorTime2 + frameTime, MAX_ERROR_TIME);
+
+		// If the second message has just expired then the first message has also expired, clear all errors and return
+		if (m_errorTime2 == MAX_ERROR_TIME){
+			result = ClearErrors(deviceContext);
+			if (!result){
+				return false;
+			}
+
+			return true;
+		}
+	}
+
+	// The first error message is only active if it hasn't already expired
+	if (m_errorTime1 < MAX_ERROR_TIME){
+		m_errorTime1 = min(m_errorTime1 + frameTime, MAX_ERROR_TIME);
+
+		// If the first error message has expired, replace it with the second error message and clear
+		// the second error message
+		if (m_errorTime1 == MAX_ERROR_TIME){
+			// Replace the first error message with the second
+			m_errorTime1 = m_errorTime2;
+			result = UpdateSentence(m_errorText1, m_secondErrorString, m_screenWidth / 2 - 80, 80, 1.0f, 0.0f, 0.0f, deviceContext);
+			if (!result){
+				return false;
+			}
+
+			// Clear the second error message
+			m_errorTime2 = MAX_ERROR_TIME;
+			strcpy_s(m_secondErrorString, "");
+			result = UpdateSentence(m_errorText2, m_secondErrorString, 0, 0, 1.0f, 0.0f, 0.0f, deviceContext);
+			if (!result){
+				return false;
+			}
+
+		}
+	}
+
+	return true;
+}
+
 bool TextClass::Render(ID3D11DeviceContext* deviceContext, D3DXMATRIX worldMatrix, D3DXMATRIX orthoMatrix){
 	bool result;
 
-	// Draw the first sentence.
+	// Draw the menu related sentences
 	result = RenderSentence(deviceContext, m_menuText1, worldMatrix, orthoMatrix);
 	if (!result){
 		return false;
 	}
 
-	// Draw the second sentence.
 	result = RenderSentence(deviceContext, m_menuText2, worldMatrix, orthoMatrix);
 	if (!result){
 		return false;
@@ -168,6 +234,17 @@ bool TextClass::Render(ID3D11DeviceContext* deviceContext, D3DXMATRIX worldMatri
 
 	// Draw the sentence with the Y coordinate of the mouse.
 	result = RenderSentence(deviceContext, m_cursorYCoordinate, worldMatrix, orthoMatrix);
+	if (!result){
+		return false;
+	}
+
+	// Draw the error sentences
+	result = RenderSentence(deviceContext, m_errorText1, worldMatrix, orthoMatrix);
+	if (!result){
+		return false;
+	}
+
+	result = RenderSentence(deviceContext, m_errorText2, worldMatrix, orthoMatrix);
 	if (!result){
 		return false;
 	}
@@ -210,6 +287,72 @@ bool TextClass::SetCombatMapText(ID3D11DeviceContext* deviceContext){
 	}
 
 	result = UpdateSentence(m_menuText2, "Main Menu", (int)(m_screenWidth * 0.75f) + 5, m_screenHeight - 44, 0.0f, 0.0f, 0.0f, deviceContext);
+	if (!result){
+		return false;
+	}
+
+	return true;
+}
+
+bool TextClass::NewErrorMessage(char* text, ID3D11DeviceContext* deviceContext){
+	// Update the error sentence objects to display a new error message for a fixed period of time.
+	// If there are already 2 error messages, remove the oldest of the two and place this new
+	// error in the second error sentence object.
+	bool result;
+
+	// If no error messages are currently displayed, this new error is the first
+	if (m_errorTime1 == MAX_ERROR_TIME){
+		// Use the first error sentence to display the new error
+		m_errorTime1 = 0.0f;
+		result = UpdateSentence(m_errorText1, text, m_screenWidth / 2 - 80, 80, 1.0f, 0.0f, 0.0f, deviceContext);
+		if (!result){
+			return false;
+		}
+
+	} else if (m_errorTime2 == MAX_ERROR_TIME){
+		// Only 1 error already exists, use the second error sentence to display the new error
+		strcpy_s(m_secondErrorString, text);
+		m_errorTime2 = 0.0f;
+		result = UpdateSentence(m_errorText2, m_secondErrorString, m_screenWidth / 2 - 80, 96, 1.0f, 0.0f, 0.0f, deviceContext);
+		if (!result){
+			return false;
+		}
+
+	} else{
+		// There are already 2 error messages, overwrite the first using the second and use the
+		// second error sentence to display the new error
+		m_errorTime1 = m_errorTime2;
+		result = UpdateSentence(m_errorText1, m_secondErrorString, m_screenWidth / 2 - 80, 80, 1.0f, 0.0f, 0.0f, deviceContext);
+		if (!result){
+			return false;
+		}
+
+		strcpy_s(m_secondErrorString, text);
+		m_errorTime2 = 0.0f;
+		result = UpdateSentence(m_errorText2, m_secondErrorString, m_screenWidth / 2 - 80, 96, 1.0f, 0.0f, 0.0f, deviceContext);
+		if (!result){
+			return false;
+		}
+
+	}
+
+	return true;
+}
+
+bool TextClass::ClearErrors(ID3D11DeviceContext* deviceContext){
+	// Clear both error sentence objects
+	bool result;
+
+	m_errorTime1 = MAX_ERROR_TIME;
+	m_errorTime2 = MAX_ERROR_TIME;
+	strcpy_s(m_secondErrorString, "");
+
+	result = UpdateSentence(m_errorText1, m_secondErrorString, 0, 0, 1.0f, 0.0f, 0.0f, deviceContext);
+	if (!result){
+		return false;
+	}
+
+	result = UpdateSentence(m_errorText2, m_secondErrorString, 0, 0, 1.0f, 0.0f, 0.0f, deviceContext);
 	if (!result){
 		return false;
 	}
