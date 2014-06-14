@@ -1,0 +1,14 @@
+rastertekTutorials/Debug/rastertekTutorials.exe
+*.ilk
+*.pdb
+*.opensdf
+*.sdf
+*.suo
+*.obj
+*.tlog
+*.lastbuildstate
+*.log
+*.filters
+*.vcxproj
+rastertekTutorials/rastertekTutorials/shader-error.txt
+*.idb
