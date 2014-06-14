@@ -8,7 +8,5 @@ rastertekTutorials/Debug/rastertekTutorials.exe
 *.tlog
 *.lastbuildstate
 *.log
-*.filters
-*.vcxproj
 rastertekTutorials/rastertekTutorials/shader-error.txt
 *.idb

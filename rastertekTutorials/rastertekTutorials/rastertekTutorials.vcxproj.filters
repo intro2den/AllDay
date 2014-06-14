@@ -76,6 +76,9 @@
     <ClCompile Include="activeagentclass.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="spriteclass.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="systemclass.h">
@@ -136,6 +139,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="activeagentclass.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="spriteclass.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
