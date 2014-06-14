@@ -132,7 +132,7 @@ bool ApplicationClass::Initialize(HINSTANCE hinstance, HWND hwnd, int screenWidt
 		return false;
 	}
 
-	result = m_StandardButton->Initialize(m_D3D->GetDevice(), m_screenWidth, m_screenHeight, "../rastertekTutorials/data/ui_button.dds", m_screenWidth - 100, 50);
+	result = m_StandardButton->Initialize(m_D3D->GetDevice(), m_screenWidth, m_screenHeight, "../rastertekTutorials/data/ui_button.dds", MAIN_MENU_BUTTON_WIDTH, MAIN_MENU_BUTTON_HEIGHT);
 	if (!result){
 		MessageBox(hwnd, "Could not initialize the main menu bitmap object.", "Error", MB_OK);
 		return false;
@@ -346,10 +346,14 @@ bool ApplicationClass::HandleInput(float frameTime){
 	bool cursorInBounds, scrolling;
 	float posX, posY, posZ;
 	float cursorX, cursorY, normalizedCursorX, normalizedCursorY;
+	int buttonClicked;
 	bool agentFound;
 	int agentX, agentY;
 	int agentIndex;
 	int i;
+
+	// Initialize buttonClicked to an invalid value
+	buttonClicked = -1;
 
 	// Set the frame time for calculating the updated position.
 	m_Position->SetFrameTime(frameTime);
@@ -370,37 +374,54 @@ bool ApplicationClass::HandleInput(float frameTime){
 		// Main Menu Processing
 		// Process mouse input, left mouse button
 		if (m_Input->WasLeftMouseClicked() == true){
-			// First option changes MainState to CombatMap
-			if (m_mouseX > 50 && m_mouseX < 750 && m_mouseY > 125 && m_mouseY < 175){
-				m_MainState = MAINSTATE_COMBATMAP;
+			// Calculate the cursor position relative to the menu buttons
+			cursorX = (float)(m_mouseX - MAIN_MENU_BUTTON_HORIZONTAL_OFFSET);
+			cursorY = (float)(m_mouseY - MAIN_MENU_BUTTON_VERTICAL_OFFSET);
 
-				// Clear all error messages on state change
-				result = m_Text->ClearErrors(m_D3D->GetDeviceContext());
-				if (!result){
-					return false;
+			// Check for a button was pressed if the cursor is potentially over a button
+			if (cursorX > 0 && cursorX < MAIN_MENU_BUTTON_WIDTH && cursorY > 0 && cursorY < MAIN_MENU_BUTTON_COUNT * (MAIN_MENU_BUTTON_HEIGHT + MAIN_MENU_BUTTON_SPACING) - MAIN_MENU_BUTTON_SPACING){
+				// Cursor is within the bounds of the menu buttons, determine which button (if any) was clicked
+				if ((int)cursorY % (MAIN_MENU_BUTTON_HEIGHT + MAIN_MENU_BUTTON_SPACING) < MAIN_MENU_BUTTON_HEIGHT){
+					buttonClicked = (int)(cursorY / (MAIN_MENU_BUTTON_HEIGHT + MAIN_MENU_BUTTON_SPACING));
 				}
 
-				if (!m_CombatMap){
-					result = InitializeCombatMap((MapType)(rand() % 2), 32, 32);
+				switch (buttonClicked){
+				case MAINMENUBUTTON_ENTERCOMBATMAP:
+					// Change the MainState to CombatMap, create a new CombatMap and begin the first round
+					m_MainState = MAINSTATE_COMBATMAP;
+
+					// Clear all error messages on state change
+					result = m_Text->ClearErrors(m_D3D->GetDeviceContext());
 					if (!result){
 						return false;
 					}
-				}
 
-				// Set appropriate Menu Text
-				result = m_Text->SetCombatMapText(m_D3D->GetDeviceContext());
-				if (!result){
+					if (!m_CombatMap){
+						result = InitializeCombatMap((MapType)(rand() % 2), 32, 32);
+						if (!result){
+							return false;
+						}
+					}
+
+					// Set appropriate Menu Text
+					result = m_Text->SetCombatMapText(m_D3D->GetDeviceContext());
+					if (!result){
+						return false;
+					}
+
+					// Begin the first round of Combat
+					NextTurn();
+
+					break;
+
+				case MAINMENUBUTTON_EXIT:
+					// Exit the application
 					return false;
+
+				default:
+					// Do nothing if no button was pressed
+					break;
 				}
-
-				// Begin the first round of Combat
-				NextTurn();
-
-				break;
-			}
-			// Second option exits the application
-			if (m_mouseX > 50 && m_mouseX < 750 && m_mouseY > 200 && m_mouseY < 250){
-				return false;
 			}
 		}
 
@@ -490,12 +511,12 @@ bool ApplicationClass::HandleInput(float frameTime){
 			//       Handling a clicked hex is fine, however will need to find a better way to handle user input for buttons/menus.
 
 			// If the End Turn button was clicked, End Turn
-			if (m_mouseX >= (int)(m_screenWidth * 0.75f) && m_mouseX < ((int)(m_screenWidth * 0.75f) + 100) && m_mouseY >= (m_screenHeight - 95) && m_mouseY < (m_screenHeight - 65)){
+			if (m_mouseX >= (int)(m_screenWidth * 0.75f) && m_mouseX < ((int)(m_screenWidth * 0.75f) + COMBAT_MENU_BUTTON_WIDTH) && m_mouseY >= (m_screenHeight - 95) && m_mouseY < (m_screenHeight - 65)){
 				EndTurn();
 			}
 
 			// If the Main Menu button was clicked, Shutdown the CombatMap and return to the Main Menu
-			if (m_mouseX >= (int)(m_screenWidth * 0.75f) && m_mouseX < ((int)(m_screenWidth * 0.75f) + 100) && m_mouseY >= (m_screenHeight - 55) && m_mouseY < (m_screenHeight - 25)){
+			if (m_mouseX >= (int)(m_screenWidth * 0.75f) && m_mouseX < ((int)(m_screenWidth * 0.75f) + COMBAT_MENU_BUTTON_WIDTH) && m_mouseY >= (m_screenHeight - 55) && m_mouseY < (m_screenHeight - 25)){
 				m_MainState = MAINSTATE_MAINMENU;
 
 				// Clear all error messages on state change
@@ -589,8 +610,6 @@ bool ApplicationClass::HandleInput(float frameTime){
 				if (m_agentBeganTurn[m_selectedAgent] && !m_agentEndedTurn[m_selectedAgent]){
 					m_Agents[m_selectedAgent]->setPosition(m_currentTileX, m_currentTileY);
 				} else{
-					// TODO: Display a string informing the player that the current Agent can not be moved (and why)
-					//       for a few seconds.
 					result = m_Text->NewErrorMessage("The selected Agent isn't active.", m_D3D->GetDeviceContext());
 					if (!result){
 						return false;
@@ -1042,15 +1061,15 @@ bool ApplicationClass::RenderGraphics(){
 		// Render the Main Menu buttons
 		
 		// First ensure the buttons have the proper dimensions
-		result = m_StandardButton->SetDimensions(m_screenWidth - 100, 50);
+		result = m_StandardButton->SetDimensions(MAIN_MENU_BUTTON_WIDTH, MAIN_MENU_BUTTON_HEIGHT);
 		if (!result){
 			return false;
 		}
 
 		// NOTE: Will also want to render text on these buttons
-		for (i = 0; i < 2; i++){
+		for (i = 0; i < MAIN_MENU_BUTTON_COUNT; i++){
 			// Put the bitmap vertex and index buffers on the graphics pipeline to prepare them for drawing.
-			result = m_StandardButton->Render(m_D3D->GetDeviceContext(), 50, 125 + 75 * i);
+			result = m_StandardButton->Render(m_D3D->GetDeviceContext(), MAIN_MENU_BUTTON_HORIZONTAL_OFFSET, MAIN_MENU_BUTTON_VERTICAL_OFFSET + i * (MAIN_MENU_BUTTON_HEIGHT + MAIN_MENU_BUTTON_SPACING));
 			if (!result){
 				return false;
 			}
@@ -1156,7 +1175,7 @@ bool ApplicationClass::RenderGraphics(){
 		// Render the buttons on the menubar
 		
 		// First ensure the buttons have the proper dimensions
-		result = m_StandardButton->SetDimensions(100, 30);
+		result = m_StandardButton->SetDimensions(COMBAT_MENU_BUTTON_WIDTH, COMBAT_MENU_BUTTON_HEIGHT);
 		if (!result){
 			return false;
 		}
