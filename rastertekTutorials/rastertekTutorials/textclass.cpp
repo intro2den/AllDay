@@ -277,16 +277,16 @@ bool TextClass::SetCombatMapText(ID3D11DeviceContext* deviceContext){
 	// Update all MenuText strings to display labels for each option on the CombatMap Menu Bar
 	bool result;
 
-	// NOTE: Positioning is currently fixed and does not change with other elements in the UI,
+	// NOTE: Positioning is currently fixed and does not change with other elements in the UI
 	//       such as the button the text is meant to be a part of. This will have to change,
 	//       particularly when we support multiple resolutions (Text size may also need to change)
 
-	result = UpdateSentence(m_menuText1, "End Turn", (int)(m_screenWidth * 0.75f) + 5, m_screenHeight - 84, 0.0f, 0.0f, 0.0f, deviceContext);
+	result = UpdateSentence(m_menuText1, "End Turn", m_screenWidth - 115, m_screenHeight - 70, 0.0f, 0.0f, 0.0f, deviceContext);
 	if (!result){
 		return false;
 	}
 
-	result = UpdateSentence(m_menuText2, "Main Menu", (int)(m_screenWidth * 0.75f) + 5, m_screenHeight - 44, 0.0f, 0.0f, 0.0f, deviceContext);
+	result = UpdateSentence(m_menuText2, "Main Menu", m_screenWidth - 115, m_screenHeight - 38, 0.0f, 0.0f, 0.0f, deviceContext);
 	if (!result){
 		return false;
 	}

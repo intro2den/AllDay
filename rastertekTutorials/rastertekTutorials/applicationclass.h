@@ -15,16 +15,22 @@ const int MAX_AGENTS = 512;
 //////////////////
 // UI CONSTANTS //
 //////////////////
-const int MAIN_MENU_BUTTON_HORIZONTAL_OFFSET = 50;
-const int MAIN_MENU_BUTTON_VERTICAL_OFFSET = 125;
+// Main Menu
 const int MAIN_MENU_BUTTON_WIDTH = 350;
 const int MAIN_MENU_BUTTON_HEIGHT = 50;
 const int MAIN_MENU_BUTTON_SPACING = 25;
 const int MAIN_MENU_BUTTON_COUNT = 2;
+const int MAIN_MENU_BUTTON_HORIZONTAL_OFFSET = 50;
+const int MAIN_MENU_BUTTON_VERTICAL_OFFSET = 125;
 
+// CombatMap Menu Bar
+// Buttons/Options from the Menu Bar are in a double row from the right side of the menu bar
 const int COMBAT_MENU_HEIGHT = 100;
-const int COMBAT_MENU_BUTTON_WIDTH = 100;
-const int COMBAT_MENU_BUTTON_HEIGHT = 30;
+const int COMBAT_MENU_BUTTON_WIDTH = 100; // Will resize when text labels replaced by icons and tooltips
+const int COMBAT_MENU_BUTTON_HEIGHT = 32;
+const int COMBAT_MENU_BUTTON_COUNT = 2; // Should try to keep this as a multiple of 2 for proper rectangular set of options on the menu bar.
+const int COMBAT_MENU_BUTTON_HORIZONTAL_OFFSET = -20 - COMBAT_MENU_BUTTON_WIDTH * (COMBAT_MENU_BUTTON_COUNT / 2); // End the options at the right side of the menu bar
+const int COMBAT_MENU_BUTTON_VERTICAL_OFFSET = (COMBAT_MENU_HEIGHT / 2) - COMBAT_MENU_BUTTON_HEIGHT;
 
 ////////////////////
 // CLASS INCLUDES //
@@ -48,14 +54,26 @@ const int COMBAT_MENU_BUTTON_HEIGHT = 30;
 ////////////////////////////////////////////////////////////////////////////////
 class ApplicationClass{
 private:
+	/////////////////
+	// STATE ENUMs //
+	/////////////////
 	enum MainState{
 		MAINSTATE_MAINMENU,
 		MAINSTATE_COMBATMAP
 	};
 
+
+	///////////////////////
+	// MENU BUTTON ENUMS //
+	///////////////////////
 	enum MainMenuButton{
 		MAINMENUBUTTON_ENTERCOMBATMAP = 0,
 		MAINMENUBUTTON_EXIT
+	};
+
+	enum CombatMenuBarButton{
+		COMBATMENUBUTTON_ENDTURN = 0,
+		COMBATMENUBUTTON_MENU
 	};
 
 public:

@@ -507,56 +507,75 @@ bool ApplicationClass::HandleInput(float frameTime){
 		// Handle user input (aside from Camera movement) relevant to the CombatMap
 		if (m_Input->WasLeftMouseClicked() == true){
 			// Left Click - Check for clicking on Menu Buttons, map tiles
-			// NOTE: Unless proper constants are set based on screen resolution, adding multiple buttons to press will quickly become a nightmare to handle
-			//       Handling a clicked hex is fine, however will need to find a better way to handle user input for buttons/menus.
+			
+			// NOTE: Additional state checks may need to be done here to check menus that may be open
+			//       Currently only check the CombatMap menu bar
 
-			// If the End Turn button was clicked, End Turn
-			if (m_mouseX >= (int)(m_screenWidth * 0.75f) && m_mouseX < ((int)(m_screenWidth * 0.75f) + COMBAT_MENU_BUTTON_WIDTH) && m_mouseY >= (m_screenHeight - 95) && m_mouseY < (m_screenHeight - 65)){
-				EndTurn();
-			}
+			// Calculate the cursor position relative to the menu bar buttons
+			cursorX = (float)(m_mouseX - (m_screenWidth + COMBAT_MENU_BUTTON_HORIZONTAL_OFFSET));
+			cursorY = (float)(m_mouseY - (m_screenHeight - COMBAT_MENU_HEIGHT) - COMBAT_MENU_BUTTON_VERTICAL_OFFSET);
 
-			// If the Main Menu button was clicked, Shutdown the CombatMap and return to the Main Menu
-			if (m_mouseX >= (int)(m_screenWidth * 0.75f) && m_mouseX < ((int)(m_screenWidth * 0.75f) + COMBAT_MENU_BUTTON_WIDTH) && m_mouseY >= (m_screenHeight - 55) && m_mouseY < (m_screenHeight - 25)){
-				m_MainState = MAINSTATE_MAINMENU;
+			// If the cursor is over a button, determine which one and act accordingly
+			if (cursorX > 0 && cursorX < COMBAT_MENU_BUTTON_WIDTH * (COMBAT_MENU_BUTTON_COUNT / 2) && cursorY > 0 && cursorY < COMBAT_MENU_BUTTON_HEIGHT * 2){
+				buttonClicked = 2 * (int)((cursorX / COMBAT_MENU_BUTTON_WIDTH)) + (int)((cursorY / COMBAT_MENU_BUTTON_HEIGHT));
 
-				// Clear all error messages on state change
-				result = m_Text->ClearErrors(m_D3D->GetDeviceContext());
-				if (!result){
-					return false;
+				switch (buttonClicked){
+				case COMBATMENUBUTTON_ENDTURN:
+					// End Turn
+					EndTurn();
+					break;
+
+				case COMBATMENUBUTTON_MENU:
+					// Return to the Main Menu
+					// NOTE: This will be replaced by a popup menu with in-game options (including returning to the Main Menu)
+					m_MainState = MAINSTATE_MAINMENU;
+
+					// Clear all error messages on state change
+					result = m_Text->ClearErrors(m_D3D->GetDeviceContext());
+					if (!result){
+						return false;
+					}
+
+					// Set appropriate Menu Text
+					result = m_Text->SetMainMenuText(m_D3D->GetDeviceContext());
+					if (!result){
+						return false;
+					}
+
+					// Set the cursorOverTile flag to false
+					m_cursorOverTile = false;
+
+					// Set numAgents to 0
+					m_numAgents = 0;
+
+					// Reset the CombatMap specific arrays
+					for (i = 0; i < MAX_AGENTS; i++){
+						m_agentOwner[i] = -1;
+						m_agentInitiative[i] = -1;
+						m_agentBeganTurn[i] = false;
+						m_agentEndedTurn[i] = false;
+					}
+
+					// Deselect any selected Agent and update the associated sentence
+					result = SetSelectedAgent(-1);
+					if (!result){
+						return false;
+					}
+
+					// Shutdown the Combat Map and all associated data structures
+					ShutdownCombatMap();
+
+					// Set the position of the camera back to the origin
+					m_Position->SetPosition(0.0f, 0.0f, -10.0f);
+					m_Camera->SetPosition(0.0f, 0.0f, -10.0f);
+					break;
+
+				default: 
+					// Do nothing if no button was pressed (this will only happen with an odd number of buttons)
+					break;
 				}
 
-				// Set appropriate Menu Text
-				result = m_Text->SetMainMenuText(m_D3D->GetDeviceContext());
-				if (!result){
-					return false;
-				}
-
-				// Set the cursorOverTile flag to false
-				m_cursorOverTile = false;
-
-				// Set numAgents to 0
-				m_numAgents = 0;
-
-				// Reset the CombatMap specific arrays
-				for (i = 0; i < MAX_AGENTS; i++){
-					m_agentOwner[i] = -1;
-					m_agentInitiative[i] = -1;
-					m_agentBeganTurn[i] = false;
-					m_agentEndedTurn[i] = false;
-				}
-				
-				// Deselect any selected Agent and update the associated sentence
-				result = SetSelectedAgent(-1);
-				if (!result){
-					return false;
-				}
-
-				// Shutdown the Combat Map and all associated data structures
-				ShutdownCombatMap();
-
-				// Set the position of the camera back to the origin
-				m_Position->SetPosition(0.0f, 0.0f, -10.0f);
-				m_Camera->SetPosition(0.0f, 0.0f, -10.0f);
+				// A button was clicked, no other checks should be made for the input
 				break;
 			}
 
@@ -1180,8 +1199,8 @@ bool ApplicationClass::RenderGraphics(){
 			return false;
 		}
 
-		for (i = 0; i < 2; i++){
-			result = m_StandardButton->Render(m_D3D->GetDeviceContext(), (int)((float)(m_screenWidth)* 0.75f), m_screenHeight - 55 - 40 * i);
+		for (i = 0; i < COMBAT_MENU_BUTTON_COUNT; i++){
+			result = m_StandardButton->Render(m_D3D->GetDeviceContext(), m_screenWidth + COMBAT_MENU_BUTTON_HORIZONTAL_OFFSET + COMBAT_MENU_BUTTON_WIDTH * (i / 2), m_screenHeight - COMBAT_MENU_HEIGHT + COMBAT_MENU_BUTTON_VERTICAL_OFFSET + COMBAT_MENU_BUTTON_HEIGHT * (i % 2));
 			if (!result){
 				return false;
 			}
@@ -1200,8 +1219,6 @@ bool ApplicationClass::RenderGraphics(){
 
 		break;
 	}
-
-	// Sanity Check for rendering text
 
 	// The Font Engine also renders in 2D
 
