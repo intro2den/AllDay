@@ -19,9 +19,13 @@ const int MAX_AGENTS = 512;
 const int MAIN_MENU_BUTTON_WIDTH = 350;
 const int MAIN_MENU_BUTTON_HEIGHT = 50;
 const int MAIN_MENU_BUTTON_SPACING = 25;
-const int MAIN_MENU_BUTTON_COUNT = 2;
+const int MAIN_MENU_BUTTON_COUNT = 3;
 const int MAIN_MENU_BUTTON_HORIZONTAL_OFFSET = 50;
 const int MAIN_MENU_BUTTON_VERTICAL_OFFSET = 125;
+
+// Options Menu
+// NOTE: Currently using Main Menu constants in place of constants specific to the Options Menu as they should look the same
+const int OPTIONS_MENU_BUTTON_COUNT = 1;
 
 // CombatMap Menu Bar
 // Buttons/Options from the Menu Bar are in a double row from the right side of the menu bar
@@ -62,13 +66,24 @@ private:
 		MAINSTATE_COMBATMAP
 	};
 
+	enum MenuState{
+		MENUSTATE_MAINMENU,
+		MENUSTATE_OPTIONMENU,
+		MENUSTATE_NOMENU
+	};
+
 
 	///////////////////////
 	// MENU BUTTON ENUMS //
 	///////////////////////
 	enum MainMenuButton{
 		MAINMENUBUTTON_ENTERCOMBATMAP = 0,
+		MAINMENUBUTTON_OPTIONS,
 		MAINMENUBUTTON_EXIT
+	};
+
+	enum OptionsMenuButton{
+		OPTIONSMENUBUTTON_BACK = 0
 	};
 
 	enum CombatMenuBarButton{
@@ -114,6 +129,7 @@ private:
 	SpriteClass* m_AgentSprites;
 
 	MainState m_MainState;
+	MenuState m_MenuState;
 	int m_screenWidth, m_screenHeight;
 	int m_combatMapWidth, m_combatMapHeight;
 	int m_mouseX, m_mouseY;

@@ -36,12 +36,15 @@ public:
 	TextClass(const TextClass&);
 	~TextClass();
 
-	bool Initialize(ID3D11Device*, ID3D11DeviceContext*, HWND, int, int, D3DXMATRIX);
+	// NOTE: Currently taking input for displaying menu text in the correct positions at initialization and on updates
+	//       Should be possible to provide access without using function input parameters which could help cleanup code
+	bool Initialize(ID3D11Device*, ID3D11DeviceContext*, HWND, int, int, D3DXMATRIX, int, int, int ,int);
 	void Shutdown();
 	bool Frame(float, ID3D11DeviceContext*);
 	bool Render(ID3D11DeviceContext*, D3DXMATRIX, D3DXMATRIX);
 
-	bool SetMainMenuText(ID3D11DeviceContext*);
+	bool SetMainMenuText(int, int, int, int, ID3D11DeviceContext*);
+	bool SetOptionsMenuText(int, int, int, int, ID3D11DeviceContext*);
 	bool SetCombatMapText(ID3D11DeviceContext*);
 
 	bool NewErrorMessage(char*, ID3D11DeviceContext*);
@@ -64,6 +67,7 @@ private:
 	
 	SentenceType* m_menuText1;
 	SentenceType* m_menuText2;
+	SentenceType* m_menuText3;
 
 	SentenceType* m_errorText1;
 	SentenceType* m_errorText2;

@@ -8,6 +8,7 @@ TextClass::TextClass(){
 	m_FontShader = 0;
 	m_menuText1 = 0;
 	m_menuText2 = 0;
+	m_menuText3 = 0;
 	m_errorText1 = 0;
 	m_errorText2 = 0;
 	m_selectedAgent = 0;
@@ -21,7 +22,7 @@ TextClass::TextClass(const TextClass& other){
 TextClass::~TextClass(){
 }
 
-bool TextClass::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext, HWND hwnd, int screenWidth, int screenHeight, D3DXMATRIX baseViewMatrix){
+bool TextClass::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext, HWND hwnd, int screenWidth, int screenHeight, D3DXMATRIX baseViewMatrix, int horizontalOffset, int verticalOffset, int buttonHeight, int buttonSpacing){
 	bool result;
 	
 	// Store the screen width and height.
@@ -68,7 +69,9 @@ bool TextClass::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceCont
 		return false;
 	}
 
-	result = SetMainMenuText(deviceContext);
+	result = InitializeSentence(&m_menuText3, 16, device);
+
+	result = SetMainMenuText(horizontalOffset, verticalOffset, buttonHeight, buttonSpacing, deviceContext);
 	if (!result){
 		return false;
 	}
@@ -129,6 +132,7 @@ void TextClass::Shutdown(){
 	// Release the menu sentences.
 	ReleaseSentence(&m_menuText1);
 	ReleaseSentence(&m_menuText2);
+	ReleaseSentence(&m_menuText3);
 
 	// Release the error sentences.
 	ReleaseSentence(&m_errorText1);
@@ -220,6 +224,11 @@ bool TextClass::Render(ID3D11DeviceContext* deviceContext, D3DXMATRIX worldMatri
 		return false;
 	}
 
+	result = RenderSentence(deviceContext, m_menuText3, worldMatrix, orthoMatrix);
+	if (!result){
+		return false;
+	}
+
 	// Draw the sentence indicating which agent is selected
 	result = RenderSentence(deviceContext, m_selectedAgent, worldMatrix, orthoMatrix);
 	if (!result){
@@ -252,20 +261,51 @@ bool TextClass::Render(ID3D11DeviceContext* deviceContext, D3DXMATRIX worldMatri
 	return true;
 }
 
-bool TextClass::SetMainMenuText(ID3D11DeviceContext* deviceContext){
-	// Update all MenuText strings to display labels for each option on the Main Menu
+bool TextClass::SetMainMenuText(int horizontalOffset, int verticalOffset, int buttonHeight, int buttonSpacing, ID3D11DeviceContext* deviceContext){
+	// Update all menuText strings to display labels for each option on the Main Menu
 	bool result;
 
 	// NOTE: Positioning is currently fixed and does not change with other elements in the UI,
 	//       such as the button the text is meant to be a part of. This will have to change,
 	//       particularly when we support multiple resolutions (Text size may also need to change)
 
-	result = UpdateSentence(m_menuText1, "Enter CombatMap", 65, 146, 0.0f, 0.0f, 0.0f, deviceContext);
+	result = UpdateSentence(m_menuText1, "Enter CombatMap", horizontalOffset + 15, verticalOffset + (buttonHeight / 2) - 4, 0.0f, 0.0f, 0.0f, deviceContext);
 	if (!result){
 		return false;
 	}
 
-	result = UpdateSentence(m_menuText2, "Exit Application", 65, 221, 0.0f, 0.0f, 0.0f, deviceContext);
+	result = UpdateSentence(m_menuText2, "Options", horizontalOffset + 15, verticalOffset + (buttonHeight / 2) + (buttonHeight + buttonSpacing) - 4, 0.0f, 0.0f, 0.0f, deviceContext);
+	if (!result){
+		return false;
+	}
+
+	result = UpdateSentence(m_menuText3, "Exit Application", horizontalOffset + 15, verticalOffset + (buttonHeight / 2) + 2 * (buttonHeight + buttonSpacing) - 4, 0.0f, 0.0f, 0.0f, deviceContext);
+	if (!result){
+		return false;
+	}
+
+	return true;
+}
+
+bool TextClass::SetOptionsMenuText(int horizontalOffset, int verticalOffset, int buttonHeight, int buttonSpacing, ID3D11DeviceContext* deviceContext){
+	// Update all menuText strings to display labels for each option on the Options Menu
+	bool result;
+
+	// NOTE: Positioning is currently fixed and does not change with other elements in the UI
+	//       such as the button the text is meant to be a part of. This will have to change,
+	//       particularly when we support multiple resolutions (Text size may also need to change)
+
+	result = UpdateSentence(m_menuText1, "Back", horizontalOffset + 15, verticalOffset + (buttonHeight / 2) - 4, 0.0f, 0.0f, 0.0f, deviceContext);
+	if (!result){
+		return false;
+	}
+
+	result = UpdateSentence(m_menuText2, "", 0, 0, 0.0f, 0.0f, 0.0f, deviceContext);
+	if (!result){
+		return false;
+	}
+	
+	result = UpdateSentence(m_menuText3, "", 0, 0, 0.0f, 0.0f, 0.0f, deviceContext);
 	if (!result){
 		return false;
 	}
@@ -274,7 +314,7 @@ bool TextClass::SetMainMenuText(ID3D11DeviceContext* deviceContext){
 }
 
 bool TextClass::SetCombatMapText(ID3D11DeviceContext* deviceContext){
-	// Update all MenuText strings to display labels for each option on the CombatMap Menu Bar
+	// Update all menuText strings to display labels for each option on the CombatMap Menu Bar
 	bool result;
 
 	// NOTE: Positioning is currently fixed and does not change with other elements in the UI
@@ -287,6 +327,11 @@ bool TextClass::SetCombatMapText(ID3D11DeviceContext* deviceContext){
 	}
 
 	result = UpdateSentence(m_menuText2, "Main Menu", m_screenWidth - 115, m_screenHeight - 38, 0.0f, 0.0f, 0.0f, deviceContext);
+	if (!result){
+		return false;
+	}
+
+	result = UpdateSentence(m_menuText3, "", 0, 0, 0.0f, 0.0f, 0.0f, deviceContext);
 	if (!result){
 		return false;
 	}

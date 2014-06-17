@@ -170,7 +170,7 @@ bool ApplicationClass::Initialize(HINSTANCE hinstance, HWND hwnd, int screenWidt
 	}
 
 	// Initialize the text object.
-	result = m_Text->Initialize(m_D3D->GetDevice(), m_D3D->GetDeviceContext(), hwnd, m_screenWidth, m_screenHeight, baseViewMatrix);
+	result = m_Text->Initialize(m_D3D->GetDevice(), m_D3D->GetDeviceContext(), hwnd, m_screenWidth, m_screenHeight, baseViewMatrix, MAIN_MENU_BUTTON_HORIZONTAL_OFFSET, MAIN_MENU_BUTTON_VERTICAL_OFFSET, MAIN_MENU_BUTTON_HEIGHT, MAIN_MENU_BUTTON_SPACING);
 	if (!result){
 		MessageBox(hwnd, "Could not initialize the text object.", "Error", MB_OK);
 		return false;
@@ -378,50 +378,108 @@ bool ApplicationClass::HandleInput(float frameTime){
 			cursorX = (float)(m_mouseX - MAIN_MENU_BUTTON_HORIZONTAL_OFFSET);
 			cursorY = (float)(m_mouseY - MAIN_MENU_BUTTON_VERTICAL_OFFSET);
 
-			// Check for a button was pressed if the cursor is potentially over a button
-			if (cursorX > 0 && cursorX < MAIN_MENU_BUTTON_WIDTH && cursorY > 0 && cursorY < MAIN_MENU_BUTTON_COUNT * (MAIN_MENU_BUTTON_HEIGHT + MAIN_MENU_BUTTON_SPACING) - MAIN_MENU_BUTTON_SPACING){
-				// Cursor is within the bounds of the menu buttons, determine which button (if any) was clicked
-				if ((int)cursorY % (MAIN_MENU_BUTTON_HEIGHT + MAIN_MENU_BUTTON_SPACING) < MAIN_MENU_BUTTON_HEIGHT){
-					buttonClicked = (int)(cursorY / (MAIN_MENU_BUTTON_HEIGHT + MAIN_MENU_BUTTON_SPACING));
-				}
-
-				switch (buttonClicked){
-				case MAINMENUBUTTON_ENTERCOMBATMAP:
-					// Change the MainState to CombatMap, create a new CombatMap and begin the first round
-					m_MainState = MAINSTATE_COMBATMAP;
-
-					// Clear all error messages on state change
-					result = m_Text->ClearErrors(m_D3D->GetDeviceContext());
-					if (!result){
-						return false;
+			// Which button was pressed, if any, depends on the current MenuState
+			switch (m_MenuState){
+			case MENUSTATE_MAINMENU:
+				// Check for a button was pressed if the cursor is potentially over a button on the Main Menu
+				if (cursorX > 0 && cursorX < MAIN_MENU_BUTTON_WIDTH && cursorY > 0 && cursorY < MAIN_MENU_BUTTON_COUNT * (MAIN_MENU_BUTTON_HEIGHT + MAIN_MENU_BUTTON_SPACING) - MAIN_MENU_BUTTON_SPACING){
+					// Cursor is within the bounds of the menu buttons, determine which button (if any) was clicked
+					if ((int)cursorY % (MAIN_MENU_BUTTON_HEIGHT + MAIN_MENU_BUTTON_SPACING) < MAIN_MENU_BUTTON_HEIGHT){
+						buttonClicked = (int)(cursorY / (MAIN_MENU_BUTTON_HEIGHT + MAIN_MENU_BUTTON_SPACING));
 					}
 
-					if (!m_CombatMap){
-						result = InitializeCombatMap((MapType)(rand() % 2), 32, 32);
+					switch (buttonClicked){
+					case MAINMENUBUTTON_ENTERCOMBATMAP:
+						// Change the MainState to CombatMap, create a new CombatMap and begin the first round
+						m_MainState = MAINSTATE_COMBATMAP;
+						m_MenuState = MENUSTATE_NOMENU;
+
+						// Clear all error messages on state change
+						result = m_Text->ClearErrors(m_D3D->GetDeviceContext());
 						if (!result){
 							return false;
 						}
-					}
 
-					// Set appropriate Menu Text
-					result = m_Text->SetCombatMapText(m_D3D->GetDeviceContext());
-					if (!result){
+						if (!m_CombatMap){
+							result = InitializeCombatMap((MapType)(rand() % 2), 32, 32);
+							if (!result){
+								return false;
+							}
+						}
+
+						// Set appropriate Menu Text
+						result = m_Text->SetCombatMapText(m_D3D->GetDeviceContext());
+						if (!result){
+							return false;
+						}
+
+						// Begin the first round of Combat
+						NextTurn();
+
+						break;
+
+					case MAINMENUBUTTON_OPTIONS:
+						// Change the MenuState to OptionsMenu
+						m_MenuState = MENUSTATE_OPTIONMENU;
+
+						// Clear all error messages on state change
+						result = m_Text->ClearErrors(m_D3D->GetDeviceContext());
+						if (!result){
+							return false;
+						}
+
+						// Set appropriate Menu Text
+						result = m_Text->SetOptionsMenuText(MAIN_MENU_BUTTON_HORIZONTAL_OFFSET, MAIN_MENU_BUTTON_VERTICAL_OFFSET, MAIN_MENU_BUTTON_HEIGHT, MAIN_MENU_BUTTON_SPACING, m_D3D->GetDeviceContext());
+						if (!result){
+							return false;
+						}
+
+						break;
+
+					case MAINMENUBUTTON_EXIT:
+						// Exit the application
 						return false;
+
+					default:
+						// Do nothing if no button was pressed
+						break;
+					}
+				}
+				break;
+
+			case MENUSTATE_OPTIONMENU:
+				// Check for a button was pressed if the cursor is potentially over a button on the Options Menu
+				if (cursorX > 0 && cursorX < MAIN_MENU_BUTTON_WIDTH && cursorY > 0 && cursorY < OPTIONS_MENU_BUTTON_COUNT * (MAIN_MENU_BUTTON_HEIGHT + MAIN_MENU_BUTTON_SPACING) - MAIN_MENU_BUTTON_SPACING){
+					// Cursor is within the bounds of the menu buttons, determine which button (if any) was clicked
+					if ((int)cursorY % (MAIN_MENU_BUTTON_HEIGHT + MAIN_MENU_BUTTON_SPACING) < MAIN_MENU_BUTTON_HEIGHT){
+						buttonClicked = (int)(cursorY / (MAIN_MENU_BUTTON_HEIGHT + MAIN_MENU_BUTTON_SPACING));
 					}
 
-					// Begin the first round of Combat
-					NextTurn();
+					switch (buttonClicked){
+					case OPTIONSMENUBUTTON_BACK:
+						// Change the MenuState to MainMenu
+						m_MenuState = MENUSTATE_MAINMENU;
 
-					break;
+						// Clear all error messages on state change
+						result = m_Text->ClearErrors(m_D3D->GetDeviceContext());
+						if (!result){
+							return false;
+						}
 
-				case MAINMENUBUTTON_EXIT:
-					// Exit the application
-					return false;
+						// Set appropriate Menu Text
+						result = m_Text->SetMainMenuText(MAIN_MENU_BUTTON_HORIZONTAL_OFFSET, MAIN_MENU_BUTTON_VERTICAL_OFFSET, MAIN_MENU_BUTTON_HEIGHT, MAIN_MENU_BUTTON_SPACING, m_D3D->GetDeviceContext());
+						if (!result){
+							return false;
+						}
 
-				default:
-					// Do nothing if no button was pressed
-					break;
+						break;
+
+					default:
+						// Do nothing if no button was pressed
+						break;
+					}
 				}
+				break;
 			}
 		}
 
@@ -529,6 +587,7 @@ bool ApplicationClass::HandleInput(float frameTime){
 					// Return to the Main Menu
 					// NOTE: This will be replaced by a popup menu with in-game options (including returning to the Main Menu)
 					m_MainState = MAINSTATE_MAINMENU;
+					m_MenuState = MENUSTATE_MAINMENU;
 
 					// Clear all error messages on state change
 					result = m_Text->ClearErrors(m_D3D->GetDeviceContext());
@@ -537,7 +596,7 @@ bool ApplicationClass::HandleInput(float frameTime){
 					}
 
 					// Set appropriate Menu Text
-					result = m_Text->SetMainMenuText(m_D3D->GetDeviceContext());
+					result = m_Text->SetMainMenuText(MAIN_MENU_BUTTON_HORIZONTAL_OFFSET, MAIN_MENU_BUTTON_VERTICAL_OFFSET, MAIN_MENU_BUTTON_HEIGHT, MAIN_MENU_BUTTON_SPACING, m_D3D->GetDeviceContext());
 					if (!result){
 						return false;
 					}
@@ -702,7 +761,7 @@ void ApplicationClass::NextTurn(){
 					highestOpposingInitiative = m_agentInitiative[i] + 1;
 				}
 
-				} else if (m_agentOwner[i] == nextActingPlayer && m_agentInitiative[i] > highestInitiative){
+			} else if (m_agentOwner[i] == nextActingPlayer && m_agentInitiative[i] > highestInitiative){
 				// New fastest agent is owned by the same player - update highestInitiative
 				highestInitiative = m_agentInitiative[i];
 
@@ -1085,19 +1144,46 @@ bool ApplicationClass::RenderGraphics(){
 			return false;
 		}
 
-		// NOTE: Will also want to render text on these buttons
-		for (i = 0; i < MAIN_MENU_BUTTON_COUNT; i++){
-			// Put the bitmap vertex and index buffers on the graphics pipeline to prepare them for drawing.
-			result = m_StandardButton->Render(m_D3D->GetDeviceContext(), MAIN_MENU_BUTTON_HORIZONTAL_OFFSET, MAIN_MENU_BUTTON_VERTICAL_OFFSET + i * (MAIN_MENU_BUTTON_HEIGHT + MAIN_MENU_BUTTON_SPACING));
-			if (!result){
-				return false;
+		// Render buttons based on the MenuState
+		switch (m_MenuState){
+		case MENUSTATE_MAINMENU:
+			// Render all the buttons on the Main Menu
+			for (i = 0; i < MAIN_MENU_BUTTON_COUNT; i++){
+				// Put the bitmap vertex and index buffers on the graphics pipeline to prepare them for drawing.
+				result = m_StandardButton->Render(m_D3D->GetDeviceContext(), MAIN_MENU_BUTTON_HORIZONTAL_OFFSET, MAIN_MENU_BUTTON_VERTICAL_OFFSET + i * (MAIN_MENU_BUTTON_HEIGHT + MAIN_MENU_BUTTON_SPACING));
+				if (!result){
+					return false;
+				}
+
+				// Render the bitmap with the texture shader.
+				result = m_TextureShader->Render(m_D3D->GetDeviceContext(), m_StandardButton->GetIndexCount(), worldMatrix, m_UIViewMatrix, orthoMatrix, m_StandardButton->GetTexture(), PSTYPE_NORMAL);
+				if (!result){
+					return false;
+				}
 			}
 
-			// Render the bitmap with the texture shader.
-			result = m_TextureShader->Render(m_D3D->GetDeviceContext(), m_StandardButton->GetIndexCount(), worldMatrix, m_UIViewMatrix, orthoMatrix, m_StandardButton->GetTexture(), PSTYPE_NORMAL);
-			if (!result){
-				return false;
+			break;
+
+		case MENUSTATE_OPTIONMENU:
+			// Render all the buttons on the Options Menu
+			for (i = 0; i < OPTIONS_MENU_BUTTON_COUNT; i++){
+				result = m_StandardButton->Render(m_D3D->GetDeviceContext(), MAIN_MENU_BUTTON_HORIZONTAL_OFFSET, MAIN_MENU_BUTTON_VERTICAL_OFFSET + i * (MAIN_MENU_BUTTON_HEIGHT + MAIN_MENU_BUTTON_SPACING));
+				if (!result){
+					return false;
+				}
+
+				// Render the bitmap with the texture shader.
+				result = m_TextureShader->Render(m_D3D->GetDeviceContext(), m_StandardButton->GetIndexCount(), worldMatrix, m_UIViewMatrix, orthoMatrix, m_StandardButton->GetTexture(), PSTYPE_NORMAL);
+				if (!result){
+					return false;
+				}
 			}
+			
+			break;
+
+		default:
+			// No Menu, don't render any buttons
+			break;
 		}
 
 		break;
