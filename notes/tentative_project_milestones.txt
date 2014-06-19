@@ -1,0 +1,162 @@
+AllDay (Working Title) Project Milestones/Goals
+
+This is not a complete collection of goals but should serve as a guideline for
+progress and what remains to be done with respect to development.
+
+The numbering of goals is in no particular order, although some goals are
+clearly dependent upon others being completed first.
+Format: A#
+Where A is an alphabetical character corresponding to the general category of
+goal in question and # is an identifying number.
+
+Game Mechanics (M)
+UI (U)
+Plot (P)
+
+M1. Pathfinding
+  - Calculation of minimum cost pathing for Active Agent movement
+  - UI option to give an Agent a move order
+    - Highlighting of the path the Agent will take and the cost
+	- Some form of "Order/Action selected" state and associated information
+	  for proper performance.
+
+M2. Basic Agent Interaction
+  - Health & Action Points
+    - Associated UI display for both selected and highlighted agents
+  - Limits on Agents occupying the same location
+    - Appropriate error messages when invalid move orders given
+  - Basic Agent attacks
+    - Damage, range check
+	- Agent Death
+	- UI option for Attack order
+	- Default behaviour on right click over enemy Agents but not own Agents
+
+M3. Basic Agent Abilities
+  - Stamina, Mana and Magic Saturation
+    - Associated UI display where valid
+  - Ability selection
+    - Menu/List UI for selection
+	- Appropriate data for proper display for targeting of abilities
+  - Immediate Effect Abilities
+    - Direct, Area-of-Effect and Conical Damage/Healing
+  - Graphical Effects for Abilities
+
+M4. Inactive Agent Interaction
+  - Interactions with Inactive Agents
+    - Move, Activate, Use etc.
+	- UI Option to Interact with an Inactive Agent
+	- Can change the location or presence of Inactive Agents
+	- Possibly some situational offensive options in the environment
+
+M5. Agent Statistics/Attributes
+  - Primary and Secondary attributes for Active Agents
+    - Have varied impact on Agent performance
+  - UI and State changes for the display of an Agent Information Screen
+
+M6. Items
+  - Inventories for Active Agents
+    - UI for display of Agent's inventory
+  - Equipable Items
+    - Affect an Agent's attributes
+	- UI for equipping/equipped items
+  - Usable Items
+    - UI for using items in Combat
+
+M7. Lootable Items
+  - Ability for Agents to acquire items during combat.
+    - UI Option and interface for looting items
+	- Addition of Inactive Agents such as Chests that can be looted
+  - Post-Combat looting
+    - Option to remain on CombatMap after conclusion of combat, manually loot
+	  items, take actions
+	- UI when leaving CombatMap to assign any non-collected loot to Agents'
+	  inventories or leave behind (permanently)
+
+M8. Effects
+  - UI for viewing Effects on an Agent, general indicator that an Agent has
+    Effects
+  - Positive and Negative effects, periodic and constant effects
+  - Effects that cause Effects (within a radius and/or set conditions)
+  - Abilities that change behaviour based on the presence of Effects
+
+M9. Mana Springs, Mana Flows
+  - Layer of Mana Springs/Flows on CombatMap
+    - Toggle for prominent display over terrain
+  - Varied size/effect of Springs and Flows
+    - UI display of how much regeneration an Agent currently receives, and
+	  would receive in the highlighted tile
+  - Abilities/Spells to change the direction of flows
+
+M10. Combat Map Development
+  - Additional terrain types
+  - Cost modifiers for movement costs
+  - More Maps
+    - Fixed Maps and Randomly generated (random features/inactive agents?)
+  - Additional Enemy Agent Types
+    - Randomized generation of encounters (Agent generation and placement)
+
+M11. Character Development
+  - Character Creation Process
+    - UI for process
+    - Class, Race?, Gender?, Appearance?, etc. customization
+  - Character Classes
+  - Character Class (C++ Class)
+    - Character-to-ActiveAgent conversion (for CombatMap)
+  - Advancement System/s
+    - Levels and Experience?
+	- Skill advancement?
+	- Unlocking Abilities/Perks, etc.
+	- UI additions to accommodate systems
+
+M12. World Map
+  - Rendering
+  - Free Roam Movement on WorldMap
+  - Random Encounters
+    - Grace period between combats (minimum movement/passage of time between)
+  - Fixed/Set encounters
+    - Fixed Maps, enemies
+	- Visible from the World Map?
+
+M13. Save & Load System
+  - UI for saving/loading games
+  - Readable save format for rebuilding (most) of the game state
+  - Game savable from both World and Combat Maps
+
+M14. World Map Interaction
+  - Vendors for buying/selling/trade of Items
+    - Associated UI
+  - Conversations with NPCs
+    - Associated UI
+  - Quests
+    - Quest Log UI
+  - Visible Items and Encounters on the World Map
+    - Hidden Items and Encounters?
+
+M15. AI
+  - AI for CombatMap enemies
+    - Ideally most enemy Agents cooperate with each other towards common goal
+	- Obviously long term goal is defeating the player
+	  - Shorter term goals
+  - Roaming Agents on the World Map?
+    - Roaming encounters, vendors, etc.
+
+U1. Tooltips
+  - Informative popups about highlighted UI element when cursor is stationary
+  - Configurable delay before tooltips showup
+    - Part of Game Options
+
+U2. Resolution/Windowed & Full Screen Modes
+  - Option to change resolution, between widowed & full screen
+    - Ideally without entirely restarting the application
+  - Texture and UI scaling where needed (text in particular)
+  - Window/Application bar in windowed mode
+    - Without introduction of graphical anomalies
+  - Configuration file to save settings between instances of application being
+    run
+    - Read on application start, modified on settings change or application
+	  exit
+
+U3. Zoom
+  - Zoom levels on Combat Map
+    - Fixed settings
+	- Zoom toward cursor as opposed to fixed part of view
