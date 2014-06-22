@@ -11,7 +11,7 @@ ApplicationClass::ApplicationClass(){
 	m_MainBackground = 0;
 	m_StandardButton = 0;
 	m_Mouse = 0;
-	m_MenuBarBackground = 0;
+	m_MenuBackground = 0;
 	m_CombatMap = 0;
 	m_TerrainMap = 0;
 	m_HexHighlight = 0;
@@ -58,8 +58,18 @@ bool ApplicationClass::Initialize(HINSTANCE hinstance, HWND hwnd, int screenWidt
 	// Initialize the index of the currently selected Agent to -1, there are no Agents to be selected on initialization
 	m_selectedAgent = -1;
 
-	// Set the current number of Agents to 0
+	// Initialize the current number of Agents to 0
 	m_numAgents = 0;
+
+	// Initialize tooltip specific variables
+	m_displayTooltip = false;
+	m_tooltipDelay = 2500.0f;
+	m_cursorIdleTime = 0.0f;
+	m_tooltipX = 0;
+	m_tooltipY = 0;
+	m_tooltipWidth = 0;
+	m_tooltipHeight = 0;
+
 
 	// Initialize the CombatMap specific arrays: agentOwner agentInitiative, agentBeganTurn, agentEndedTurn
 	for (i = 0; i < MAX_AGENTS; i++){
@@ -138,6 +148,17 @@ bool ApplicationClass::Initialize(HINSTANCE hinstance, HWND hwnd, int screenWidt
 		return false;
 	}
 
+	// Initialize the MenuBackground bitmap object
+	m_MenuBackground = new BitmapClass();
+	if (!m_MenuBackground){
+		return false;
+	}
+
+	result = m_MenuBackground->Initialize(m_D3D->GetDevice(), m_screenWidth, m_screenHeight, "../rastertekTutorials/data/ui_menubarbackground.dds", m_screenWidth, COMBAT_MENU_HEIGHT);
+	if (!result){
+		return false;
+	}
+
 	// Initialize the cursor bitmap object
 	m_Mouse = new BitmapClass;
 	if (!m_Mouse){
@@ -211,6 +232,12 @@ bool ApplicationClass::Initialize(HINSTANCE hinstance, HWND hwnd, int screenWidt
 	// Set the initial position of the viewer to the same as the initial camera position.
 	m_Position->SetPosition(cameraX, cameraY, cameraZ);
 
+	// Proof of Concept, Read Configuration file
+	result = ReadConfig();
+	if (!result){
+		return false;
+	}
+
 	return true;
 }
 
@@ -259,6 +286,13 @@ void ApplicationClass::Shutdown(){
 		m_Mouse = 0;
 	}
 
+	// Release the MenuBarBackground Bitmap object
+	if (m_MenuBackground){
+		m_MenuBackground->Shutdown();
+		delete m_MenuBackground;
+		m_MenuBackground = 0;
+	}
+
 	// Release the Main Menu bitmap object
 	if (m_StandardButton){
 		m_StandardButton->Shutdown();
@@ -300,6 +334,8 @@ void ApplicationClass::Shutdown(){
 // All processing for application done here - input, processing and graphics
 bool ApplicationClass::Frame(){
 	bool result;
+	float frameTime;
+	int prevMouseX, prevMouseY;
 
 	// Update system stats
 	m_Timer->Frame();
@@ -315,6 +351,10 @@ bool ApplicationClass::Frame(){
 		return false;
 	}
 
+	// Store the previous cursor coordinates
+	prevMouseX = m_mouseX;
+	prevMouseY = m_mouseY;
+
 	// Get the location of the mouse from the input object,
 	m_Input->GetMouseLocation(m_mouseX, m_mouseY);
 
@@ -326,7 +366,14 @@ bool ApplicationClass::Frame(){
 		}
 	}
 
-	result = HandleInput(m_Timer->GetTime());
+	frameTime = m_Timer->GetTime();
+
+	result = HandleInput(frameTime);
+	if (!result){
+		return false;
+	}
+
+	result = Update(frameTime, (m_mouseX == prevMouseX && m_mouseY == prevMouseY));
 	if (!result){
 		return false;
 	}
@@ -339,6 +386,69 @@ bool ApplicationClass::Frame(){
 	
 	return true;
 }
+
+// Read Configuration File to configure settings
+// NOTE: This should probably be done in the SystemClass before the
+//       ApplicationClass is instantiated, specifically for setting the
+//       resolution of the application window.
+bool ApplicationClass::ReadConfig(){
+	bool result;
+	ifstream fin;
+	char configString[20];
+
+	// Proof of Concept for reading Configuration File
+	fin.open("../rastertekTutorials/data/configuration.txt");
+	if (fin.fail()){
+		return false;
+	}
+
+	// Read through the Configuration File and set relevant variables accordingly
+	fin.getline(configString, 20, ' ');
+
+	while (!fin.eof()){
+		// This is probably not a good way to parse a text file
+		if (strncmp(configString, "mainstate", 8) == 0){
+			fin.getline(configString, 20, ' ');
+			fin.getline(configString, 20, ' ');
+
+			if (strncmp(configString, "combat", 6) == 0){
+				// Change the MainState to CombatMap, create a new CombatMap and begin the first round
+				m_MainState = MAINSTATE_COMBATMAP;
+				m_MenuState = MENUSTATE_NOMENU;
+
+				// Clear all error messages on state change
+				result = m_Text->ClearErrors(m_D3D->GetDeviceContext());
+				if (!result){
+					return false;
+				}
+
+				if (!m_CombatMap){
+					result = InitializeCombatMap((MapType)(rand() % 2), 32, 32);
+					if (!result){
+						return false;
+					}
+				}
+
+				// Set appropriate Menu Text
+				result = m_Text->SetCombatMapText(m_D3D->GetDeviceContext());
+				if (!result){
+					return false;
+				}
+
+				// Begin the first round of Combat
+				NextTurn();
+			}
+
+		}
+
+		fin.getline(configString, 20, ' ');
+	}
+
+	// Close the configuration file.
+	fin.close();
+	return true;
+}
+
 
 // Handle all user input
 bool ApplicationClass::HandleInput(float frameTime){
@@ -359,6 +469,7 @@ bool ApplicationClass::HandleInput(float frameTime){
 	m_Position->SetFrameTime(frameTime);
 
 	// Update the frame time for any existing error messages
+	// NOTE: This must happen before new errors are created in this frame - not in the Update function.
 	result = m_Text->Frame(frameTime, m_D3D->GetDeviceContext());
 	if (!result){
 		return false;
@@ -880,17 +991,6 @@ bool ApplicationClass::InitializeCombatMap(MapType mapType, int mapWidth, int ma
 
 	m_Position->SetBounds(boundX, boundY, boundZ);
 
-	// Initialize the CombatMap UI elements
-	m_MenuBarBackground = new BitmapClass();
-	if (!m_MenuBarBackground){
-		return false;
-	}
-
-	result = m_MenuBarBackground->Initialize(m_D3D->GetDevice(), m_screenWidth, m_screenHeight, "../rastertekTutorials/data/ui_menubarbackground.dds", m_screenWidth, COMBAT_MENU_HEIGHT);
-	if (!result){
-		return false;
-	}
-
 	// Initialize Agents
 	// NOTE: This process will be subject to considerable change, currently used for Proof of Concept
 	// NOTE2: Currently sequentially initializing Agents in an array based on the current number of Agents
@@ -1061,13 +1161,6 @@ void ApplicationClass::ShutdownCombatMap(){
 		m_Agents = 0;
 	}
 
-	// Release the MenuBarBackground Bitmap object
-	if (m_MenuBarBackground){
-		m_MenuBarBackground->Shutdown();
-		delete m_MenuBarBackground;
-		m_MenuBarBackground = 0;
-	}
-
 	// Release the Highlight HexMap object
 	if (m_HexHighlight){
 		m_HexHighlight->Shutdown();
@@ -1089,6 +1182,53 @@ void ApplicationClass::ShutdownCombatMap(){
 		m_CombatMap = 0;
 	}
 }
+
+bool ApplicationClass::Update(float frameTime, bool cursorIdle){
+	bool result;
+
+	// If the cursor was not moved and a tooltip was not previously displayed,
+	// update cursorIdleTime and check if any appropriate tooltip should be
+	// displayed
+	if (!cursorIdle){
+		// The cursor moved
+		m_cursorIdleTime = 0.0f;
+		m_displayTooltip = false;
+	} else if (cursorIdle && m_cursorIdleTime < m_tooltipDelay){
+		m_cursorIdleTime += frameTime;
+	}
+
+	// If a tooltip should be displayed and is not currently displayed (either
+	// because the cursor moved or wasn't idle for long enough) determine which
+	// tooltip should be displayed and set the appropriate variables and text
+	// to display the tooltip.
+	if (m_cursorIdleTime >= m_tooltipDelay && !m_displayTooltip){
+		// If the UI element under the cursor has a tooltip, it should be
+		// displayed
+		m_displayTooltip = true;
+
+		// Determine which UI element is under the cursor and update the
+		// tooltip to be displayed
+
+		// Proof of Concept
+		m_tooltipX = m_screenWidth - 150;
+		m_tooltipY = 50;
+		m_tooltipWidth = 100;
+		m_tooltipHeight = 40;
+
+		result = m_Text->SetTooltipText(m_tooltipX, m_tooltipY, m_D3D->GetDeviceContext());
+		if (!result){
+			return false;
+		}
+	}
+
+
+	// TODO: Update the visual location of any moving Agents depending on how
+	//       much time has passed since the last frame.
+	// NOTE: Consider using fixed step updates instead.
+
+	return true;
+}
+
 
 bool ApplicationClass::RenderGraphics(){
 	D3DXMATRIX worldMatrix, viewMatrix, projectionMatrix, orthoMatrix;
@@ -1267,12 +1407,18 @@ bool ApplicationClass::RenderGraphics(){
 		// NOTE: The elements involved are subject to change in the future
 
 		// Render the CombatMap menubar
-		result = m_MenuBarBackground->Render(m_D3D->GetDeviceContext(), 0, m_screenHeight - COMBAT_MENU_HEIGHT);
+		// First ensure the menuBackground has the proper dimensions
+		result = m_MenuBackground->SetDimensions(m_screenWidth, COMBAT_MENU_HEIGHT);
 		if (!result){
 			return false;
 		}
 
-		result = m_TextureShader->Render(m_D3D->GetDeviceContext(), m_MenuBarBackground->GetIndexCount(), worldMatrix, m_UIViewMatrix, orthoMatrix, m_MenuBarBackground->GetTexture(), PSTYPE_NORMAL);
+		result = m_MenuBackground->Render(m_D3D->GetDeviceContext(), 0, m_screenHeight - COMBAT_MENU_HEIGHT);
+		if (!result){
+			return false;
+		}
+
+		result = m_TextureShader->Render(m_D3D->GetDeviceContext(), m_MenuBackground->GetIndexCount(), worldMatrix, m_UIViewMatrix, orthoMatrix, m_MenuBackground->GetTexture(), PSTYPE_NORMAL);
 		if (!result){
 			return false;
 		}
@@ -1315,6 +1461,36 @@ bool ApplicationClass::RenderGraphics(){
 	result = m_Text->Render(m_D3D->GetDeviceContext(), worldMatrix, orthoMatrix);
 	if (!result){
 		return false;
+	}
+
+	// If a tooltip should be displayed, render it
+	if (m_displayTooltip){
+		// Alpha blending is not required for rendering the tooltip background
+		m_D3D->TurnOffAlphaBlending();
+
+		// Set the dimensions of the MenuBackground bitmap to render the tooltip background
+		result = m_MenuBackground->SetDimensions(m_tooltipWidth, m_tooltipHeight);
+		if (!result){
+			return false;
+		}
+
+		// Render the tooltip background
+		result = m_MenuBackground->Render(m_D3D->GetDeviceContext(), m_tooltipX, m_tooltipY);
+		if (!result){
+			return false;
+		}
+
+		result = m_TextureShader->Render(m_D3D->GetDeviceContext(), m_MenuBackground->GetIndexCount(), worldMatrix, m_UIViewMatrix, orthoMatrix, m_MenuBackground->GetTexture(), PSTYPE_NORMAL);
+		if (!result){
+			return false;
+		}
+
+		// Render the tooltip text
+		m_D3D->TurnOnAlphaBlending();
+		result = m_Text->RenderTooltip(m_D3D->GetDeviceContext(), worldMatrix, orthoMatrix);
+		if (!result){
+			return false;
+		}
 	}
 
 	// Render the cursor

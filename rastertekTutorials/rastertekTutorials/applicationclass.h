@@ -101,12 +101,21 @@ public:
 	bool Frame();
 
 private:
+	// Initialization
+	bool ReadConfig();
+
+	// Handle Input
 	bool HandleInput(float);
 	bool SetSelectedAgent(int);
 	void NextTurn();
 	void EndTurn();
 	bool InitializeCombatMap(MapType, int, int);
 	void ShutdownCombatMap();
+
+	// Update
+	bool Update(float, bool);
+
+	// Render
 	bool RenderGraphics();
 
 private:
@@ -116,7 +125,7 @@ private:
 	BitmapClass* m_MainBackground;
 	BitmapClass* m_StandardButton;
 	BitmapClass* m_Mouse;
-	BitmapClass* m_MenuBarBackground;
+	BitmapClass* m_MenuBackground;
 	CombatMap* m_CombatMap;
 	HexMapClass* m_TerrainMap;
 	HexMapClass* m_HexHighlight;
@@ -137,6 +146,12 @@ private:
 	bool m_cursorOverTile;
 	int m_selectedAgent;
 	int m_numAgents;
+
+	bool m_displayTooltip;
+	float m_tooltipDelay;
+	float m_cursorIdleTime;
+	int m_tooltipX, m_tooltipY;
+	int m_tooltipWidth, m_tooltipHeight;
 
 	// These arrays may become obsolete at some point, currently used for
 	// the Turn system in the CombatMap

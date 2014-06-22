@@ -70,8 +70,33 @@ bool TextClass::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceCont
 	}
 
 	result = InitializeSentence(&m_menuText3, 16, device);
+	if (!result){
+		return false;
+	}
 
 	result = SetMainMenuText(horizontalOffset, verticalOffset, buttonHeight, buttonSpacing, deviceContext);
+	if (!result){
+		return false;
+	}
+
+	// Initialize sentences for the displaying of tooltips
+	result = InitializeSentence(&m_tooltipLabel, 16, device);
+	if (!result){
+		return false;
+	}
+
+	result = InitializeSentence(&m_tooltipDescription, 32, device);
+	if (!result){
+		return false;
+	}
+
+	// Both tooltip sentences should be empty to begin with
+	result = UpdateSentence(m_tooltipLabel, "", 0, 0, 1.0f, 1.0f, 1.0f, deviceContext);
+	if (!result){
+		return false;
+	}
+
+	result = UpdateSentence(m_tooltipDescription, "", 0, 0, 1.0f, 1.0f, 1.0f, deviceContext);
 	if (!result){
 		return false;
 	}
@@ -99,6 +124,7 @@ bool TextClass::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceCont
 		return false;
 	}
 
+	// Initially there should be no selected Agent
 	result = UpdateSentence(m_selectedAgent, "", 20, m_screenHeight - 80, 1.0f, 1.0f, 1.0f, deviceContext);
 	if (!result){
 		return false;
@@ -133,6 +159,10 @@ void TextClass::Shutdown(){
 	ReleaseSentence(&m_menuText1);
 	ReleaseSentence(&m_menuText2);
 	ReleaseSentence(&m_menuText3);
+
+	// Release the tooltip sentences
+	ReleaseSentence(&m_tooltipLabel);
+	ReleaseSentence(&m_tooltipDescription);
 
 	// Release the error sentences.
 	ReleaseSentence(&m_errorText1);
@@ -169,10 +199,10 @@ bool TextClass::Frame(float frameTime, ID3D11DeviceContext* deviceContext){
 	
 	// The second error message is only active if it hasn't already expired
 	if (m_errorTime2 < MAX_ERROR_TIME){
-		m_errorTime2 = min(m_errorTime2 + frameTime, MAX_ERROR_TIME);
+		m_errorTime2 += frameTime;
 
 		// If the second message has just expired then the first message has also expired, clear all errors and return
-		if (m_errorTime2 == MAX_ERROR_TIME){
+		if (m_errorTime2 >= MAX_ERROR_TIME){
 			result = ClearErrors(deviceContext);
 			if (!result){
 				return false;
@@ -184,11 +214,11 @@ bool TextClass::Frame(float frameTime, ID3D11DeviceContext* deviceContext){
 
 	// The first error message is only active if it hasn't already expired
 	if (m_errorTime1 < MAX_ERROR_TIME){
-		m_errorTime1 = min(m_errorTime1 + frameTime, MAX_ERROR_TIME);
+		m_errorTime1 += frameTime;
 
 		// If the first error message has expired, replace it with the second error message and clear
 		// the second error message
-		if (m_errorTime1 == MAX_ERROR_TIME){
+		if (m_errorTime1 >= MAX_ERROR_TIME){
 			// Replace the first error message with the second
 			m_errorTime1 = m_errorTime2;
 			result = UpdateSentence(m_errorText1, m_secondErrorString, m_screenWidth / 2 - 80, 80, 1.0f, 0.0f, 0.0f, deviceContext);
@@ -261,13 +291,26 @@ bool TextClass::Render(ID3D11DeviceContext* deviceContext, D3DXMATRIX worldMatri
 	return true;
 }
 
+bool TextClass::RenderTooltip(ID3D11DeviceContext* deviceContext, D3DXMATRIX worldMatrix, D3DXMATRIX orthoMatrix){
+	bool result;
+
+	// Render the tooltip sentences
+	result = RenderSentence(deviceContext, m_tooltipLabel, worldMatrix, orthoMatrix);
+	if (!result){
+		return false;
+	}
+
+	result = RenderSentence(deviceContext, m_tooltipDescription, worldMatrix, orthoMatrix);
+	if (!result){
+		return false;
+	}
+
+	return true;
+}
+
 bool TextClass::SetMainMenuText(int horizontalOffset, int verticalOffset, int buttonHeight, int buttonSpacing, ID3D11DeviceContext* deviceContext){
 	// Update all menuText strings to display labels for each option on the Main Menu
 	bool result;
-
-	// NOTE: Positioning is currently fixed and does not change with other elements in the UI,
-	//       such as the button the text is meant to be a part of. This will have to change,
-	//       particularly when we support multiple resolutions (Text size may also need to change)
 
 	result = UpdateSentence(m_menuText1, "Enter CombatMap", horizontalOffset + 15, verticalOffset + (buttonHeight / 2) - 4, 0.0f, 0.0f, 0.0f, deviceContext);
 	if (!result){
@@ -339,6 +382,24 @@ bool TextClass::SetCombatMapText(ID3D11DeviceContext* deviceContext){
 	return true;
 }
 
+bool TextClass::SetTooltipText(int tooltipX, int tooltipY, ID3D11DeviceContext* deviceContext){
+	// Update the tooltip sentences with helpful information about the currently highlighted
+	// UI object.
+	bool result;
+
+	result = UpdateSentence(m_tooltipLabel, "Tooltip Label", tooltipX + 3, tooltipY + 3, 1.0f, 1.0f, 1.0f, deviceContext);
+	if (!result){
+		return false;
+	}
+
+	result = UpdateSentence(m_tooltipDescription, "Helpful tooltip text", tooltipX + 3, tooltipY + 16, 1.0f, 1.0f, 1.0f, deviceContext);
+	if (!result){
+		return false;
+	}
+
+	return true;
+}
+
 bool TextClass::NewErrorMessage(char* text, ID3D11DeviceContext* deviceContext){
 	// Update the error sentence objects to display a new error message for a fixed period of time.
 	// If there are already 2 error messages, remove the oldest of the two and place this new
@@ -346,7 +407,7 @@ bool TextClass::NewErrorMessage(char* text, ID3D11DeviceContext* deviceContext){
 	bool result;
 
 	// If no error messages are currently displayed, this new error is the first
-	if (m_errorTime1 == MAX_ERROR_TIME){
+	if (m_errorTime1 >= MAX_ERROR_TIME){
 		// Use the first error sentence to display the new error
 		m_errorTime1 = 0.0f;
 		result = UpdateSentence(m_errorText1, text, m_screenWidth / 2 - 80, 80, 1.0f, 0.0f, 0.0f, deviceContext);
@@ -354,7 +415,7 @@ bool TextClass::NewErrorMessage(char* text, ID3D11DeviceContext* deviceContext){
 			return false;
 		}
 
-	} else if (m_errorTime2 == MAX_ERROR_TIME){
+	} else if (m_errorTime2 >= MAX_ERROR_TIME){
 		// Only 1 error already exists, use the second error sentence to display the new error
 		strcpy_s(m_secondErrorString, text);
 		m_errorTime2 = 0.0f;
