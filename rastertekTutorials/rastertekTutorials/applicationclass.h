@@ -108,6 +108,8 @@ private:
 	bool InitializeCombatMap(MapType, int, int);
 	void ShutdownCombatMap();
 	bool RenderGraphics();
+	bool Search();
+	int FindCost(int, int);
 
 private:
 	InputClass* m_Input;
@@ -127,6 +129,7 @@ private:
 	PositionClass* m_Position;
 	AgentClass** m_Agents;
 	SpriteClass* m_AgentSprites;
+	Pathnode** m_Path;
 
 	MainState m_MainState;
 	MenuState m_MenuState;
