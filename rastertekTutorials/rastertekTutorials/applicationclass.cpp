@@ -3,6 +3,10 @@
 ////////////////////////////////////////////////////////////////////////////////
 #include "applicationclass.h"
 
+bool compare2(Pathnode* x, Pathnode* y){
+	return x->cost < y->cost;
+}
+
 // Object pointers initialize to NULL (Important in event of initialization failure)
 ApplicationClass::ApplicationClass(){
 	m_Input = 0;
@@ -1611,3 +1615,237 @@ bool ApplicationClass::RenderGraphics(){
 
 	return true;
 }
+bool ApplicationClass::Search(){
+	std::list <Pathnode*> queue;
+
+	int x = 0;
+	int y = 0;
+	m_Agents[m_selectedAgent]->getPosition(x, y);
+	bool success = false;
+
+	//Create first node of agents current location
+	Pathnode* temp = new Pathnode;
+	temp->tileX = x;
+	temp->tileY = y;
+	temp->cost = 0;
+	temp->in = false;
+	temp->prev = NULL;
+
+	queue.push_back(temp);
+
+	//search loop
+	while (!queue.empty()){
+		int index = queue.front()->tileX*m_combatMapHeight + queue.front()->tileY;
+		//if tile in even column
+		if (queue.front()->tileX % 2 == 0){
+			//add the neighbor six hexs to the queue
+			//Note need to add if statements to determine if hex is a valid neighbor
+			
+			//Check if there is a hex above 
+			if (queue.front()->tileY > 0 && m_Path[index-1] == NULL){
+				Pathnode* temp = new Pathnode;
+				temp->cost = FindCost(queue.front()->tileX, queue.front()->tileY) + queue.front()->cost;
+				temp->tileX = queue.front()->tileX;
+				temp->tileY = queue.front()->tileY - 1;
+				temp->prev = queue.front();
+				temp->in = false;
+				queue.push_back(temp);
+				m_Path[index - 1] = temp;
+			}
+
+			//Check if currently on last column
+			if (queue.front()->tileX < m_combatMapWidth-1){
+				//Check if there is a above to the right
+				if (queue.front()->tileY > 0 && m_Path[index + m_combatMapHeight - 1] == NULL){
+					temp = new Pathnode;
+					temp->tileX = queue.front()->tileX + 1;
+					temp->tileY = queue.front()->tileY - 1;
+					temp->cost = FindCost(temp->tileX, temp->tileY) + queue.front()->cost;
+					temp->prev = queue.front();
+					temp->in = false;
+					queue.push_back(temp);
+					m_Path[index + m_combatMapHeight - 1] = temp;
+				}
+
+				//there is always a neighbor to the right
+				if (m_Path[index + m_combatMapHeight] == NULL){
+					temp = new Pathnode;
+					temp->tileX = queue.front()->tileX + 1;
+					temp->tileY = queue.front()->tileY;
+					temp->cost = FindCost(temp->tileX, temp->tileY) + queue.front()->cost;
+					temp->prev = queue.front();
+					temp->in = false;
+					queue.push_back(temp);
+					m_Path[index + m_combatMapHeight] = temp;
+				}
+			}
+
+			//Check if there is a hex below
+			if (queue.front()->tileY > m_combatMapHeight-1 && m_Path[index + 1] == NULL){
+				temp = new Pathnode;
+				temp->tileX = queue.front()->tileX;
+				temp->tileY = queue.front()->tileY + 1;
+				temp->cost = FindCost(temp->tileX, temp->tileY) + queue.front()->cost;
+				temp->prev = queue.front();
+				temp->in = false;
+				queue.push_back(temp);
+				m_Path[index + 1] = temp;
+			}
+
+			//Check if on the first colomn
+			if (queue.front()->tileX > 0){
+				//there is always a hex to the left
+				if (m_Path[index - m_combatMapHeight] == NULL){
+					temp = new Pathnode;
+					temp->tileX = queue.front()->tileX - 1;
+					temp->tileY = queue.front()->tileY;
+					temp->cost = FindCost(temp->tileX, temp->tileY) + queue.front()->cost;
+					temp->prev = queue.front();
+					temp->in = false;
+					queue.push_back(temp);
+					m_Path[index - m_combatMapHeight] = temp;
+				}
+				//Check if neighbor above to the left
+				if (queue.front()->tileY > 0 && m_Path[index - m_combatMapHeight - 1] == NULL){
+					temp = new Pathnode;
+					temp->tileX = queue.front()->tileX - 1;
+					temp->tileY = queue.front()->tileY - 1;
+					temp->prev = queue.front();
+					temp->in = false;
+					queue.push_back(temp);
+					temp->cost = FindCost(temp->tileX, temp->tileY) + queue.front()->cost;
+					m_Path[index - m_combatMapHeight - 1] = temp;
+				}
+			}
+		}
+		//tile is in odd column
+		else {
+			//add the neighbor six hexs to the queue
+			//Note need to add if statements to determine if hex is a valid neighbor
+			//Check if there is a hex above 
+			if (queue.front()->tileY > 0 && m_Path[index - 1] == NULL){
+				temp = new Pathnode;
+				temp->tileX = queue.front()->tileX;
+				temp->tileY = queue.front()->tileY - 1;
+				temp->cost = FindCost(temp->tileX, temp->tileY) + queue.front()->cost;
+				temp->prev = queue.front();
+				temp->in = false;
+				queue.push_back(temp);
+				m_Path[index - 1] = temp;
+			}
+			//Check if currently on last column
+			if (queue.front()->tileX < m_combatMapWidth - 1){
+				//there is always a neighbor to the right
+				if (m_Path[index + m_combatMapHeight] == NULL){
+					temp = new Pathnode;
+					temp->tileX = queue.front()->tileX + 1;
+					temp->tileY = queue.front()->tileY;
+					temp->cost = FindCost(temp->tileX, temp->tileY) + queue.front()->cost;
+					temp->prev = queue.front();
+					temp->in = false;
+					queue.push_back(temp);
+					m_Path[index + m_combatMapHeight] = temp;
+				}
+
+				//check if there is a neighbor to bottom right
+				if (queue.front()->tileY < m_combatMapHeight-1 && m_Path[index + m_combatMapHeight + 1] == NULL){
+					temp = new Pathnode;
+					temp->tileX = queue.front()->tileX + 1;
+					temp->tileY = queue.front()->tileY + 1;
+					temp->cost = FindCost(temp->tileX, temp->tileY) + queue.front()->cost;
+					temp->prev = queue.front();
+					temp->in = false;
+					queue.push_back(temp);
+					m_Path[index + m_combatMapHeight + 1] =  temp;
+				}
+			}
+
+			//Check if there is a hex below
+			if (queue.front()->tileY < m_combatMapHeight - 1 && m_Path[index + 1] == NULL){
+				temp = new Pathnode;
+				temp->tileX = queue.front()->tileX;
+				temp->tileY = queue.front()->tileY + 1;
+				temp->cost = FindCost(temp->tileX, temp->tileY) + queue.front()->cost;
+				temp->prev = queue.front();
+				temp->in = false;
+				queue.push_back(temp);
+				m_Path[index + 1] = temp;
+			}
+			
+			//check for a bottom left neighbor
+			if (queue.front()->tileY < m_combatMapHeight - 1 && m_Path[index + 1 - m_combatMapHeight] == NULL){
+				temp = new Pathnode;
+				temp->tileX = queue.front()->tileX - 1;
+				temp->tileY = queue.front()->tileY + 1;
+				temp->cost = FindCost(temp->tileX, temp->tileY) + queue.front()->cost;
+				temp->prev = queue.front();
+				temp->in = false;
+				queue.push_back(temp);
+				m_Path[index + 1 - m_combatMapHeight] = temp;
+			}
+
+			//there is always a neight to the left
+			if(m_Path[index - m_combatMapHeight] == NULL){
+				temp = new Pathnode;
+				temp->tileX = queue.front()->tileX - 1;
+				temp->tileY = queue.front()->tileY;
+				temp->prev = queue.front();
+				temp->cost = FindCost(temp->tileX, temp->tileY) + queue.front()->cost;
+				temp->in = false;
+				queue.push_back(temp);
+				m_Path[index - m_combatMapHeight] = temp;
+			}
+		}
+		//sort the queue
+		queue.pop_front();
+		queue.sort(compare2);
+	}
+
+	return success;
+
+}
+
+int ApplicationClass::FindCost(int x, int y){
+	return 1;
+}
+/*if (tileY > 0) : the hex at (tileX, tileY - 1) is a valid neighbour
+
+if (tileX < mapWidth - 1):
+  // Odd tileX == Odd column
+  if (tileX % 2 == 1) :
+    // Checks for both neighbours to the right
+
+if (tileX % 2 == 1):
+  if (tileY > 0): the hex at (tileX + 1, tileY - 1) is a valid neighbour
+
+  the hex at (tileX + 1, tileY) is a valid neighbour (no check for this)
+
+elseif (tileX % 2 == 0) :
+  the hex at (tileX + 1, tileY) is a valid neighbour
+
+  if (tileY < mapHeight -1) : the hex at (tileX + 1, tileY + 1) is a valid neighbour
+
+end if (tileX < mapWidth - 1)
+
+if (tileY < mapHeight - 1) : the hex at (tileX, tileY + 1) is a valid neighbour
+
+if (tileX > 0) : 
+  // Odd tileX == Odd column
+  if (tileX % 2 == 1) :
+    // Checks for both neighbours to the left
+
+if (tileX % 2 == 1):
+  the hex at (tileX - 1, tileY) is a valid neighbour
+
+  if (tileY > 0) : the hex at (tileX - 1, tileY - 1) is a valid neighbour
+
+elseif (tileX % 2 == 0) :
+  if (tileY < mapHeight - 1) : the hex at (tileX - 1, tileY + 1) is a valid neighbour
+
+  the hex at (tileX - 1, tileY) is a valid neighbour
+
+end if (tileX > 0)
+
+and then you've checked all 6 neighbours
+
+You could also do it the way you have it coded now - you just need to add bounds checks, ie. If the neighbour you're checking has a different X or Y coordinate, check to make sure that that coordinate is within the map's bounds*/
