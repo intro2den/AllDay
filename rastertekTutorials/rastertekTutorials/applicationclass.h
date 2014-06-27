@@ -15,6 +15,7 @@ const int MAX_AGENTS = 512;
 //////////////////
 // UI CONSTANTS //
 //////////////////
+// NOTE: Will likely replace many of these constants with variables to allow for resolution based resizing
 // Main Menu
 const int MAIN_MENU_BUTTON_WIDTH = 350;
 const int MAIN_MENU_BUTTON_HEIGHT = 50;
@@ -73,6 +74,16 @@ private:
 	};
 
 
+	///////////////
+	// MENU ENUM //
+	///////////////
+	enum UIMenu{
+		UIMENU_MAINMENU,
+		UIMENU_OPTIONSMENU,
+		UIMENU_COMBATMENUBAR
+	};
+
+
 	///////////////////////
 	// MENU BUTTON ENUMS //
 	///////////////////////
@@ -103,6 +114,8 @@ public:
 private:
 	// Initialization
 	bool ReadConfig();
+
+	void FindCurrentUIElement();
 
 	// Handle Input
 	bool HandleInput(float);
@@ -142,6 +155,8 @@ private:
 	int m_screenWidth, m_screenHeight;
 	int m_combatMapWidth, m_combatMapHeight;
 	int m_mouseX, m_mouseY;
+	bool m_stateChanged;
+	int m_currentUIMenu, m_currentUIElement;
 	int m_currentTileX, m_currentTileY;
 	bool m_cursorOverTile;
 	int m_selectedAgent;
