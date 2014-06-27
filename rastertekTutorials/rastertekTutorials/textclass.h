@@ -42,10 +42,13 @@ public:
 	void Shutdown();
 	bool Frame(float, ID3D11DeviceContext*);
 	bool Render(ID3D11DeviceContext*, D3DXMATRIX, D3DXMATRIX);
+	bool RenderTooltip(ID3D11DeviceContext*, D3DXMATRIX, D3DXMATRIX);
 
 	bool SetMainMenuText(int, int, int, int, ID3D11DeviceContext*);
 	bool SetOptionsMenuText(int, int, int, int, ID3D11DeviceContext*);
 	bool SetCombatMapText(ID3D11DeviceContext*);
+
+	bool SetTooltipText(int, int, ID3D11DeviceContext*);
 
 	bool NewErrorMessage(char*, ID3D11DeviceContext*);
 	bool ClearErrors(ID3D11DeviceContext*);
@@ -68,6 +71,9 @@ private:
 	SentenceType* m_menuText1;
 	SentenceType* m_menuText2;
 	SentenceType* m_menuText3;
+
+	SentenceType* m_tooltipLabel;
+	SentenceType* m_tooltipDescription;
 
 	SentenceType* m_errorText1;
 	SentenceType* m_errorText2;

@@ -119,6 +119,7 @@
     <None Include="font.ps" />
     <None Include="font.vs" />
     <None Include="lowalphatexture.ps" />
+    <None Include="sprite.ps" />
     <None Include="texture.ps" />
     <None Include="texture.vs" />
   </ItemGroup>

@@ -153,6 +153,7 @@
     <None Include="font.vs" />
     <None Include="font.ps" />
     <None Include="lowalphatexture.ps" />
+    <None Include="sprite.ps" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="fontdata.txt" />
