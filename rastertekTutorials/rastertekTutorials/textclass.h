@@ -54,7 +54,7 @@ public:
 	bool ClearErrors(ID3D11DeviceContext*);
 
 	bool SetMousePosition(int, int, ID3D11DeviceContext*);
-	bool SetSelectedAgent(int, ID3D11DeviceContext*);
+	bool SetSelectedAgent(char*, ID3D11DeviceContext*);
 
 private:
 	bool InitializeSentence(SentenceType**, int, ID3D11Device*);

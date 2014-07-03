@@ -32,6 +32,7 @@ public:
 	bool Initialize(MapType mapType, int mapWidth, int mapHeight);
 	void Shutdown();
 
+	Terrain GetTileTerrain(int);
 	bool GetTerrainArray(int*);
 
 private:

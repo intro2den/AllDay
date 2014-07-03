@@ -3,6 +3,14 @@
 ////////////////////////////////////////////////////////////////////////////////
 #pragma once
 
+
+#include <string.h>
+
+///////////////
+// CONSTANTS //
+///////////////
+const int MAX_AGENT_NAME_LENGTH = 16;
+
 //////////
 // ENUM //
 //////////
@@ -28,13 +36,15 @@ public:
 	void setPosition(int, int);
 	void setHeading(int);
 
-	AgentType getType();
-	int getSpriteID();
-	void getPosition(int&, int&);
-	void getHeading(int&);
+	AgentType GetType();
+	char* GetName();
+	int GetSpriteID();
+	void GetPosition(int&, int&);
+	void GetHeading(int&);
 
 private:
 	AgentType m_agentType;
+	char m_agentName[MAX_AGENT_NAME_LENGTH];
 	int m_agentSpriteID;
 	int m_agentSize;
 	int m_posX, m_posY;

@@ -500,20 +500,14 @@ bool TextClass::SetMousePosition(int mouseX, int mouseY, ID3D11DeviceContext* de
 	return true;
 }
 
-bool TextClass::SetSelectedAgent(int agentID, ID3D11DeviceContext* deviceContext){
-	// Update the selectedAgent string with the ID of the currently selected Agent.
-	// If a negative value is provided as the ID, empty the string.
-	char tempString[16];
+bool TextClass::SetSelectedAgent(char* agentName, ID3D11DeviceContext* deviceContext){
+	// Update the selectedAgent string with the name of the currently selected Agent.
+	// If a null pointer is provided for the name, empty the string.
 	char newString[16];
 	bool result;
 
-	if (agentID >= 0){
-		// Convert the agentID into string format.
-		_itoa_s(agentID, tempString, 10);
-
-		// Set up the selectedAgent string
-		strcpy_s(newString, "Agent ");
-		strcat_s(newString, tempString);
+	if (agentName){
+		strcpy_s(newString, agentName);
 	} else{
 		strcpy_s(newString, "");
 	}

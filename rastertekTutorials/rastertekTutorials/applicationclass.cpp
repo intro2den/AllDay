@@ -3,6 +3,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 #include "applicationclass.h"
 
+
 bool compare2(Pathnode* x, Pathnode* y){
 	return x->cost < y->cost;
 }
@@ -24,7 +25,6 @@ ApplicationClass::ApplicationClass(){
 	m_FontShader = 0;
 	m_Timer = 0;
 	m_Position = 0;
-	m_Agents = 0;
 	m_AgentSprites = 0;
 }
 
@@ -41,14 +41,15 @@ bool ApplicationClass::Initialize(HINSTANCE hinstance, HWND hwnd, int screenWidt
 	bool result;
 	float cameraX, cameraY, cameraZ;
 	D3DXMATRIX baseViewMatrix;
-	int i;
 	
 	// Keep track of the screen width and height for bounding the camera, dynamic bitmap initialization and/or scaling(?)
 	m_screenWidth = screenWidth;
 	m_screenHeight = screenHeight;
 
-	// Set initial MainState
+	// Set initial MainState, MenuState and CommandState
 	m_MainState = MAINSTATE_MAINMENU;
+	m_MenuState = MENUSTATE_MAINMENU;
+	m_CommandState = COMMANDSTATE_DEFAULT;
 
 	// Initialize the mouse (cursor) position (this will be overwritten in the first frame)
 	m_mouseX = 0;
@@ -61,16 +62,14 @@ bool ApplicationClass::Initialize(HINSTANCE hinstance, HWND hwnd, int screenWidt
 	m_currentUIMenu = -1;
 	m_currentUIElement = -1;
 
-	// Initialize the coordinates for the currently highlighted tile (for the CombatMap - initially invalid coordinates)
+	// Initialize the coordinates and index for the currently highlighted tile (for the CombatMap - initially invalid coordinates)
 	m_currentTileX = -1;
 	m_currentTileY = -1;
+	m_currentTileIndex = -1;
 	m_cursorOverTile = false;
 
-	// Initialize the index of the currently selected Agent to -1, there are no Agents to be selected on initialization
-	m_selectedAgent = -1;
-
-	// Initialize the current number of Agents to 0
-	m_numAgents = 0;
+	// Initialize the index of the currently selected Agent to null, no agent is initially selected
+	m_selectedAgent = 0;
 
 	// Initialize tooltip specific variables
 	m_displayTooltip = false;
@@ -80,15 +79,6 @@ bool ApplicationClass::Initialize(HINSTANCE hinstance, HWND hwnd, int screenWidt
 	m_tooltipY = 0;
 	m_tooltipWidth = 0;
 	m_tooltipHeight = 0;
-
-
-	// Initialize the CombatMap specific arrays: agentOwner agentInitiative, agentBeganTurn, agentEndedTurn
-	for (i = 0; i < MAX_AGENTS; i++){
-		m_agentOwner[i] = -1;
-		m_agentInitiative[i] = -1;
-		m_agentBeganTurn[i] = false;
-		m_agentEndedTurn[i] = false;
-	}
 
 	// Create the input object.  The input object will be used to handle reading the keyboard and mouse input from the user.
 	m_Input = new InputClass;
@@ -377,9 +367,8 @@ bool ApplicationClass::Frame(){
 		}
 	}
 
-	// TODO: If the cursor moved check which UI element is under the cursor
 	// If the cursor has moved, set stateChanged to true
-	m_stateChanged = (m_stateChanged || (m_mouseX == prevMouseX && m_mouseY == prevMouseY));
+	m_stateChanged = (m_stateChanged || (m_mouseX != prevMouseX || m_mouseY != prevMouseY));
 	
 	// Find which UI element is under the cursor
 	FindCurrentUIElement();
@@ -569,17 +558,15 @@ void ApplicationClass::FindCurrentUIElement(){
 	return;
 }
 
-
 // Handle all user input
 bool ApplicationClass::HandleInput(float frameTime){
 	bool result;
 	bool cursorInBounds, scrolling;
 	float posX, posY, posZ;
 	float cursorX, cursorY, normalizedCursorX, normalizedCursorY;
+	std::list<ActiveAgentClass*>::iterator agent;
 	bool agentFound;
 	int agentX, agentY;
-	int agentIndex;
-	int i;
 
 	// Set the frame time for calculating the updated position.
 	m_Position->SetFrameTime(frameTime);
@@ -725,6 +712,7 @@ bool ApplicationClass::HandleInput(float frameTime){
 		// Find the coordinates of the hex that the cursor is overtop of this frame - if the cursor is over the map
 		m_currentTileX = -1;
 		m_currentTileY = -1;
+		m_currentTileIndex = -1;
 		m_cursorOverTile = false;
 
 		if (cursorInBounds && m_mouseY < m_screenHeight - COMBAT_MENU_HEIGHT){
@@ -766,8 +754,9 @@ bool ApplicationClass::HandleInput(float frameTime){
 				m_currentTileY = -1;
 			}
 
-			// Set the cursorOverTile flag to true if the cursor is over a hex on the map
+			// Set the currentTileIndex and the cursorOverTile flag to true if the cursor is over a hex on the map
 			if (m_currentTileX >= 0 && m_currentTileX < m_combatMapWidth && m_currentTileY >= 0 && m_currentTileY < m_combatMapHeight){
+				m_currentTileIndex = m_currentTileX * m_combatMapHeight + m_currentTileY;
 				m_cursorOverTile = true;
 			}
 		}
@@ -799,6 +788,7 @@ bool ApplicationClass::HandleInput(float frameTime){
 					// NOTE: This will be replaced by a popup menu with in-game options (including returning to the Main Menu)
 					m_MainState = MAINSTATE_MAINMENU;
 					m_MenuState = MENUSTATE_MAINMENU;
+					m_CommandState = COMMANDSTATE_DEFAULT;
 					m_stateChanged = true;
 
 					// Clear all error messages on state change
@@ -816,19 +806,8 @@ bool ApplicationClass::HandleInput(float frameTime){
 					// Set the cursorOverTile flag to false
 					m_cursorOverTile = false;
 
-					// Set numAgents to 0
-					m_numAgents = 0;
-
-					// Reset the CombatMap specific arrays
-					for (i = 0; i < MAX_AGENTS; i++){
-						m_agentOwner[i] = -1;
-						m_agentInitiative[i] = -1;
-						m_agentBeganTurn[i] = false;
-						m_agentEndedTurn[i] = false;
-					}
-
 					// Deselect any selected Agent and update the associated sentence
-					result = SetSelectedAgent(-1);
+					result = SetSelectedAgent(NULL);
 					if (!result){
 						return false;
 					}
@@ -860,14 +839,14 @@ bool ApplicationClass::HandleInput(float frameTime){
 				agentFound = false;
 
 				// Check if an agent is in the hex that was just selected
-				for (agentIndex = 0; agentIndex < m_numAgents; agentIndex++){
-					m_Agents[agentIndex]->getPosition(agentX, agentY);
+				for (agent = m_ActiveAgents.begin(); agent != m_ActiveAgents.end(); ++agent){
+					(*agent)->GetPosition(agentX, agentY);
 					if (agentX == m_currentTileX && agentY == m_currentTileY){
 						// An agent is in the selected hex
 						agentFound = true;
 
 						// Update the ID of the selected Agent
-						result = SetSelectedAgent(agentIndex);
+						result = SetSelectedAgent(*agent);
 						if (!result){
 							return false;
 						}
@@ -879,7 +858,7 @@ bool ApplicationClass::HandleInput(float frameTime){
 
 				// If no agent was found in the tile, unselect any selected Agent
 				if (!agentFound){
-					result = SetSelectedAgent(-1);
+					result = SetSelectedAgent(NULL);
 					if (!result){
 						return false;
 					}
@@ -894,16 +873,17 @@ bool ApplicationClass::HandleInput(float frameTime){
 			// NOTE: Should check to ensure the cursor is not overtop of a menu/submenu when considering interaction with the map
 			//       Do not interact with a hex if the mouse is clicked and there is the background of a menu between the cursor and
 			//       the hex.
-			if (m_cursorOverTile && m_selectedAgent >= 0){
+			if (m_cursorOverTile && m_selectedAgent){
 				// Only move the selected Agent if it is that Agent's turn, otherwise display an appropriate error message
-				if (m_agentBeganTurn[m_selectedAgent] && !m_agentEndedTurn[m_selectedAgent]){
-					m_Agents[m_selectedAgent]->setPosition(m_currentTileX, m_currentTileY);
+				if (m_selectedAgent->StartedTurn() && !m_selectedAgent->EndedTurn()){
+					// Move the Agent and start building a new MovementMap from the Agent's new position
+					m_selectedAgent->Move(m_currentTileX, m_currentTileY, m_MovementMap[m_currentTileIndex].cost);
+					BuildMovementMap();
 				} else{
 					result = m_Text->NewErrorMessage("The selected Agent isn't active.", m_D3D->GetDeviceContext());
 					if (!result){
 						return false;
 					}
-
 				}
 			}
 		}
@@ -914,28 +894,294 @@ bool ApplicationClass::HandleInput(float frameTime){
 	return true;
 }
 
-bool ApplicationClass::SetSelectedAgent(int agentID){
-	// Set m_selectedAgent, update the selectedAgent string in the Text object and do all pathfinding for the newly selected
-	// Agent.
-	// NOTE: Currently not checking if the newly selected Agent is already selected - it may be worth checking.
+bool ApplicationClass::SetSelectedAgent(ActiveAgentClass* agent){
+	// Set m_selectedAgent, update the selectedAgent string in the Text object and start
+	// pathfinding for the newly selected Agent.
 	bool result;
 
-	m_selectedAgent = agentID;
-	result = m_Text->SetSelectedAgent(agentID, m_D3D->GetDeviceContext());
-	if (!result){
-		return false;
+	// If the newly selected agent is already the currently selected agent, do nothing
+	if (agent == m_selectedAgent){
+		return true;
 	}
 
-	//////////////////////////////////////////////
-	// TODO: Do pathfinding for the selected Agent from its current position on the map to all tiles on the map.
-	//       Unreachable tiles should be specially denoted in some way that is easy to check without adding unnessesary
-	//       bulk to the data structure used, perhaps a cost of -1 or similar. Create an ENUM/Constant if necessary.
-	//       If an Inactive Agent or No Agent is selected, the data structure storing the results should be updated
-	//       in such a way as to reflect that no movement is possible to any hex.
-	//////////////////////////////////////////////
+	// Update selectedAgent, the associated string displaying which Agent is selected
+	m_selectedAgent = agent;
 
+	if (m_selectedAgent){
+		result = m_Text->SetSelectedAgent(m_selectedAgent->GetName(), m_D3D->GetDeviceContext());
+		if (!result){
+			return false;
+		}
+	} else{
+		result = m_Text->SetSelectedAgent(NULL, m_D3D->GetDeviceContext());
+		if (!result){
+			return false;
+		}
+	}
+
+	// If an Agent was selected, start building a new MovementMap starting at the Agent's current location,
+	// if an Inactive Agent or no Agent was selected, clear the MovementQueue and MovementMap and set the
+	// CommandState to Default
+	if (m_selectedAgent){
+		m_CommandState = COMMANDSTATE_MOVE;
+		BuildMovementMap();
+	} else{
+		m_CommandState = COMMANDSTATE_DEFAULT;
+		ClearMovementMap();
+	}
 
 	return true;
+}
+
+void ApplicationClass::BuildMovementMap(){
+	// Begin building a MovementMap for the currently selected Agent
+	Pathnode* firstNode;
+	int startX, startY;
+	int startIndex;
+
+	// Empty the MovementQueue and clear the MovementMap of any previous data
+	ClearMovementMap();
+
+	// Get the currently selected Agent's position as an index location on the map
+	m_selectedAgent->GetPosition(startX, startY);
+	startIndex = startX * m_combatMapHeight + startY;
+	
+	// Add the first node in the queue - the selected Agent's current location and
+	// set the cost to 0 (not moving) and 'visit' the node so that it is not added
+	// to the queue again.
+	firstNode = &m_MovementMap[startIndex];
+	firstNode->cost = 0;
+	firstNode->visited = true;
+
+	// Push the first node into the MovementQueue
+	m_MovementQueue.push_back(firstNode);
+
+	// Process a few nodes in the Queue, the remainder of the MovementMap will
+	// be generated over time or upon demand for a specific path
+	ProcessPathnodes(7);	
+
+	return;
+}
+
+void ApplicationClass::ClearMovementMap(){
+	// Empty the MovementQueue and (Re)initialize the Pathnodes for the MovementMap
+	int i;
+
+	m_MovementQueue.clear();
+
+	if (m_MovementMap){
+		for (i = 0; i < m_combatMapWidth * m_combatMapHeight; i++){
+			m_MovementMap[i].tileX = i / m_combatMapHeight;
+			m_MovementMap[i].tileY = i % m_combatMapHeight;
+			m_MovementMap[i].cost = -1;
+			m_MovementMap[i].visited = false;
+			m_MovementMap[i].optimal = false;
+			m_MovementMap[i].prev = 0;
+		}
+	}
+
+	return;
+}
+
+void ApplicationClass::ProcessPathnodes(int processLimit){
+	// Process up to processLimit pathnodes in the MovementQueue and update
+	// the MovementMap
+	int currX, currY;
+	int currIndex, neighbourIndex;
+	int nodesProcessed = 0;
+
+	// Search Loop - update the Pathnodes that correspond to all the tiles that
+	// the currently selected Agent can path to.
+	while (!m_MovementQueue.empty() && nodesProcessed < processLimit){
+		// Process the next node in the queue
+
+		// The path found to the current pathnode is guaranteed to be the
+		// shortest path from the current Agent's location.
+		m_MovementQueue.front()->optimal = true;
+
+		// For the current pathnode, find and update any adjacent pathnodes
+		// that have not yet been visited.
+		currX = m_MovementQueue.front()->tileX;
+		currY = m_MovementQueue.front()->tileY;
+		currIndex = currX * m_combatMapHeight + currY;
+
+		// Check neighbours of the current tile in a clockwise direction starting
+		// with the tile directly above the current tile
+		// NOTE: The coordinates of adjacent pathnodes/tiles is dependant on
+		//       the x-coordinate of the current tile
+		if (currX % 2 == 0){
+			// Even Column hex
+
+			// Check if there is a tile above the current tile
+			if (currY > 0){
+				// There is a tile above the current tile
+				neighbourIndex = currIndex - 1;
+				VisitPathnode(currIndex, neighbourIndex);
+			}
+
+			// Check if there are any tiles to the right (Agent not on the rightmost edge of the map)
+			if (currX < m_combatMapWidth - 1){
+				// Check if there is a tile above and to the right
+				if (currY > 0){
+					// There is a tile above and to the right of the current tile
+					neighbourIndex = currIndex + m_combatMapHeight - 1;
+					VisitPathnode(currIndex, neighbourIndex);
+				}
+
+				// There is a tile below and to the right of the current tile
+				// NOTE: This is because the current tile is an even column tile with tiles to the right of it
+				neighbourIndex = currIndex + m_combatMapHeight;
+				VisitPathnode(currIndex, neighbourIndex);
+			}
+
+			// Check if there is a tile below the current tile
+			if (currY < m_combatMapHeight - 1){
+				// There is a tile below the current tile
+				neighbourIndex = currIndex + 1;
+				VisitPathnode(currIndex, neighbourIndex);
+			}
+
+			// Check if there are any tiles to the left (Agent not on the rightmost edge of the map)
+			if (currX > 0){
+				// There is a tile below and to the left of the current tile
+				// NOTE: This is because the current tile is an even column tile with tiles to the left of it
+				neighbourIndex = currIndex - m_combatMapHeight;
+				VisitPathnode(currIndex, neighbourIndex);
+
+				// Check if there is a tile above and to the left
+				if (currY > 0){
+					// There is a tile above and to the left of the current tile
+					neighbourIndex = currIndex - m_combatMapHeight - 1;
+					VisitPathnode(currIndex, neighbourIndex);
+				}
+			}
+		} else{
+			// Odd Column hex
+
+			// Check if there is a tile above the current tile
+			if (currY > 0){
+				// There is a tile above the current tile
+				neighbourIndex = currIndex - 1;
+				VisitPathnode(currIndex, neighbourIndex);
+			}
+
+			// Check if there are any tiles to the right (Agent not on the rightmost edge of the map)
+			if (currX < m_combatMapWidth - 1){
+				// There is a tile above and to the right of the current tile
+				// NOTE: This is because the current tile is an odd column tile with tiles to the right of it
+				neighbourIndex = currIndex + m_combatMapHeight;
+				VisitPathnode(currIndex, neighbourIndex);
+
+				// Check if there is a tile below and to the right
+				if (currY < m_combatMapHeight - 1){
+					// There is a tile below and to the right of the current tile
+					neighbourIndex = currIndex + m_combatMapHeight + 1;
+					VisitPathnode(currIndex, neighbourIndex);
+				}
+			}
+
+			// Check if there is a tile below the current tile
+			if (currY < m_combatMapHeight - 1){
+				// There is a tile below the current tile
+				neighbourIndex = currIndex + 1;
+				VisitPathnode(currIndex, neighbourIndex);
+			}
+
+			// Check if there are any tiles to the left (Agent not on the rightmost edge of the map)
+			if (currX > 0){
+				// Check if there is a tile below and to the left
+				if (currY < m_combatMapHeight - 1){
+					// There is a tile below and to the left of the current tile
+					neighbourIndex = currIndex - m_combatMapHeight + 1;
+					VisitPathnode(currIndex, neighbourIndex);
+				}
+
+				// There is a tile above and to the left of the current tile
+				// NOTE: This is because the current tile is an odd column tile with tiles to the left of it
+				neighbourIndex = currIndex - m_combatMapHeight;
+				VisitPathnode(currIndex, neighbourIndex);
+			}
+		}
+
+		// Pop the front of the queue and sort the remaining pathnodes
+		m_MovementQueue.pop_front();
+		m_MovementQueue.sort(compare2);
+
+		// Increase nodesProcessed
+		nodesProcessed++;
+	}
+}
+
+void ApplicationClass::VisitPathnode(int currIndex, int neighbourIndex){
+	// Visit the provided neighbouring tile to the current tile, update and/or
+	// add a corresponding pathnode in the queue if movement into the tile
+	// is both possible and the shortest path from the current Agent's location
+	// to the tile.
+	Pathnode* newNode;
+	int moveCost;
+
+	newNode = &m_MovementMap[neighbourIndex];
+
+	// Find the cost to the neighbouring tile from the current tile
+	moveCost = FindCost(currIndex, neighbourIndex);
+
+	// If the shortest path to this new tile from the current Agent's location
+	// includes the current tile (and the Agent can actually move there), update
+	// the cost and previous node for the corresponding pathnode.
+	if (moveCost > -1 && (newNode->cost == -1 || moveCost + m_MovementQueue.front()->cost < newNode->cost)){
+		newNode->cost = FindCost(currIndex, neighbourIndex) + m_MovementQueue.front()->cost;
+		newNode->prev = m_MovementQueue.front();
+	}
+
+	// If the Agent can get to this new tile and it hasn't already been visited, add it to the queue.
+	if (newNode->cost >= 0 && !newNode->visited){
+		m_MovementQueue.push_back(newNode);
+		newNode->visited = true;
+	}
+}
+
+int ApplicationClass::FindCost(int start, int end){
+	// Return the cost of moving between the two adjacent tiles provided (by index).
+	Terrain endTerrain;
+	int cost;
+
+	// Get an instance of the Terrain Type of the ending tile
+	// NOTE: If we intend to also take into account the Terrain Type an Agent is moving
+	//       from we will need to get an instance of that as well
+	endTerrain = m_CombatMap->GetTileTerrain(end);
+
+	// If the end terrain is impassable, return a cost of -1 indicating that the Agent
+	// can not move to that tile.
+	if (!endTerrain.IsPassable()){
+		return -1;
+	}
+
+	// Calculate the cost of moving between the two tiles
+	// NOTE: Currently only using the base movement cost of the end terrain
+	//       however we may end up modifying the final cost based on various
+	//       conditions including Effects on the moving Agent and the Terrain
+	//       type.
+	cost = endTerrain.GetMovementCost();
+
+	return cost;
+}
+
+int ApplicationClass::FindDistance(int startX, int startY, int endX, int endY){
+	// Return the number of tiles in the shortest path from the tile at the
+	// start coordinates to the end coordinates (including the ending tile but
+	// not the starting tile).
+	int diffX, diffY;
+	int distance;
+
+	// The number of tiles in the shortest path between 2 tiles can be determined
+	// as follows:
+	//  abs(diffX) + max(0, abs(diffY) - (abs(diffX) + abs(diffX % 2) * sign(diffY)) / 2)   if startX is odd
+	//  abs(diffX) + max(0, abs(diffY) - (abs(diffX) + abs(diffX % 2) * -sign(diffY)) / 2)  if startX is even
+	diffX = endX - startX;
+	diffY = endY - startY;
+	distance = abs(diffX) + max(0, abs(diffY) - (abs(diffX) + abs(diffX % 2) * ((diffY * 2 + 1) % 2) * ((startX % 2) * 2 - 1)) / 2);
+
+	return distance;
 }
 
 void ApplicationClass::NextTurn(){
@@ -943,7 +1189,8 @@ void ApplicationClass::NextTurn(){
 	// next turn of Combat.
 	int highestInitiative, highestOpposingInitiative;
 	int nextActingPlayer;
-	int i;
+	std::list<ActiveAgentClass*>::iterator agent;
+	int agentOwner, agentInitiative;
 
 	// Initialize the highest initiative to be lower than all valid initiative values
 	highestInitiative = -1;
@@ -955,50 +1202,54 @@ void ApplicationClass::NextTurn(){
 	// Determine which player's Agents will have their turn next and the minimum initiative
 	// required for them to have that turn. In the event of a tie, a lower agentOwner value
 	// takes precedence.
-	for (i = 0; i < m_numAgents; i++){
-		if (!m_agentBeganTurn[i] && !m_agentEndedTurn[i] && m_agentOwner[i] >= 0){
+	for (agent = m_ActiveAgents.begin(); agent != m_ActiveAgents.end(); ++agent){
+		// Get the Agent's owner and initiative
+		agentOwner = (*agent)->GetOwner();
+		agentInitiative = (*agent)->GetInitiative();
+
+		if (!(*agent)->StartedTurn() && !(*agent)->EndedTurn() && agentOwner >= 0){
 			// Check agentOwner to determine tiebreaking behaviour
-			if (m_agentOwner[i] < nextActingPlayer){
+			if (agentOwner < nextActingPlayer){
 				// Compare initiative, this agent wins ties
-				if (m_agentInitiative[i] >= highestInitiative){
+				if (agentInitiative >= highestInitiative){
 					// New fastest agent, the minimum initiative to act is the previous
 					// highestInitiative
 					highestOpposingInitiative = highestInitiative;
-					highestInitiative = m_agentInitiative[i];
-					nextActingPlayer = m_agentOwner[i];
-				} else if (m_agentInitiative[i] > highestOpposingInitiative){
+					highestInitiative = agentInitiative;
+					nextActingPlayer = agentOwner;
+				} else if (agentInitiative > highestOpposingInitiative){
 					// This agent is the fastest owned by a different player, the minimum
 					// initiative to act is this agent's initiative + 1
-					highestOpposingInitiative = m_agentInitiative[i] + 1;
+					highestOpposingInitiative = agentInitiative + 1;
 				}
 
-			} else if (m_agentOwner[i] == nextActingPlayer && m_agentInitiative[i] > highestInitiative){
+			} else if (agentOwner == nextActingPlayer && agentInitiative > highestInitiative){
 				// New fastest agent is owned by the same player - update highestInitiative
-				highestInitiative = m_agentInitiative[i];
+				highestInitiative = agentInitiative;
 
-			} else if (m_agentOwner[i] > nextActingPlayer){
+			} else if (agentOwner > nextActingPlayer){
 				// Compare initiative, this agent loses ties
-				if (m_agentInitiative[i] > highestInitiative){
+				if (agentInitiative > highestInitiative){
 					// New fastest agent, the minimum initiative to act is the previous
 					// highestInitiative + 1
 					highestOpposingInitiative = highestInitiative + 1;
-					highestInitiative = m_agentInitiative[i];
-					nextActingPlayer = m_agentOwner[i];
-				} else if (m_agentInitiative[i] > highestOpposingInitiative){
+					highestInitiative = agentInitiative;
+					nextActingPlayer = agentOwner;
+				} else if (agentInitiative > highestOpposingInitiative){
 					// This agent is the fastest owned by a different player, the minimum
 					// initiative to act is this agent's initiative
-					highestOpposingInitiative = m_agentInitiative[i];
+					highestOpposingInitiative = agentInitiative;
 				}
 			}
 		}
 	}
 
 	// Begin the turn of all Agents that will be able to act for the next turn of Combat
-	for (i = 0; i < m_numAgents; i++){
+	for (agent = m_ActiveAgents.begin(); agent != m_ActiveAgents.end(); ++agent){
 		// To act, the Agent must not have already acted this round, meet the minimum
 		// initiative requirement and be owned by the next acting player.
-		if (!m_agentBeganTurn[i] && m_agentInitiative[i] >= highestOpposingInitiative && m_agentOwner[i] == nextActingPlayer){
-			m_agentBeganTurn[i] = true;
+		if (!(*agent)->StartedTurn() && (*agent)->GetInitiative() >= highestOpposingInitiative && (*agent)->GetOwner() == nextActingPlayer){
+			(*agent)->BeginTurn();
 		}
 	}
 
@@ -1008,7 +1259,7 @@ void ApplicationClass::NextTurn(){
 void ApplicationClass::EndTurn(){
 	// End the turn of all Agents which have started but not yet ended their turn
 	// If all Agents have ended their turn at this point, begin a new round of turns.
-	int i;
+	std::list<ActiveAgentClass*>::iterator agent;
 	bool endOfRound;
 
 	// Assume the round is ending, if an Agent has not started their turn yet, then
@@ -1017,23 +1268,21 @@ void ApplicationClass::EndTurn(){
 
 	// End the turn of all Agents which have started but not ended their turn and determine
 	// if the round is ending or not.
-	for (i = 0; i < m_numAgents; i++){
-		if (!m_agentBeganTurn[i] && m_agentInitiative[i] >= 0){
+	for (agent = m_ActiveAgents.begin(); agent != m_ActiveAgents.end(); ++agent){
+		if (!(*agent)->StartedTurn() && (*agent)->GetInitiative() >= 0){
 			endOfRound = false;
 		}
 
-		if (m_agentBeganTurn[i] && !m_agentEndedTurn[i]){
+		if ((*agent)->StartedTurn() && !(*agent)->EndedTurn()){
 			// End this agent's turn
-			m_agentEndedTurn[i] = true;
+			(*agent)->EndTurn();
 		}
 	}
 
 	// If the round is over, begin a new round
-	// NOTE: May want to move this behaviour into its own function - be able to call it at the start of combat as well
 	if (endOfRound){
-		for (i = 0; i < m_numAgents; i++){
-			m_agentBeganTurn[i] = false;
-			m_agentEndedTurn[i] = false;
+		for (agent = m_ActiveAgents.begin(); agent != m_ActiveAgents.end(); ++agent){
+			(*agent)->EndRound();
 		}
 	}
 
@@ -1084,6 +1333,15 @@ bool ApplicationClass::InitializeCombatMap(MapType mapType, int mapWidth, int ma
 		return false;
 	}
 
+	// Initialize an array of Pathnodes for the creation of a MovementMap
+	m_MovementMap = new Pathnode[m_combatMapWidth * m_combatMapHeight];
+	if (!m_MovementMap){
+		return false;
+	}
+
+	// Clear the MovementQueue and initialize the Pathnodes for the MovementMap
+	ClearMovementMap();
+
 	// Adjust the bounds on the camera position to allow for proper scrolling
 	boundX = max(0, HEX_SIZE*(1.5f + 1.5f*(float)mapWidth) - (float)m_screenWidth);
 	boundY = min(0, -1.0f * HEX_HEIGHT*(1.5f + (float)mapHeight) + (float)m_screenHeight - float(COMBAT_MENU_HEIGHT));
@@ -1093,139 +1351,47 @@ bool ApplicationClass::InitializeCombatMap(MapType mapType, int mapWidth, int ma
 
 	// Initialize Agents
 	// NOTE: This process will be subject to considerable change, currently used for Proof of Concept
-	// NOTE2: Currently sequentially initializing Agents in an array based on the current number of Agents
-	//        May reimplement Agents using a list (or two).
-	m_Agents = new AgentClass*[MAX_AGENTS];
-
-	// Initialize an Agent
-	m_Agents[m_numAgents] = new AgentClass();
-	if (!m_Agents[m_numAgents]){
-		return false;
-	}
-
-	result = m_Agents[m_numAgents]->Initialize(AGENTTYPE_ACTIVE1, 0, 0);
+	result = CreateActiveAgent(AGENTTYPE_ACTIVE1, 0, 0, 0, 10);
 	if (!result){
 		return false;
 	}
 
-	m_numAgents++;
-
-	// Initialize a 2nd Agent
-	m_Agents[m_numAgents] = new AgentClass();
-	if (!m_Agents[m_numAgents]){
-		return false;
-	}
-
-	result = m_Agents[m_numAgents]->Initialize(AGENTTYPE_ACTIVE2, 2, 0);
+	result = CreateActiveAgent(AGENTTYPE_ACTIVE2, 0, 2, 0, 7);
 	if (!result){
 		return false;
 	}
 
-	m_numAgents++;
-
-	// Initialize a 3rd Agent
-	m_Agents[m_numAgents] = new AgentClass();
-	if (!m_Agents[m_numAgents]){
-		return false;
-	}
-
-	result = m_Agents[m_numAgents]->Initialize(AGENTTYPE_INACTIVE1, 1, 16);
+	result = CreateInactiveAgent(AGENTTYPE_INACTIVE1, 1, 16);
 	if (!result){
 		return false;
 	}
 
-	m_numAgents++;
-
-	// Initialize a 4th Agent
-	m_Agents[m_numAgents] = new AgentClass();
-	if (!m_Agents[m_numAgents]){
-		return false;
-	}
-
-	result = m_Agents[m_numAgents]->Initialize(AGENTTYPE_INACTIVE2, 3, 5);
+	result = CreateInactiveAgent(AGENTTYPE_INACTIVE2, 3, 5);
 	if (!result){
 		return false;
 	}
 
-	m_numAgents++;
-
-	// Initialize a 5th Agent
-	m_Agents[m_numAgents] = new AgentClass();
-	if (!m_Agents[m_numAgents]){
-		return false;
-	}
-
-	result = m_Agents[m_numAgents]->Initialize(AGENTTYPE_ACTIVE2, 5, 7);
+	result = CreateActiveAgent(AGENTTYPE_ACTIVE2, 0, 5, 7, 5);
 	if (!result){
 		return false;
 	}
 
-	m_numAgents++;
-
-	// Initialize a 6th Agent
-	m_Agents[m_numAgents] = new AgentClass();
-	if (!m_Agents[m_numAgents]){
-		return false;
-	}
-
-	result = m_Agents[m_numAgents]->Initialize(AGENTTYPE_ACTIVE3, 7, 3);
+	result = CreateActiveAgent(AGENTTYPE_ACTIVE3, 1, 7, 3, 7);
 	if (!result){
 		return false;
 	}
 
-	m_numAgents++;
-
-	// Initialize a 7th Agent
-	m_Agents[m_numAgents] = new AgentClass();
-	if (!m_Agents[m_numAgents]){
-		return false;
-	}
-
-	result = m_Agents[m_numAgents]->Initialize(AGENTTYPE_ACTIVE4, 7, 5);
+	result = CreateActiveAgent(AGENTTYPE_ACTIVE4, 1, 7, 5, 5);
 	if (!result){
 		return false;
 	}
 
-	m_numAgents++;
-
-	// Initialize an 8th Agent
-	m_Agents[m_numAgents] = new AgentClass();
-	if (!m_Agents[m_numAgents]){
-		return false;
-	}
-
-	result = m_Agents[m_numAgents]->Initialize(AGENTTYPE_ACTIVE4, 9, 3);
+	result = CreateActiveAgent(AGENTTYPE_ACTIVE4, 1, 9, 3, 4);
 	if (!result){
 		return false;
 	}
 
-	m_numAgents++;
-
-	// Set the values in the agentOwner array to the ID of the player which owns the corresponding agent for each index
-	// NOTE: This is purely for proof of concept - checking Agent ownership will be done more directly in a proper
-	//       implementation.
-	m_agentOwner[0] = 0;
-	m_agentOwner[1] = 0;
-	m_agentOwner[2] = -1;
-	m_agentOwner[3] = -1;
-	m_agentOwner[4] = 0;
-	m_agentOwner[5] = 1;
-	m_agentOwner[6] = 1;
-	m_agentOwner[7] = 1;
-
-	// Set the values in the agentInitiative array to the initiative of the corresponding agent for each index
-	// NOTE: This is purely for proof of concept - checking the initiative of each Active Agent will be done more
-	//       directly in a proper implementation.
-	m_agentInitiative[0] = 10;
-	m_agentInitiative[1] = 7;
-	m_agentInitiative[2] = -1;
-	m_agentInitiative[3] = -1;
-	m_agentInitiative[4] = 5;
-	m_agentInitiative[5] = 7;
-	m_agentInitiative[6] = 5;
-	m_agentInitiative[7] = 4;
-
-	// Initialize a HexMap to highlight the tile that the user has the cursor over
+	// Initialize the bitmap for Agent Sprites
 	m_AgentSprites = new SpriteClass();
 	if (!m_AgentSprites){
 		return false;
@@ -1241,8 +1407,6 @@ bool ApplicationClass::InitializeCombatMap(MapType mapType, int mapWidth, int ma
 
 // Shutdown the Combat Map specifically - this should happen when exiting from the CombatMap but not the application
 void ApplicationClass::ShutdownCombatMap(){
-	int i;
-
 	// Release the AgentSprites bitmap
 	if (m_AgentSprites){
 		m_AgentSprites->Shutdown();
@@ -1251,14 +1415,13 @@ void ApplicationClass::ShutdownCombatMap(){
 	}
 
 	// Release the Agents
-	if (m_Agents){
-		for (i = 0; i < m_numAgents; i++){
-			delete m_Agents[i];
-			m_Agents[i] = 0;
-		}
-
-		delete m_Agents;
-		m_Agents = 0;
+	ClearAgents();
+	
+	// Clear the MovementQueue
+	ClearMovementMap();
+	if (m_MovementMap){
+		delete m_MovementMap;
+		m_MovementMap = 0;
 	}
 
 	// Release the Highlight HexMap object
@@ -1280,6 +1443,59 @@ void ApplicationClass::ShutdownCombatMap(){
 		m_CombatMap->Shutdown();
 		delete m_CombatMap;
 		m_CombatMap = 0;
+	}
+}
+
+bool ApplicationClass::CreateActiveAgent(AgentType agentType, int playerID, int agentX, int agentY, int initiative){
+	// Create a new Active Agent and add it to the list of Active Agents
+	bool result;
+	ActiveAgentClass* newAgent;
+
+	newAgent = new ActiveAgentClass();
+	if (!newAgent){
+		return false;
+	}
+
+	result = newAgent->Initialize(agentType, playerID, agentX, agentY, initiative);
+	if (!result){
+		return false;
+	}
+
+	m_ActiveAgents.push_back(newAgent);
+
+	return true;
+}
+
+bool ApplicationClass::CreateInactiveAgent(AgentType agentType, int agentX, int agentY){
+	// Create a new Inactive Agent and add it to the list of Inactive Agents
+	bool result;
+	AgentClass* newAgent;
+
+	newAgent = new AgentClass();
+	if (!newAgent){
+		return false;
+	}
+
+	result = newAgent->Initialize(agentType, agentX, agentY);
+	if (!result){
+		return false;
+	}
+
+	m_InactiveAgents.push_back(newAgent);
+
+	return true;
+}
+
+void ApplicationClass::ClearAgents(){
+	// Delete all existing agents
+	while (!m_ActiveAgents.empty()){
+		delete m_ActiveAgents.front();
+		m_ActiveAgents.pop_front();
+	}
+
+	while (!m_InactiveAgents.empty()){
+		delete m_InactiveAgents.front();
+		m_InactiveAgents.pop_front();
 	}
 }
 
@@ -1321,6 +1537,9 @@ bool ApplicationClass::Update(float frameTime, bool cursorIdle){
 		}
 	}
 
+	// If currently on the CombatMap with an Agent selected, process a few
+	// additional pathnodes from the MovementQueue.
+	ProcessPathnodes(MAX_PATHNODES_PER_FRAME);
 
 	// TODO: Update the visual location of any moving Agents depending on how
 	//       much time has passed since the last frame.
@@ -1337,6 +1556,9 @@ bool ApplicationClass::RenderGraphics(){
 	int* terrain;
 	float cameraX, cameraY, cameraZ;
 	int highlightX, highlightY;
+	int tileIndex;
+	std::list<AgentClass*>::iterator inactiveAgent;
+	std::list<ActiveAgentClass*>::iterator activeAgent;
 	int agentX, agentY;
 
 	// Clear the buffers to begin the scene.
@@ -1452,44 +1674,95 @@ bool ApplicationClass::RenderGraphics(){
 			return false;
 		}
 
-		// Highlight only hexes that are actually on the map (non-negative coordinates, within bounds)
-		if (m_cursorOverTile){
-			// From the grid coordinates, calculate the absolute pixel coordinates to render the highlight to
-			highlightX = (int)(1.5f * HEX_SIZE * m_currentTileX);
-			highlightY = (int)(HEX_HEIGHT * (m_currentTileY + 0.5 * abs(m_currentTileX % 2)));
-
-			// Turn on alpha blending to highlight
-			m_D3D->TurnOnAlphaBlending();
-
-			// Render the highlight overtop of whatever hex the cursor is over
-			result = m_HexHighlight->Render(m_D3D->GetDeviceContext(), highlightX, highlightY, terrain);
-			if (!result){
-				return false;
-			}
-
-			result = m_TextureShader->Render(m_D3D->GetDeviceContext(), m_HexHighlight->GetIndexCount(), worldMatrix, viewMatrix, orthoMatrix, m_HexHighlight->GetTexture(), PSTYPE_LOWALPHA);
-			if (!result){
-				return false;
-			}
-
-			// Turn off alpha blending
-			m_D3D->TurnOffAlphaBlending();
-		}
-
-		// Render Agents
-		// Turn on alpha blending while rendering sprites
+		// Turn on alpha blending while rendering tile highlights and Agent sprites
 		m_D3D->TurnOnAlphaBlending();
 
-		for (i = 0; i < m_numAgents; i++){
+		// If the cursor is currently over a tile on the map render highlights over map tiles
+		if (m_cursorOverTile){
+			// Render highlights over tiles depending on the CommandState
+			switch (m_CommandState){
+			case COMMANDSTATE_MOVE:
+				// When moving, highlight the path that the selected Agent will take from their current
+				// location to the tile under the cursor and display the cost of the move.
+				tileIndex = m_currentTileIndex;
+
+				// TODO: Display the cost of moving the Agent to the highlighted tile
+				// TODO2: If the Agent can not move to the highlighted tile, highlight the tile
+				//        with a different colour and do not display a cost.
+				
+				while (m_MovementMap[tileIndex].prev){
+					// From the grid coordinates, calculate the absolute pixel coordinates to render the highlight to
+					highlightX = (int)(1.5f * HEX_SIZE * m_MovementMap[tileIndex].tileX);
+					highlightY = (int)(HEX_HEIGHT * (m_MovementMap[tileIndex].tileY + 0.5 * abs(m_MovementMap[tileIndex].tileX % 2)));
+
+					// Render the highlight overtop of whatever hex the cursor is over
+					result = m_HexHighlight->Render(m_D3D->GetDeviceContext(), highlightX, highlightY, terrain);
+					if (!result){
+						return false;
+					}
+
+					result = m_TextureShader->Render(m_D3D->GetDeviceContext(), m_HexHighlight->GetIndexCount(), worldMatrix, viewMatrix, orthoMatrix, m_HexHighlight->GetTexture(), PSTYPE_LOWALPHA);
+					if (!result){
+						return false;
+					}
+
+					tileIndex = m_MovementMap[tileIndex].prev->tileX * m_combatMapHeight + m_MovementMap[tileIndex].prev->tileY;
+				}
+
+				break;
+
+			default:
+				// By default just highlight the tile under the cursor
+				// From the grid coordinates, calculate the absolute pixel coordinates to render the highlight to
+				highlightX = (int)(1.5f * HEX_SIZE * m_currentTileX);
+				highlightY = (int)(HEX_HEIGHT * (m_currentTileY + 0.5 * abs(m_currentTileX % 2)));
+
+				// Render the highlight overtop of whatever hex the cursor is over
+				result = m_HexHighlight->Render(m_D3D->GetDeviceContext(), highlightX, highlightY, terrain);
+				if (!result){
+					return false;
+				}
+
+				result = m_TextureShader->Render(m_D3D->GetDeviceContext(), m_HexHighlight->GetIndexCount(), worldMatrix, viewMatrix, orthoMatrix, m_HexHighlight->GetTexture(), PSTYPE_LOWALPHA);
+				if (!result){
+					return false;
+				}
+
+				break;
+			}
+		}
+
+		// Render Agent Sprites
+		for (inactiveAgent = m_InactiveAgents.begin(); inactiveAgent != m_InactiveAgents.end(); ++inactiveAgent){
 			// Get the position of the agent
-			m_Agents[i]->getPosition(agentX, agentY);
+			(*inactiveAgent)->GetPosition(agentX, agentY);
+
+			// Calculate the pixel coordinates to render the agent to
+			agentY = (int)(MAP_VERTICALOFFSET + HEX_HEIGHT*((float)agentY + 0.5f * fmod((float)agentX, 2.0f)));
+			agentX = (int)(MAP_HORIZONTALOFFSET + (HEX_SIZE / 2.0f) + (1.5f * HEX_SIZE * agentX));
+
+			// Render the agent using its SpriteID
+			result = m_AgentSprites->Render(m_D3D->GetDeviceContext(), agentX, agentY, (*inactiveAgent)->GetSpriteID());
+			if (!result){
+				return false;
+			}
+
+			result = m_TextureShader->Render(m_D3D->GetDeviceContext(), m_AgentSprites->GetIndexCount(), worldMatrix, viewMatrix, orthoMatrix, m_AgentSprites->GetTexture(), PSTYPE_SPRITE);
+			if (!result){
+				return false;
+			}
+		}
+
+		for (activeAgent = m_ActiveAgents.begin(); activeAgent != m_ActiveAgents.end(); ++activeAgent){
+			// Get the position of the agent
+			(*activeAgent)->GetPosition(agentX, agentY);
 			
 			// Calculate the pixel coordinates to render the agent to
 			agentY = (int)(MAP_VERTICALOFFSET + HEX_HEIGHT*((float)agentY + 0.5f * fmod((float)agentX, 2.0f)));
 			agentX = (int)(MAP_HORIZONTALOFFSET + (HEX_SIZE / 2.0f) + (1.5f * HEX_SIZE * agentX));
 
 			// Render the agent using its SpriteID
-			result = m_AgentSprites->Render(m_D3D->GetDeviceContext(), agentX, agentY, m_Agents[i]->getSpriteID());
+			result = m_AgentSprites->Render(m_D3D->GetDeviceContext(), agentX, agentY, (*activeAgent)->GetSpriteID());
 			if (!result){
 				return false;
 			}
@@ -1615,237 +1888,3 @@ bool ApplicationClass::RenderGraphics(){
 
 	return true;
 }
-bool ApplicationClass::Search(){
-	std::list <Pathnode*> queue;
-
-	int x = 0;
-	int y = 0;
-	m_Agents[m_selectedAgent]->getPosition(x, y);
-	bool success = false;
-
-	//Create first node of agents current location
-	Pathnode* temp = new Pathnode;
-	temp->tileX = x;
-	temp->tileY = y;
-	temp->cost = 0;
-	temp->in = false;
-	temp->prev = NULL;
-
-	queue.push_back(temp);
-
-	//search loop
-	while (!queue.empty()){
-		int index = queue.front()->tileX*m_combatMapHeight + queue.front()->tileY;
-		//if tile in even column
-		if (queue.front()->tileX % 2 == 0){
-			//add the neighbor six hexs to the queue
-			//Note need to add if statements to determine if hex is a valid neighbor
-			
-			//Check if there is a hex above 
-			if (queue.front()->tileY > 0 && m_Path[index-1] == NULL){
-				Pathnode* temp = new Pathnode;
-				temp->cost = FindCost(queue.front()->tileX, queue.front()->tileY) + queue.front()->cost;
-				temp->tileX = queue.front()->tileX;
-				temp->tileY = queue.front()->tileY - 1;
-				temp->prev = queue.front();
-				temp->in = false;
-				queue.push_back(temp);
-				m_Path[index - 1] = temp;
-			}
-
-			//Check if currently on last column
-			if (queue.front()->tileX < m_combatMapWidth-1){
-				//Check if there is a above to the right
-				if (queue.front()->tileY > 0 && m_Path[index + m_combatMapHeight - 1] == NULL){
-					temp = new Pathnode;
-					temp->tileX = queue.front()->tileX + 1;
-					temp->tileY = queue.front()->tileY - 1;
-					temp->cost = FindCost(temp->tileX, temp->tileY) + queue.front()->cost;
-					temp->prev = queue.front();
-					temp->in = false;
-					queue.push_back(temp);
-					m_Path[index + m_combatMapHeight - 1] = temp;
-				}
-
-				//there is always a neighbor to the right
-				if (m_Path[index + m_combatMapHeight] == NULL){
-					temp = new Pathnode;
-					temp->tileX = queue.front()->tileX + 1;
-					temp->tileY = queue.front()->tileY;
-					temp->cost = FindCost(temp->tileX, temp->tileY) + queue.front()->cost;
-					temp->prev = queue.front();
-					temp->in = false;
-					queue.push_back(temp);
-					m_Path[index + m_combatMapHeight] = temp;
-				}
-			}
-
-			//Check if there is a hex below
-			if (queue.front()->tileY > m_combatMapHeight-1 && m_Path[index + 1] == NULL){
-				temp = new Pathnode;
-				temp->tileX = queue.front()->tileX;
-				temp->tileY = queue.front()->tileY + 1;
-				temp->cost = FindCost(temp->tileX, temp->tileY) + queue.front()->cost;
-				temp->prev = queue.front();
-				temp->in = false;
-				queue.push_back(temp);
-				m_Path[index + 1] = temp;
-			}
-
-			//Check if on the first colomn
-			if (queue.front()->tileX > 0){
-				//there is always a hex to the left
-				if (m_Path[index - m_combatMapHeight] == NULL){
-					temp = new Pathnode;
-					temp->tileX = queue.front()->tileX - 1;
-					temp->tileY = queue.front()->tileY;
-					temp->cost = FindCost(temp->tileX, temp->tileY) + queue.front()->cost;
-					temp->prev = queue.front();
-					temp->in = false;
-					queue.push_back(temp);
-					m_Path[index - m_combatMapHeight] = temp;
-				}
-				//Check if neighbor above to the left
-				if (queue.front()->tileY > 0 && m_Path[index - m_combatMapHeight - 1] == NULL){
-					temp = new Pathnode;
-					temp->tileX = queue.front()->tileX - 1;
-					temp->tileY = queue.front()->tileY - 1;
-					temp->prev = queue.front();
-					temp->in = false;
-					queue.push_back(temp);
-					temp->cost = FindCost(temp->tileX, temp->tileY) + queue.front()->cost;
-					m_Path[index - m_combatMapHeight - 1] = temp;
-				}
-			}
-		}
-		//tile is in odd column
-		else {
-			//add the neighbor six hexs to the queue
-			//Note need to add if statements to determine if hex is a valid neighbor
-			//Check if there is a hex above 
-			if (queue.front()->tileY > 0 && m_Path[index - 1] == NULL){
-				temp = new Pathnode;
-				temp->tileX = queue.front()->tileX;
-				temp->tileY = queue.front()->tileY - 1;
-				temp->cost = FindCost(temp->tileX, temp->tileY) + queue.front()->cost;
-				temp->prev = queue.front();
-				temp->in = false;
-				queue.push_back(temp);
-				m_Path[index - 1] = temp;
-			}
-			//Check if currently on last column
-			if (queue.front()->tileX < m_combatMapWidth - 1){
-				//there is always a neighbor to the right
-				if (m_Path[index + m_combatMapHeight] == NULL){
-					temp = new Pathnode;
-					temp->tileX = queue.front()->tileX + 1;
-					temp->tileY = queue.front()->tileY;
-					temp->cost = FindCost(temp->tileX, temp->tileY) + queue.front()->cost;
-					temp->prev = queue.front();
-					temp->in = false;
-					queue.push_back(temp);
-					m_Path[index + m_combatMapHeight] = temp;
-				}
-
-				//check if there is a neighbor to bottom right
-				if (queue.front()->tileY < m_combatMapHeight-1 && m_Path[index + m_combatMapHeight + 1] == NULL){
-					temp = new Pathnode;
-					temp->tileX = queue.front()->tileX + 1;
-					temp->tileY = queue.front()->tileY + 1;
-					temp->cost = FindCost(temp->tileX, temp->tileY) + queue.front()->cost;
-					temp->prev = queue.front();
-					temp->in = false;
-					queue.push_back(temp);
-					m_Path[index + m_combatMapHeight + 1] =  temp;
-				}
-			}
-
-			//Check if there is a hex below
-			if (queue.front()->tileY < m_combatMapHeight - 1 && m_Path[index + 1] == NULL){
-				temp = new Pathnode;
-				temp->tileX = queue.front()->tileX;
-				temp->tileY = queue.front()->tileY + 1;
-				temp->cost = FindCost(temp->tileX, temp->tileY) + queue.front()->cost;
-				temp->prev = queue.front();
-				temp->in = false;
-				queue.push_back(temp);
-				m_Path[index + 1] = temp;
-			}
-			
-			//check for a bottom left neighbor
-			if (queue.front()->tileY < m_combatMapHeight - 1 && m_Path[index + 1 - m_combatMapHeight] == NULL){
-				temp = new Pathnode;
-				temp->tileX = queue.front()->tileX - 1;
-				temp->tileY = queue.front()->tileY + 1;
-				temp->cost = FindCost(temp->tileX, temp->tileY) + queue.front()->cost;
-				temp->prev = queue.front();
-				temp->in = false;
-				queue.push_back(temp);
-				m_Path[index + 1 - m_combatMapHeight] = temp;
-			}
-
-			//there is always a neight to the left
-			if(m_Path[index - m_combatMapHeight] == NULL){
-				temp = new Pathnode;
-				temp->tileX = queue.front()->tileX - 1;
-				temp->tileY = queue.front()->tileY;
-				temp->prev = queue.front();
-				temp->cost = FindCost(temp->tileX, temp->tileY) + queue.front()->cost;
-				temp->in = false;
-				queue.push_back(temp);
-				m_Path[index - m_combatMapHeight] = temp;
-			}
-		}
-		//sort the queue
-		queue.pop_front();
-		queue.sort(compare2);
-	}
-
-	return success;
-
-}
-
-int ApplicationClass::FindCost(int x, int y){
-	return 1;
-}
-/*if (tileY > 0) : the hex at (tileX, tileY - 1) is a valid neighbour
-
-if (tileX < mapWidth - 1):
-  // Odd tileX == Odd column
-  if (tileX % 2 == 1) :
-    // Checks for both neighbours to the right
-
-if (tileX % 2 == 1):
-  if (tileY > 0): the hex at (tileX + 1, tileY - 1) is a valid neighbour
-
-  the hex at (tileX + 1, tileY) is a valid neighbour (no check for this)
-
-elseif (tileX % 2 == 0) :
-  the hex at (tileX + 1, tileY) is a valid neighbour
-
-  if (tileY < mapHeight -1) : the hex at (tileX + 1, tileY + 1) is a valid neighbour
-
-end if (tileX < mapWidth - 1)
-
-if (tileY < mapHeight - 1) : the hex at (tileX, tileY + 1) is a valid neighbour
-
-if (tileX > 0) : 
-  // Odd tileX == Odd column
-  if (tileX % 2 == 1) :
-    // Checks for both neighbours to the left
-
-if (tileX % 2 == 1):
-  the hex at (tileX - 1, tileY) is a valid neighbour
-
-  if (tileY > 0) : the hex at (tileX - 1, tileY - 1) is a valid neighbour
-
-elseif (tileX % 2 == 0) :
-  if (tileY < mapHeight - 1) : the hex at (tileX - 1, tileY + 1) is a valid neighbour
-
-  the hex at (tileX - 1, tileY) is a valid neighbour
-
-end if (tileX > 0)
-
-and then you've checked all 6 neighbours
-
-You could also do it the way you have it coded now - you just need to add bounds checks, ie. If the neighbour you're checking has a different X or Y coordinate, check to make sure that that coordinate is within the map's bounds*/

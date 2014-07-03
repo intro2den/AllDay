@@ -1,190 +1,69 @@
 #include "activeagentclass.h"
 
-bool compare2(Pathnode* x, Pathnode* y){
-	return x->cost < y->cost;
+ActiveAgentClass::ActiveAgentClass(){
 }
 
-ActiveAgentClass::ActiveAgentClass(){
+ActiveAgentClass::ActiveAgentClass(const ActiveAgentClass& other){
 }
 
 ActiveAgentClass::~ActiveAgentClass(){
 }
 
-void ActiveAgentClass::Move(int mapWidth, int mapHeight, int *costArray, int targetX, int targetY){
-	bool validMove;
+bool ActiveAgentClass::Initialize(AgentType agentType, int playerID, int agentX, int agentY, int initiative){
+	// Initialize the Active Agent
+	bool result;
 
-	Pathnode path;
-
-	validMove = Search(mapWidth, mapHeight, costArray, targetX, targetY, &path);
-	if (validMove){
-		setPosition(targetX, targetY);
+	// Basic Agent Initialization
+	result = AgentClass::Initialize(agentType, agentX, agentY);
+	if (!result){
+		return false;
 	}
+
+	m_Owner = playerID;
+	m_Initiative = initiative;
+	m_beganTurn = false;
+	m_endedTurn = false;
+
+	return true;
 }
 
+void ActiveAgentClass::BeginTurn(){
+	// Begin the Agent's turn
+	m_beganTurn = true;
+}
 
-bool ActiveAgentClass::Search(int mapWidth, int mapHeight, int *costArray, int targetX, int targetY, Pathnode *path){
-	std::list <Pathnode*> queue;
-	std::list <Pathnode*> deleteList;
+void ActiveAgentClass::EndTurn(){
+	// End the Agent's turn
+	m_endedTurn = true;
+}
 
-	int x = 0;
-	int y = 0;
-    getPosition(x, y);
-    bool success = false;
+void ActiveAgentClass::EndRound(){
+	// The round of combat has ended, reset beganTurn and endedTurn flags
+	m_beganTurn = false;
+	m_endedTurn = false;
+}
 
-	//Create first node of agents current location
-	Pathnode* temp = new Pathnode;
-	temp->tileX = x;
-	temp->tileY = y;
-	temp->cost = 0;
-	temp->in = false;
-	temp->prev = NULL;
+void ActiveAgentClass::Move(int targetX, int targetY, int cost){
+	// Move the Agent to the provided coordinates
+	// NOTE: To properly render the Agent travelling between tiles, the series
+	//       of tiles along the Agent's path will need to be provided aswell.
+	setPosition(targetX, targetY);
+}
 
-	queue.push_back(temp);
+int ActiveAgentClass::GetOwner(){
+	// Return the playerID of the player that controls this Agent
+	return m_Owner;
+}
 
-    //search loop
-	while (!queue.empty()){
-		//found target hex
-		if (queue.front()->tileX == targetX && queue.front()->tileY == targetY){
-			path = queue.front();
-			temp = path;
-			//go through path to marking every node in it
-			while (temp != NULL){
-				temp->in = true;
-				temp = temp->prev;
-			}
-			success = true;
-			break;
-		}
+int ActiveAgentClass::GetInitiative(){
+	// Return the Agent's initiative
+	return m_Initiative;
+}
 
-		int index = queue.front()->tileX*mapHeight + queue.front()->tileY;
-		//if tile in even column
-		if (queue.front()->tileX % 2 == 0){
-            //add the neighbor six hexs to the queue
-            //Note need to add if statements to determine if hex is a valid neighbor
-			Pathnode* temp = new Pathnode;
+bool ActiveAgentClass::StartedTurn(){
+	return m_beganTurn;
+}
 
-			temp->cost = costArray[index - 1]+queue.front()->cost;
-			temp->tileX = queue.front()->tileX;
-			temp->tileY = queue.front()->tileY - 1;
-			temp->prev = queue.front();
-			temp->in = false;
-			queue.push_back(temp);
-			deleteList.push_back(temp);
-			temp = new Pathnode;
-
-			temp->cost = costArray[index + mapHeight - 1]+queue.front()->cost;
-			temp->tileX = queue.front()->tileX + 1;
-			temp->tileY = queue.front()->tileY - 1;
-			temp->prev = queue.front();
-			temp->in = false;
-			queue.push_back(temp);
-			deleteList.push_back(temp);
-			temp = new Pathnode;
-
-			temp->cost = costArray[index + mapHeight]+queue.front()->cost;
-			temp->tileX = queue.front()->tileX + 1;
-			temp->tileY = queue.front()->tileY;
-			temp->prev = queue.front();
-			temp->in = false;
-			queue.push_back(temp);
-			deleteList.push_back(temp);
-			temp = new Pathnode;
-
-			temp->cost = costArray[index + 1]+queue.front()->cost;
-			temp->tileX = queue.front()->tileX;
-			temp->tileY = queue.front()->tileY + 1;
-			temp->prev = queue.front();
-			temp->in = false;
-			queue.push_back(temp);
-			deleteList.push_back(temp);
-			temp = new Pathnode;
-
-			temp->cost = costArray[index - mapHeight]+queue.front()->cost;
-			temp->tileX = queue.front()->tileX - 1;
-			temp->tileY = queue.front()->tileY;
-			temp->prev = queue.front();
-			temp->in = false;
-			queue.push_back(temp);
-			deleteList.push_back(temp);
-			temp = new Pathnode;
-
-			temp->cost = costArray[index - mapHeight - 1]+queue.front()->cost;
-			temp->tileX = queue.front()->tileX - 1;
-			temp->tileY = queue.front()->tileY - 1;
-			temp->prev = queue.front();
-			temp->in = false;
-			queue.push_back(temp);
-			deleteList.push_back(temp);
-			temp = new Pathnode;
-		}
-		//tile is in odd column
-		else {
-            //add the neighbor six hexs to the queue
-            //Note need to add if statements to determine if hex is a valid neighbor
-			temp->cost = costArray[index - 1]+queue.front()->cost;
-			temp->tileX = queue.front()->tileX;
-			temp->tileY = queue.front()->tileY - 1;
-			temp->prev = queue.front();
-			temp->in = false;
-			queue.push_back(temp);
-			deleteList.push_back(temp);
-			temp = new Pathnode;
-
-			temp->cost = costArray[index + mapHeight]+queue.front()->cost;
-			temp->tileX = queue.front()->tileX + 1;
-			temp->tileY = queue.front()->tileY;
-			temp->prev = queue.front();
-			temp->in = false;
-			queue.push_back(temp);
-			deleteList.push_back(temp);
-			temp = new Pathnode;
-
-			temp->cost = costArray[index + mapHeight + 1]+queue.front()->cost;
-			temp->tileX = queue.front()->tileX + 1;
-			temp->tileY = queue.front()->tileY + 1;
-			temp->prev = queue.front();
-			temp->in = false;
-			queue.push_back(temp);
-			deleteList.push_back(temp);
-			temp = new Pathnode;
-
-			temp->cost = costArray[index + 1]+queue.front()->cost;
-			temp->tileX = queue.front()->tileX;
-			temp->tileY = queue.front()->tileY + 1;
-			temp->prev = queue.front();
-			temp->in = false;
-			queue.push_back(temp);
-			deleteList.push_back(temp);
-			temp = new Pathnode;
-
-			temp->cost = costArray[index - mapHeight + 1]+queue.front()->cost;
-			temp->tileX = queue.front()->tileX - 1;
-			temp->tileY = queue.front()->tileY + 1;
-			temp->prev = queue.front();
-			temp->in = false;
-			queue.push_back(temp);
-			deleteList.push_back(temp);
-			temp = new Pathnode;
-
-			temp->cost = costArray[index - mapHeight]+queue.front()->cost;
-			temp->tileX = queue.front()->tileX - 1;
-			temp->tileY = queue.front()->tileY;
-			temp->prev = queue.front();
-			temp->in = false;
-			queue.push_back(temp);
-			deleteList.push_back(temp);
-		}
-		queue.pop_front();
-		queue.sort(compare2);
-	}
-    //clear all nodes not in path
-	std::list<Pathnode*>::iterator it;
-	for (it = deleteList.begin(); it != deleteList.end(); ++it){
-		if ((*it)->in == false){
-			free(*it);
-		}
-	}
-
-    return success;
-
+bool ActiveAgentClass::EndedTurn(){
+	return m_endedTurn;
 }
