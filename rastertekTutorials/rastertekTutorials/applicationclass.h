@@ -10,7 +10,6 @@ const bool FULL_SCREEN = false;
 const bool VSYNC_ENABLED = true;
 const float SCREEN_DEPTH = 1000.0f;
 const float SCREEN_NEAR = 0.1f;
-const int MAX_AGENTS = 512;
 
 //////////////////
 // UI CONSTANTS //
@@ -37,6 +36,9 @@ const int COMBAT_MENU_BUTTON_COUNT = 2; // Should try to keep this as a multiple
 const int COMBAT_MENU_BUTTON_HORIZONTAL_OFFSET = -20 - COMBAT_MENU_BUTTON_WIDTH * (COMBAT_MENU_BUTTON_COUNT / 2); // End the options at the right side of the menu bar
 const int COMBAT_MENU_BUTTON_VERTICAL_OFFSET = (COMBAT_MENU_HEIGHT / 2) - COMBAT_MENU_BUTTON_HEIGHT;
 
+// Maximum number of tiles processed per frame when building MovementMap
+const int MAX_PATHNODES_PER_FRAME = 1;
+
 ////////////////////
 // CLASS INCLUDES //
 ////////////////////
@@ -53,6 +55,19 @@ const int COMBAT_MENU_BUTTON_VERTICAL_OFFSET = (COMBAT_MENU_HEIGHT / 2) - COMBAT
 #include "positionclass.h"
 #include "activeagentclass.h"
 #include "spriteclass.h"
+#include <list>
+
+/////////////
+// STRUCTs //
+/////////////
+struct Pathnode{
+	int tileX;
+	int tileY;
+	int cost;
+	bool visited;
+	bool optimal;
+	Pathnode *prev;
+};
 
 ////////////////////////////////////////////////////////////////////////////////
 // Class name: ApplicationClass
@@ -71,6 +86,11 @@ private:
 		MENUSTATE_MAINMENU,
 		MENUSTATE_OPTIONMENU,
 		MENUSTATE_NOMENU
+	};
+
+	enum CommandState{
+		COMMANDSTATE_DEFAULT,
+		COMMANDSTATE_MOVE
 	};
 
 
@@ -119,19 +139,31 @@ private:
 
 	// Handle Input
 	bool HandleInput(float);
-	bool SetSelectedAgent(int);
+	bool SetSelectedAgent(ActiveAgentClass*);
+
+	// Pathfinding
+	void BuildMovementMap();
+	void ClearMovementMap();
+	void ProcessPathnodes(int);
+	void VisitPathnode(int, int);
+	int FindCost(int, int);
+	int FindDistance(int, int, int, int);
+
 	void NextTurn();
 	void EndTurn();
 	bool InitializeCombatMap(MapType, int, int);
 	void ShutdownCombatMap();
+
+	// Agents
+	bool CreateActiveAgent(AgentType, int, int, int, int);
+	bool CreateInactiveAgent(AgentType, int, int);
+	void ClearAgents();
 
 	// Update
 	bool Update(float, bool);
 
 	// Render
 	bool RenderGraphics();
-	bool Search();
-	int FindCost(int, int);
 
 private:
 	InputClass* m_Input;
@@ -149,34 +181,38 @@ private:
 	FontShaderClass* m_FontShader;
 	TimerClass* m_Timer;
 	PositionClass* m_Position;
-	AgentClass** m_Agents;
 	SpriteClass* m_AgentSprites;
-	Pathnode** m_Path;
 
+	// State Variables
 	MainState m_MainState;
 	MenuState m_MenuState;
+	CommandState m_CommandState;
+
+	// UI Related Variables
 	int m_screenWidth, m_screenHeight;
 	int m_combatMapWidth, m_combatMapHeight;
+
+	// Cursor Related Variables
 	int m_mouseX, m_mouseY;
 	bool m_stateChanged;
 	int m_currentUIMenu, m_currentUIElement;
 	int m_currentTileX, m_currentTileY;
+	int m_currentTileIndex;
 	bool m_cursorOverTile;
-	int m_selectedAgent;
-	int m_numAgents;
 
+	// Tooltip Variables
 	bool m_displayTooltip;
 	float m_tooltipDelay;
 	float m_cursorIdleTime;
 	int m_tooltipX, m_tooltipY;
 	int m_tooltipWidth, m_tooltipHeight;
 
-	// These arrays may become obsolete at some point, currently used for
-	// the Turn system in the CombatMap
-	int m_agentOwner[MAX_AGENTS];
-	int m_agentInitiative[MAX_AGENTS];
-	bool m_agentBeganTurn[MAX_AGENTS];
-	bool m_agentEndedTurn[MAX_AGENTS];
+	// CombatMap Variables, Arrays and Queues
+	Pathnode* m_MovementMap;
+	std::list <Pathnode*> m_MovementQueue;
+	std::list <ActiveAgentClass*> m_ActiveAgents;
+	std::list <AgentClass*> m_InactiveAgents;
+	ActiveAgentClass* m_selectedAgent;
 
 	D3DXMATRIX m_UIViewMatrix;
 };

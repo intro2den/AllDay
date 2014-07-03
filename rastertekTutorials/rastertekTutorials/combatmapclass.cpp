@@ -97,6 +97,10 @@ void CombatMap::Shutdown(){
 	return;
 }
 
+Terrain CombatMap::GetTileTerrain(int index){
+	return GetTile(index);
+}
+
 bool CombatMap::GetTerrainArray(int *terrain){
 	// Set the values in the array terrain to the TerrainType of corresponding tiles
 	int i;
