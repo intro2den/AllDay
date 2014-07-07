@@ -49,7 +49,8 @@ bool ApplicationClass::Initialize(HINSTANCE hinstance, HWND hwnd, int screenWidt
 	// Set initial MainState, MenuState and CommandState
 	m_MainState = MAINSTATE_MAINMENU;
 	m_MenuState = MENUSTATE_MAINMENU;
-	m_CommandState = COMMANDSTATE_DEFAULT;
+	m_CommandSelected = false;
+	m_SelectedCommand = COMMAND_DEFAULT;
 
 	// Initialize the mouse (cursor) position (this will be overwritten in the first frame)
 	m_mouseX = 0;
@@ -58,9 +59,9 @@ bool ApplicationClass::Initialize(HINSTANCE hinstance, HWND hwnd, int screenWidt
 	// Initialize the flag indicating a state change
 	m_stateChanged = true;
 
-	// Initialize the currently highlighted UI menu and element to -1, no UI elements are highlighted on initialization
-	m_currentUIMenu = -1;
-	m_currentUIElement = -1;
+	// Initialize the currently highlighted UI menu and element to none, no UI elements are highlighted on initialization
+	m_currentUIMenu = UIMENU_NOMENU;
+	m_currentUIElement = MAINMENUBUTTON_NOBUTTON;
 
 	// Initialize the coordinates and index for the currently highlighted tile (for the CombatMap - initially invalid coordinates)
 	m_currentTileX = -1;
@@ -69,7 +70,7 @@ bool ApplicationClass::Initialize(HINSTANCE hinstance, HWND hwnd, int screenWidt
 	m_cursorOverTile = false;
 
 	// Initialize the index of the currently selected Agent to null, no agent is initially selected
-	m_selectedAgent = 0;
+	m_SelectedAgent = 0;
 
 	// Initialize tooltip specific variables
 	m_displayTooltip = false;
@@ -466,9 +467,9 @@ void ApplicationClass::FindCurrentUIElement(){
 		return;
 	}
 
-	// Reset the current menu and UI element to -1, the previous element should not be remembered.
-	m_currentUIMenu = -1;
-	m_currentUIElement = -1;
+	// Reset the current menu and UI element to none, the previous element should not be remembered.
+	m_currentUIMenu = UIMENU_NOMENU;
+	m_currentUIElement = MAINMENUBUTTON_NOBUTTON;
 
 	// The current MainState determines the placement of open menus and other UI Elements
 	switch (m_MainState){
@@ -564,9 +565,6 @@ bool ApplicationClass::HandleInput(float frameTime){
 	bool cursorInBounds, scrolling;
 	float posX, posY, posZ;
 	float cursorX, cursorY, normalizedCursorX, normalizedCursorY;
-	std::list<ActiveAgentClass*>::iterator agent;
-	bool agentFound;
-	int agentX, agentY;
 
 	// Set the frame time for calculating the updated position.
 	m_Position->SetFrameTime(frameTime);
@@ -715,7 +713,7 @@ bool ApplicationClass::HandleInput(float frameTime){
 		m_currentTileIndex = -1;
 		m_cursorOverTile = false;
 
-		if (cursorInBounds && m_mouseY < m_screenHeight - COMBAT_MENU_HEIGHT){
+		if (cursorInBounds && m_currentUIMenu == UIMENU_NOMENU){
 			// Calculate the actual cursor position relative to the map
 			cursorX = (float)m_mouseX + posX - MAP_HORIZONTALOFFSET;
 			cursorY = (float)m_mouseY - posY - MAP_VERTICALOFFSET;
@@ -764,9 +762,6 @@ bool ApplicationClass::HandleInput(float frameTime){
 		// Handle user input (aside from Camera movement) relevant to the CombatMap
 		if (m_Input->WasLeftMouseClicked() == true){
 			// Left Click - Check for clicking on Menu Buttons, map tiles
-			
-			// NOTE: Additional state checks may need to be done here to check menus that may be open
-			//       Currently only check the CombatMap menu bar
 
 			// If the cursor is over a menu and a button was clicked respond accordingly
 			switch (m_currentUIMenu){
@@ -778,6 +773,18 @@ bool ApplicationClass::HandleInput(float frameTime){
 
 			case UIMENU_COMBATMENUBAR:
 				switch (m_currentUIElement){
+				case COMBATMENUBUTTON_MOVE:
+					// Select the Move Command
+					m_CommandSelected = true;
+					m_SelectedCommand = COMMAND_MOVE;
+					break;
+
+				case COMBATMENUBUTTON_ATTACK:
+					// Select the (Basic) Attack Command
+					m_CommandSelected = true;
+					m_SelectedCommand = COMMAND_ATTACK;
+					break;
+
 				case COMBATMENUBUTTON_ENDTURN:
 					// End Turn
 					EndTurn();
@@ -788,7 +795,8 @@ bool ApplicationClass::HandleInput(float frameTime){
 					// NOTE: This will be replaced by a popup menu with in-game options (including returning to the Main Menu)
 					m_MainState = MAINSTATE_MAINMENU;
 					m_MenuState = MENUSTATE_MAINMENU;
-					m_CommandState = COMMANDSTATE_DEFAULT;
+					m_CommandSelected = false;
+					m_SelectedCommand = COMMAND_DEFAULT;
 					m_stateChanged = true;
 
 					// Clear all error messages on state change
@@ -821,7 +829,7 @@ bool ApplicationClass::HandleInput(float frameTime){
 					break;
 
 				default: 
-					// Do nothing if no button was pressed (this will only happen with an odd number of buttons)
+					// Do nothing if no button was pressed (this should only happen with an odd number of buttons)
 					break;
 				}
 
@@ -829,39 +837,61 @@ bool ApplicationClass::HandleInput(float frameTime){
 			}
 
 			// If the left mouse button was clicked over a tile, different behaviour can occur.
-			// NOTE: There will be probably be some state handling here if the player has an action selected
-			//       or if they are simply selecting an Agent. Currently we just select the Agent that is in
-			//       the highlighted Hex if one exists at those coordinates
 			if (m_cursorOverTile){
-				// NOTE: This is primarily proof of concept, additional work will need to be done if multiple
-				//       agents are present in the hex, and for any other necessary checks related to Agent
-				//       selection.
-				agentFound = false;
-
-				// Check if an agent is in the hex that was just selected
-				for (agent = m_ActiveAgents.begin(); agent != m_ActiveAgents.end(); ++agent){
-					(*agent)->GetPosition(agentX, agentY);
-					if (agentX == m_currentTileX && agentY == m_currentTileY){
-						// An agent is in the selected hex
-						agentFound = true;
-
-						// Update the ID of the selected Agent
-						result = SetSelectedAgent(*agent);
-						if (!result){
-							return false;
-						}
-
-						// For now we only care about the first Agent found, break
-						break;
-					}
-				}
-
-				// If no agent was found in the tile, unselect any selected Agent
-				if (!agentFound){
-					result = SetSelectedAgent(NULL);
+				switch (m_SelectedCommand){
+				case COMMAND_DEFAULT:
+					// Select an Agent in the highlighted tile
+					result = SelectAgent();
 					if (!result){
 						return false;
 					}
+
+					break;
+
+				case COMMAND_MOVE:
+					// Command the selected Agent to move to the highlighted tile
+
+					// Ensure that an Agent is selected
+					if (m_SelectedAgent){
+						result = OrderMove();
+						if (!result){
+							return false;
+						}
+					} else{
+						result = m_Text->NewErrorMessage("No Agent Selected", m_D3D->GetDeviceContext());
+						if (!result){
+							return false;
+						}
+					}
+
+					// Return to default behaviour, deselect the current command
+					m_CommandSelected = false;
+					m_SelectedCommand = COMMAND_DEFAULT;
+
+					break;
+
+				case COMMAND_ATTACK:
+					// Command the selected Agent to use their Basic Attack against
+					// the highlighted tile
+					
+					// Ensure that an Agent is selected
+					if (m_SelectedAgent){
+						result = OrderAttack();
+						if (!result){
+							return false;
+						}
+					} else{
+						result = m_Text->NewErrorMessage("No Agent Selected", m_D3D->GetDeviceContext());
+						if (!result){
+							return false;
+						}
+					}
+
+					// Return to default behaviour, deselect the current command
+					m_CommandSelected = false;
+					m_SelectedCommand = COMMAND_DEFAULT;
+
+					break;
 				}
 
 				break;
@@ -869,23 +899,22 @@ bool ApplicationClass::HandleInput(float frameTime){
 		}
 
 		if (m_Input->WasRightMouseClicked() == true){
-			// Move the first agent to whatever hex is currently highlighted
-			// NOTE: Should check to ensure the cursor is not overtop of a menu/submenu when considering interaction with the map
-			//       Do not interact with a hex if the mouse is clicked and there is the background of a menu between the cursor and
-			//       the hex.
-			if (m_cursorOverTile && m_selectedAgent){
-				// Only move the selected Agent if it is that Agent's turn, otherwise display an appropriate error message
-				if (m_selectedAgent->StartedTurn() && !m_selectedAgent->EndedTurn()){
-					// Move the Agent and start building a new MovementMap from the Agent's new position
-					m_selectedAgent->Move(m_currentTileX, m_currentTileY, m_MovementMap[m_currentTileIndex].cost);
-					BuildMovementMap();
-				} else{
-					result = m_Text->NewErrorMessage("The selected Agent isn't active.", m_D3D->GetDeviceContext());
-					if (!result){
-						return false;
-					}
+			// Right Click - Cancel Command Selection, Default mouse behaviour
+			if (m_CommandSelected){
+				// If a command is selected, deselect it
+				m_CommandSelected = false;
+				m_SelectedCommand = COMMAND_DEFAULT;
+			} else if (m_cursorOverTile && m_SelectedAgent){
+				// Move the selected Agent to the currently highlighted tile
+				// NOTE: Will also need behaviour to Order an Attack if an Enemy Agent is
+				//       present in the highlighted tile.
+				result = OrderMove();
+				if (!result){
+					return false;
 				}
 			}
+
+			break;
 		}
 
 		break;
@@ -894,21 +923,64 @@ bool ApplicationClass::HandleInput(float frameTime){
 	return true;
 }
 
+bool ApplicationClass::SelectAgent(){
+	// Find and select an Active Agent in the currently highlighted tile. If
+	// there are no Active Agents in the currently highlighted tile, deslect
+	// any currently selected Agent.
+	bool result;
+	std::list<ActiveAgentClass*>::iterator agent;
+	bool agentFound;
+	int agentX, agentY;
+
+	// NOTE: This is primarily proof of concept, additional work will need to be done if multiple
+	//       agents are present in the hex, and for any other necessary checks related to Agent
+	//       selection.
+	agentFound = false;
+
+	// Check if an agent is in the tile that was just selected
+	for (agent = m_ActiveAgents.begin(); agent != m_ActiveAgents.end(); ++agent){
+		(*agent)->GetPosition(agentX, agentY);
+		if (agentX == m_currentTileX && agentY == m_currentTileY){
+			// An agent is in the highlighted tile
+			agentFound = true;
+
+			// Update the ID of the selected Agent
+			result = SetSelectedAgent(*agent);
+			if (!result){
+				return false;
+			}
+
+			// For now we only care about the first Agent found, break
+			break;
+		}
+	}
+
+	// If no agent was found in the tile, unselect any selected Agent
+	if (!agentFound){
+		result = SetSelectedAgent(NULL);
+		if (!result){
+			return false;
+		}
+	}
+
+	return true;
+}
+
 bool ApplicationClass::SetSelectedAgent(ActiveAgentClass* agent){
-	// Set m_selectedAgent, update the selectedAgent string in the Text object and start
+	// Set m_SelectedAgent, update the selectedAgent string in the Text object and start
 	// pathfinding for the newly selected Agent.
 	bool result;
 
 	// If the newly selected agent is already the currently selected agent, do nothing
-	if (agent == m_selectedAgent){
+	if (agent == m_SelectedAgent){
 		return true;
 	}
 
 	// Update selectedAgent, the associated string displaying which Agent is selected
-	m_selectedAgent = agent;
+	m_SelectedAgent = agent;
 
-	if (m_selectedAgent){
-		result = m_Text->SetSelectedAgent(m_selectedAgent->GetName(), m_D3D->GetDeviceContext());
+	if (m_SelectedAgent){
+		result = m_Text->SetSelectedAgent(m_SelectedAgent->GetName(), m_D3D->GetDeviceContext());
 		if (!result){
 			return false;
 		}
@@ -920,14 +992,60 @@ bool ApplicationClass::SetSelectedAgent(ActiveAgentClass* agent){
 	}
 
 	// If an Agent was selected, start building a new MovementMap starting at the Agent's current location,
-	// if an Inactive Agent or no Agent was selected, clear the MovementQueue and MovementMap and set the
-	// CommandState to Default
-	if (m_selectedAgent){
-		m_CommandState = COMMANDSTATE_MOVE;
+	// if an Inactive Agent or no Agent was selected, clear the MovementQueue and MovementMap
+	if (m_SelectedAgent){
 		BuildMovementMap();
 	} else{
-		m_CommandState = COMMANDSTATE_DEFAULT;
 		ClearMovementMap();
+	}
+
+	return true;
+}
+
+bool ApplicationClass::OrderMove(){
+	// Command the currently selected Agent to move to the currently highlighted tile
+	bool result;
+
+	// NOTE: Other checks for invalid move commands and display of appropriate error messages
+	//       should occur in this function.
+
+	// Only move the selected Agent if it is that Agent's turn, otherwise display an appropriate error message
+	if (m_SelectedAgent->StartedTurn() && !m_SelectedAgent->EndedTurn()){
+		// Move the Agent and start building a new MovementMap from the Agent's new position
+		m_SelectedAgent->Move(m_currentTileX, m_currentTileY, m_MovementMap[m_currentTileIndex].cost);
+		BuildMovementMap();
+	} else{
+		result = m_Text->NewErrorMessage("The selected Agent isn't active.", m_D3D->GetDeviceContext());
+		if (!result){
+			return false;
+		}
+	}
+
+	return true;
+}
+
+bool ApplicationClass::OrderAttack(){
+	// Command the currently selected Agent to move within range of the currently highlighted tile
+	// and use their Basic Attack ability against any Agents in the highlighted tile.
+	bool result;
+
+	// NOTE: When the Ability Class and an OrderAbility or equivalent function are implemented,
+	//       this behaviour of this function should be executed by that function. In effect this
+	//       function is purely for proof of concept.
+
+	// Only order the selected Agent to attack if it is that Agent's turn, otherwise display an
+	// approproate error message
+	if (m_SelectedAgent->StartedTurn() && !m_SelectedAgent->EndedTurn()){
+		// TODO: Implement functionality for a Basic Attack
+		//       If the target is not within range of the currently selected Agent's attack
+		//       the Agent should move only as far as necessary (minimum cost) to get within
+		//       range before attacking.
+
+	} else{
+		result = m_Text->NewErrorMessage("The selected Agent isn't active.", m_D3D->GetDeviceContext());
+		if (!result){
+			return false;
+		}
 	}
 
 	return true;
@@ -943,7 +1061,7 @@ void ApplicationClass::BuildMovementMap(){
 	ClearMovementMap();
 
 	// Get the currently selected Agent's position as an index location on the map
-	m_selectedAgent->GetPosition(startX, startY);
+	m_SelectedAgent->GetPosition(startX, startY);
 	startIndex = startX * m_combatMapHeight + startY;
 	
 	// Add the first node in the queue - the selected Agent's current location and
@@ -1679,9 +1797,9 @@ bool ApplicationClass::RenderGraphics(){
 
 		// If the cursor is currently over a tile on the map render highlights over map tiles
 		if (m_cursorOverTile){
-			// Render highlights over tiles depending on the CommandState
-			switch (m_CommandState){
-			case COMMANDSTATE_MOVE:
+			// Render highlights over tiles depending on the currently selected command
+			switch (m_SelectedCommand){
+			case COMMAND_MOVE:
 				// When moving, highlight the path that the selected Agent will take from their current
 				// location to the tile under the cursor and display the cost of the move.
 				tileIndex = m_currentTileIndex;
