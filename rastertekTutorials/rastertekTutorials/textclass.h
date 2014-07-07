@@ -71,6 +71,7 @@ private:
 	SentenceType* m_menuText1;
 	SentenceType* m_menuText2;
 	SentenceType* m_menuText3;
+	SentenceType* m_menuText4;
 
 	SentenceType* m_tooltipLabel;
 	SentenceType* m_tooltipDescription;

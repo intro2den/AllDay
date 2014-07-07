@@ -32,7 +32,7 @@ const int OPTIONS_MENU_BUTTON_COUNT = 1;
 const int COMBAT_MENU_HEIGHT = 100;
 const int COMBAT_MENU_BUTTON_WIDTH = 100; // Will resize when text labels replaced by icons and tooltips
 const int COMBAT_MENU_BUTTON_HEIGHT = 32;
-const int COMBAT_MENU_BUTTON_COUNT = 2; // Should try to keep this as a multiple of 2 for proper rectangular set of options on the menu bar.
+const int COMBAT_MENU_BUTTON_COUNT = 4; // Should try to keep this as a multiple of 2 for proper rectangular set of options on the menu bar.
 const int COMBAT_MENU_BUTTON_HORIZONTAL_OFFSET = -20 - COMBAT_MENU_BUTTON_WIDTH * (COMBAT_MENU_BUTTON_COUNT / 2); // End the options at the right side of the menu bar
 const int COMBAT_MENU_BUTTON_VERTICAL_OFFSET = (COMBAT_MENU_HEIGHT / 2) - COMBAT_MENU_BUTTON_HEIGHT;
 
@@ -88,9 +88,14 @@ private:
 		MENUSTATE_NOMENU
 	};
 
-	enum CommandState{
-		COMMANDSTATE_DEFAULT,
-		COMMANDSTATE_MOVE
+
+	//////////////////
+	// COMMAND ENUM //
+	//////////////////
+	enum Command{
+		COMMAND_DEFAULT,
+		COMMAND_MOVE,
+		COMMAND_ATTACK
 	};
 
 
@@ -98,6 +103,7 @@ private:
 	// MENU ENUM //
 	///////////////
 	enum UIMenu{
+		UIMENU_NOMENU,
 		UIMENU_MAINMENU,
 		UIMENU_OPTIONSMENU,
 		UIMENU_COMBATMENUBAR
@@ -108,7 +114,8 @@ private:
 	// MENU BUTTON ENUMS //
 	///////////////////////
 	enum MainMenuButton{
-		MAINMENUBUTTON_ENTERCOMBATMAP = 0,
+		MAINMENUBUTTON_NOBUTTON = -1,
+		MAINMENUBUTTON_ENTERCOMBATMAP,
 		MAINMENUBUTTON_OPTIONS,
 		MAINMENUBUTTON_EXIT
 	};
@@ -118,7 +125,9 @@ private:
 	};
 
 	enum CombatMenuBarButton{
-		COMBATMENUBUTTON_ENDTURN = 0,
+		COMBATMENUBUTTON_MOVE = 0,
+		COMBATMENUBUTTON_ATTACK,
+		COMBATMENUBUTTON_ENDTURN,
 		COMBATMENUBUTTON_MENU
 	};
 
@@ -139,7 +148,10 @@ private:
 
 	// Handle Input
 	bool HandleInput(float);
+	bool SelectAgent();
 	bool SetSelectedAgent(ActiveAgentClass*);
+	bool OrderMove();
+	bool OrderAttack();
 
 	// Pathfinding
 	void BuildMovementMap();
@@ -186,7 +198,8 @@ private:
 	// State Variables
 	MainState m_MainState;
 	MenuState m_MenuState;
-	CommandState m_CommandState;
+	bool m_CommandSelected;
+	Command m_SelectedCommand;
 
 	// UI Related Variables
 	int m_screenWidth, m_screenHeight;
@@ -195,7 +208,8 @@ private:
 	// Cursor Related Variables
 	int m_mouseX, m_mouseY;
 	bool m_stateChanged;
-	int m_currentUIMenu, m_currentUIElement;
+	UIMenu m_currentUIMenu;
+	int m_currentUIElement;
 	int m_currentTileX, m_currentTileY;
 	int m_currentTileIndex;
 	bool m_cursorOverTile;
@@ -212,7 +226,7 @@ private:
 	std::list <Pathnode*> m_MovementQueue;
 	std::list <ActiveAgentClass*> m_ActiveAgents;
 	std::list <AgentClass*> m_InactiveAgents;
-	ActiveAgentClass* m_selectedAgent;
+	ActiveAgentClass* m_SelectedAgent;
 
 	D3DXMATRIX m_UIViewMatrix;
 };

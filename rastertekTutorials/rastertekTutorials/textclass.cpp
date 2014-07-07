@@ -9,6 +9,7 @@ TextClass::TextClass(){
 	m_menuText1 = 0;
 	m_menuText2 = 0;
 	m_menuText3 = 0;
+	m_menuText4 = 0;
 	m_errorText1 = 0;
 	m_errorText2 = 0;
 	m_selectedAgent = 0;
@@ -70,6 +71,11 @@ bool TextClass::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceCont
 	}
 
 	result = InitializeSentence(&m_menuText3, 16, device);
+	if (!result){
+		return false;
+	}
+
+	result = InitializeSentence(&m_menuText4, 16, device);
 	if (!result){
 		return false;
 	}
@@ -159,6 +165,7 @@ void TextClass::Shutdown(){
 	ReleaseSentence(&m_menuText1);
 	ReleaseSentence(&m_menuText2);
 	ReleaseSentence(&m_menuText3);
+	ReleaseSentence(&m_menuText4);
 
 	// Release the tooltip sentences
 	ReleaseSentence(&m_tooltipLabel);
@@ -259,6 +266,11 @@ bool TextClass::Render(ID3D11DeviceContext* deviceContext, D3DXMATRIX worldMatri
 		return false;
 	}
 
+	result = RenderSentence(deviceContext, m_menuText4, worldMatrix, orthoMatrix);
+	if (!result){
+		return false;
+	}
+
 	// Draw the sentence indicating which agent is selected
 	result = RenderSentence(deviceContext, m_selectedAgent, worldMatrix, orthoMatrix);
 	if (!result){
@@ -327,6 +339,11 @@ bool TextClass::SetMainMenuText(int horizontalOffset, int verticalOffset, int bu
 		return false;
 	}
 
+	result = UpdateSentence(m_menuText4, "", horizontalOffset + 15, verticalOffset + (buttonHeight / 2) + 3 * (buttonHeight + buttonSpacing) - 4, 0.0f, 0.0f, 0.0f, deviceContext);
+	if (!result){
+		return false;
+	}
+
 	return true;
 }
 
@@ -353,6 +370,11 @@ bool TextClass::SetOptionsMenuText(int horizontalOffset, int verticalOffset, int
 		return false;
 	}
 
+	result = UpdateSentence(m_menuText4, "", horizontalOffset + 15, verticalOffset + (buttonHeight / 2) + 3 * (buttonHeight + buttonSpacing) - 4, 0.0f, 0.0f, 0.0f, deviceContext);
+	if (!result){
+		return false;
+	}
+
 	return true;
 }
 
@@ -374,7 +396,12 @@ bool TextClass::SetCombatMapText(ID3D11DeviceContext* deviceContext){
 		return false;
 	}
 
-	result = UpdateSentence(m_menuText3, "", 0, 0, 0.0f, 0.0f, 0.0f, deviceContext);
+	result = UpdateSentence(m_menuText3, "Move", m_screenWidth - 215, m_screenHeight - 70, 0.0f, 0.0f, 0.0f, deviceContext);
+	if (!result){
+		return false;
+	}
+
+	result = UpdateSentence(m_menuText4, "Attack", m_screenWidth - 215, m_screenHeight - 38, 0.0f, 0.0f, 0.0f, deviceContext);
 	if (!result){
 		return false;
 	}
@@ -414,7 +441,6 @@ bool TextClass::NewErrorMessage(char* text, ID3D11DeviceContext* deviceContext){
 		if (!result){
 			return false;
 		}
-
 	} else if (m_errorTime2 >= MAX_ERROR_TIME){
 		// Only 1 error already exists, use the second error sentence to display the new error
 		strcpy_s(m_secondErrorString, text);
@@ -423,7 +449,6 @@ bool TextClass::NewErrorMessage(char* text, ID3D11DeviceContext* deviceContext){
 		if (!result){
 			return false;
 		}
-
 	} else{
 		// There are already 2 error messages, overwrite the first using the second and use the
 		// second error sentence to display the new error
@@ -439,7 +464,6 @@ bool TextClass::NewErrorMessage(char* text, ID3D11DeviceContext* deviceContext){
 		if (!result){
 			return false;
 		}
-
 	}
 
 	return true;
