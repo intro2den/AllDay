@@ -34,6 +34,7 @@ public:
 	LRESULT CALLBACK MessageHandler(HWND, UINT, WPARAM, LPARAM);
 
 private:
+	void ReadConfig(int&, int&);
 	bool Frame();
 	void InitializeWindows(int&, int&);
 	void ShutdownWindows();
@@ -44,6 +45,8 @@ private:
 	HWND m_hwnd;
 
 	ApplicationClass* m_Application;
+
+	bool m_fullscreen;
 };
 
 /////////////////////////

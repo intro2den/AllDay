@@ -6,8 +6,7 @@
 /////////////
 // GLOBALS //
 /////////////
-const bool FULL_SCREEN = false;
-const bool VSYNC_ENABLED = true;
+const bool VSYNC_ENABLED = false;
 const float SCREEN_DEPTH = 1000.0f;
 const float SCREEN_NEAR = 0.1f;
 
@@ -136,7 +135,7 @@ public:
 	ApplicationClass(const ApplicationClass&);
 	~ApplicationClass();
 
-	bool Initialize(HINSTANCE, HWND, int, int);
+	bool Initialize(HINSTANCE, HWND, int, int, bool);
 	void Shutdown();
 	bool Frame();
 
@@ -203,6 +202,7 @@ private:
 
 	// UI Related Variables
 	int m_screenWidth, m_screenHeight;
+	bool m_fullscreen;
 	int m_combatMapWidth, m_combatMapHeight;
 
 	// Cursor Related Variables

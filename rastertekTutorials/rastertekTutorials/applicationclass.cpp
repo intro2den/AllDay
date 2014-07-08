@@ -37,7 +37,7 @@ ApplicationClass::~ApplicationClass(){
 }
 
 // Initialize - creates window for application, initializes input and graphics objects
-bool ApplicationClass::Initialize(HINSTANCE hinstance, HWND hwnd, int screenWidth, int screenHeight){
+bool ApplicationClass::Initialize(HINSTANCE hinstance, HWND hwnd, int screenWidth, int screenHeight, bool fullscreen){
 	bool result;
 	float cameraX, cameraY, cameraZ;
 	D3DXMATRIX baseViewMatrix;
@@ -45,6 +45,7 @@ bool ApplicationClass::Initialize(HINSTANCE hinstance, HWND hwnd, int screenWidt
 	// Keep track of the screen width and height for bounding the camera, dynamic bitmap initialization and/or scaling(?)
 	m_screenWidth = screenWidth;
 	m_screenHeight = screenHeight;
+	m_fullscreen = fullscreen;
 
 	// Set initial MainState, MenuState and CommandState
 	m_MainState = MAINSTATE_MAINMENU;
@@ -101,7 +102,7 @@ bool ApplicationClass::Initialize(HINSTANCE hinstance, HWND hwnd, int screenWidt
 	}
 
 	// Initialize the Direct3D object.
-	result = m_D3D->Initialize(m_screenWidth, m_screenHeight, VSYNC_ENABLED, hwnd, FULL_SCREEN, SCREEN_DEPTH, SCREEN_NEAR);
+	result = m_D3D->Initialize(m_screenWidth, m_screenHeight, VSYNC_ENABLED, hwnd, m_fullscreen, SCREEN_DEPTH, SCREEN_NEAR);
 	if (!result){
 		MessageBox(hwnd, "Could not initialize DirectX 11.", "Error", MB_OK);
 		return false;
@@ -396,9 +397,11 @@ bool ApplicationClass::Frame(){
 }
 
 // Read Configuration File to configure settings
-// NOTE: This should probably be done in the SystemClass before the
-//       ApplicationClass is instantiated, specifically for setting the
-//       resolution of the application window.
+// NOTE: Some parsing of the configuration file is done in the SystemClass
+//       before the ApplicationClass is instantiated. As such, not all of the
+//       parsed data is valid in this function. If possible, all configuration
+//       data should be parsed in the SystemClass and passed into the
+//       instantiation of the ApplicationClass.
 bool ApplicationClass::ReadConfig(){
 	bool result;
 	ifstream fin;
@@ -407,7 +410,8 @@ bool ApplicationClass::ReadConfig(){
 	// Proof of Concept for reading Configuration File
 	fin.open("../rastertekTutorials/data/configuration.txt");
 	if (fin.fail()){
-		return false;
+		// If the configuration file can't be opened return
+		return true;
 	}
 
 	// Read through the Configuration File and set relevant variables accordingly
@@ -416,8 +420,7 @@ bool ApplicationClass::ReadConfig(){
 	while (!fin.eof()){
 		// This is probably not a good way to parse a text file
 		if (strncmp(configString, "mainstate", 8) == 0){
-			fin.getline(configString, 20, ' ');
-			fin.getline(configString, 20, ' ');
+			fin.getline(configString, 20, '\n');
 
 			if (strncmp(configString, "combat", 6) == 0){
 				// Change the MainState to CombatMap, create a new CombatMap and begin the first round
@@ -449,6 +452,7 @@ bool ApplicationClass::ReadConfig(){
 
 		}
 
+		fin.getline(configString, 20, '\n');
 		fin.getline(configString, 20, ' ');
 	}
 
