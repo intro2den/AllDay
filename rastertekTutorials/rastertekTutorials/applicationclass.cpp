@@ -62,7 +62,7 @@ bool ApplicationClass::Initialize(HINSTANCE hinstance, HWND hwnd, int screenWidt
 
 	// Initialize the currently highlighted UI menu and element to none, no UI elements are highlighted on initialization
 	m_currentUIMenu = UIMENU_NOMENU;
-	m_currentUIElement = MAINMENUBUTTON_NOBUTTON;
+	m_currentUIElement = UIELEMENT_NOELEMENT;
 
 	// Initialize the coordinates and index for the currently highlighted tile (for the CombatMap - initially invalid coordinates)
 	m_currentTileX = -1;
@@ -79,8 +79,8 @@ bool ApplicationClass::Initialize(HINSTANCE hinstance, HWND hwnd, int screenWidt
 	m_cursorIdleTime = 0.0f;
 	m_tooltipX = 0;
 	m_tooltipY = 0;
-	m_tooltipWidth = 0;
-	m_tooltipHeight = 0;
+	m_tooltipWidth = 200;
+	m_tooltipHeight = 48;
 
 	// Create the input object.  The input object will be used to handle reading the keyboard and mouse input from the user.
 	m_Input = new InputClass;
@@ -473,7 +473,7 @@ void ApplicationClass::FindCurrentUIElement(){
 
 	// Reset the current menu and UI element to none, the previous element should not be remembered.
 	m_currentUIMenu = UIMENU_NOMENU;
-	m_currentUIElement = MAINMENUBUTTON_NOBUTTON;
+	m_currentUIElement = UIELEMENT_NOELEMENT;
 
 	// The current MainState determines the placement of open menus and other UI Elements
 	switch (m_MainState){
@@ -1639,21 +1639,13 @@ bool ApplicationClass::Update(float frameTime, bool cursorIdle){
 	// because the cursor moved or wasn't idle for long enough) determine which
 	// tooltip should be displayed and set the appropriate variables and text
 	// to display the tooltip.
-	if (m_cursorIdleTime >= m_tooltipDelay && !m_displayTooltip){
+	if (m_cursorIdleTime >= m_tooltipDelay && !m_displayTooltip && m_currentUIElement != UIELEMENT_NOELEMENT){
 		// If the UI element under the cursor has a tooltip, it should be
 		// displayed
 		m_displayTooltip = true;
 
-		// Determine which UI element is under the cursor and update the
-		// tooltip to be displayed
-
-		// Proof of Concept
-		m_tooltipX = m_screenWidth - 150;
-		m_tooltipY = 50;
-		m_tooltipWidth = 100;
-		m_tooltipHeight = 40;
-
-		result = m_Text->SetTooltipText(m_tooltipX, m_tooltipY, m_D3D->GetDeviceContext());
+		// Update the tooltip to be displayed
+		result = UpdateTooltip();
 		if (!result){
 			return false;
 		}
@@ -1670,6 +1662,204 @@ bool ApplicationClass::Update(float frameTime, bool cursorIdle){
 	return true;
 }
 
+bool ApplicationClass::UpdateTooltip(){
+	// Set the tooltip position and dimensions and set the text based on the
+	// UI element that is currently under the cursor.
+	bool result;
+
+	// NOTE: Tooltips should appear close to the UI element that they apply to
+	//       without obscuring it or any related elements.
+	//       For example: Tooltips for UI elements on the CombatMap menu bar
+	//       should appear immediately above the menu bar, close to the element
+	//       being described but not obscuring any part of the menu bar.
+	// NOTE2: This is partially proof of concept - all tooltip labels and
+	//        descriptions should be stored as constants (or variables set
+	//        from data files) or in some cases stored with the object that the
+	//        tooltip will describe.
+	// NOTE3: This code should be cleaned up, split into helper functions to
+	//        reduce duplicate code (same tooltips with different positions).
+
+	// The display of certain Tooltips varies with the MainState and MenuState
+	switch (m_MainState){
+	case MAINSTATE_MAINMENU:
+		// Main Menu tooltips
+
+		// Initial tooltip location for the Main Menu is to the right of the buttons, at the same height
+		m_tooltipX = MAIN_MENU_BUTTON_HORIZONTAL_OFFSET + MAIN_MENU_BUTTON_WIDTH;
+		m_tooltipY = MAIN_MENU_BUTTON_VERTICAL_OFFSET;
+
+		switch (m_MenuState){
+		case MENUSTATE_MAINMENU:
+			switch (m_currentUIElement){
+			case MAINMENUBUTTON_ENTERCOMBATMAP:
+				result = m_Text->SetTooltipText(m_tooltipX, m_tooltipY, "Enter Combat", "Generates and starts a combat scenario", m_tooltipWidth, m_D3D->GetDeviceContext());
+				if (!result){
+					return false;
+				}
+				break;
+
+			case MAINMENUBUTTON_OPTIONS:
+				// Shift the tooltip location down to the same height as the button
+				m_tooltipY += MAIN_MENU_BUTTON_HEIGHT + MAIN_MENU_BUTTON_SPACING;
+
+				result = m_Text->SetTooltipText(m_tooltipX, m_tooltipY, "Options Menu", "Adjust audio and graphics setttings", m_tooltipWidth, m_D3D->GetDeviceContext());
+				if (!result){
+					return false;
+				}
+				break;
+
+			case MAINMENUBUTTON_EXIT:
+				// Shift the tooltip location down to the same height as the button
+				m_tooltipY += 2 * (MAIN_MENU_BUTTON_HEIGHT + MAIN_MENU_BUTTON_SPACING);
+
+				result = m_Text->SetTooltipText(m_tooltipX, m_tooltipY, "Exit Application", "Shutdown the game and return to desktop", m_tooltipWidth, m_D3D->GetDeviceContext());
+				if (!result){
+					return false;
+				}
+				break;
+
+			default:
+				m_displayTooltip = false;
+			}
+
+			break;
+
+		case MENUSTATE_OPTIONMENU:
+			switch (m_currentUIElement){
+			case OPTIONSMENUBUTTON_BACK:
+				result = m_Text->SetTooltipText(m_tooltipX, m_tooltipY, "Main Menu", "Return to the Main Menu", m_tooltipWidth, m_D3D->GetDeviceContext());
+				if (!result){
+					return false;
+				}
+				break;
+
+			default:
+				m_displayTooltip = false;
+			}
+
+			break;
+
+		default:
+			m_displayTooltip = false;
+		}
+
+		break;
+
+	case MAINSTATE_COMBATMAP:
+		switch (m_MenuState){
+		// TODO: Create Main Menu Interface for the Combat Map and position tooltips accordingly
+
+		case MENUSTATE_MAINMENU:
+			switch (m_currentUIMenu){
+			case UIMENU_MAINMENU:
+				switch (m_currentUIElement){
+				case MAINMENUBUTTON_OPTIONS:
+					result = m_Text->SetTooltipText(m_tooltipX, m_tooltipY, "Options", "Adjust audio and graphics settings", m_tooltipWidth, m_D3D->GetDeviceContext());
+					if (!result){
+						return false;
+					}
+					break;
+
+				case MAINMENUBUTTON_EXIT:
+					result = m_Text->SetTooltipText(m_tooltipX, m_tooltipY, "Exit Application", "Shutdown the game and return to desktop", m_tooltipWidth, m_D3D->GetDeviceContext());
+					if (!result){
+						return false;
+					}
+					break;
+
+				default:
+					m_displayTooltip = false;
+				}
+
+				break;
+
+			default:
+				m_displayTooltip = false;
+			}
+			break;
+
+		case MENUSTATE_OPTIONMENU:
+			switch (m_currentUIMenu){
+			case UIMENU_OPTIONSMENU:
+				switch (m_currentUIElement){
+				case OPTIONSMENUBUTTON_BACK:
+					result = m_Text->SetTooltipText(m_tooltipX, m_tooltipY, "Back", "Return to the Main Menu", m_tooltipWidth, m_D3D->GetDeviceContext());
+					if (!result){
+						return false;
+					}
+					break;
+
+				default:
+					m_displayTooltip = false;
+				}
+
+				break;
+
+			default:
+				m_displayTooltip = false;
+			}
+			break;
+
+		case MENUSTATE_NOMENU:
+			switch (m_currentUIMenu){
+			case UIMENU_COMBATMENUBAR:
+				// Set the tooltip position to directly above the command buttons on the menu bar
+				m_tooltipX = m_screenWidth - m_tooltipWidth;
+				m_tooltipY = m_screenHeight - COMBAT_MENU_HEIGHT - m_tooltipHeight;
+
+				switch (m_currentUIElement){
+				case COMBATMENUBUTTON_MOVE:
+					result = m_Text->SetTooltipText(m_tooltipX, m_tooltipY, "Move", "Command the selected Agent to move to a specific location", m_tooltipWidth, m_D3D->GetDeviceContext());
+					if (!result){
+						return false;
+					}
+					break;
+
+				case COMBATMENUBUTTON_ATTACK:
+					result = m_Text->SetTooltipText(m_tooltipX, m_tooltipY, "Attack", "Command the selected Agent to attack a specific target", m_tooltipWidth, m_D3D->GetDeviceContext());
+					if (!result){
+						return false;
+					}
+					break;
+
+				case COMBATMENUBUTTON_ENDTURN:
+					result = m_Text->SetTooltipText(m_tooltipX, m_tooltipY, "End Turn", "End the turn of all currently active Agents", m_tooltipWidth, m_D3D->GetDeviceContext());
+					if (!result){
+						return false;
+					}
+					break;
+
+				case COMBATMENUBUTTON_MENU:
+					result = m_Text->SetTooltipText(m_tooltipX, m_tooltipY, "Menu", "Open the Main Menu", m_tooltipWidth, m_D3D->GetDeviceContext());
+					if (!result){
+						return false;
+					}
+					break;
+
+				default:
+					m_displayTooltip = false;
+				}
+
+				break;
+
+			default:
+				m_displayTooltip = false;
+			}
+
+			break;
+
+		default:
+			m_displayTooltip = false;
+		}
+
+		break;
+
+	default:
+		m_displayTooltip = false;
+	}
+
+	return true;
+}
 
 bool ApplicationClass::RenderGraphics(){
 	D3DXMATRIX worldMatrix, viewMatrix, projectionMatrix, orthoMatrix;
@@ -1723,10 +1913,7 @@ bool ApplicationClass::RenderGraphics(){
 		// Render the Main Menu buttons
 		
 		// First ensure the buttons have the proper dimensions
-		result = m_StandardButton->SetDimensions(MAIN_MENU_BUTTON_WIDTH, MAIN_MENU_BUTTON_HEIGHT);
-		if (!result){
-			return false;
-		}
+		m_StandardButton->SetDimensions(MAIN_MENU_BUTTON_WIDTH, MAIN_MENU_BUTTON_HEIGHT);
 
 		// Render buttons based on the MenuState
 		switch (m_MenuState){
@@ -1903,10 +2090,7 @@ bool ApplicationClass::RenderGraphics(){
 
 		// Render the CombatMap menubar
 		// First ensure the menuBackground has the proper dimensions
-		result = m_MenuBackground->SetDimensions(m_screenWidth, COMBAT_MENU_HEIGHT);
-		if (!result){
-			return false;
-		}
+		m_MenuBackground->SetDimensions(m_screenWidth, COMBAT_MENU_HEIGHT);
 
 		result = m_MenuBackground->Render(m_D3D->GetDeviceContext(), 0, m_screenHeight - COMBAT_MENU_HEIGHT);
 		if (!result){
@@ -1921,10 +2105,7 @@ bool ApplicationClass::RenderGraphics(){
 		// Render the buttons on the menubar
 		
 		// First ensure the buttons have the proper dimensions
-		result = m_StandardButton->SetDimensions(COMBAT_MENU_BUTTON_WIDTH, COMBAT_MENU_BUTTON_HEIGHT);
-		if (!result){
-			return false;
-		}
+		m_StandardButton->SetDimensions(COMBAT_MENU_BUTTON_WIDTH, COMBAT_MENU_BUTTON_HEIGHT);
 
 		for (i = 0; i < COMBAT_MENU_BUTTON_COUNT; i++){
 			result = m_StandardButton->Render(m_D3D->GetDeviceContext(), m_screenWidth + COMBAT_MENU_BUTTON_HORIZONTAL_OFFSET + COMBAT_MENU_BUTTON_WIDTH * (i / 2), m_screenHeight - COMBAT_MENU_HEIGHT + COMBAT_MENU_BUTTON_VERTICAL_OFFSET + COMBAT_MENU_BUTTON_HEIGHT * (i % 2));
@@ -1964,10 +2145,7 @@ bool ApplicationClass::RenderGraphics(){
 		m_D3D->TurnOffAlphaBlending();
 
 		// Set the dimensions of the MenuBackground bitmap to render the tooltip background
-		result = m_MenuBackground->SetDimensions(m_tooltipWidth, m_tooltipHeight);
-		if (!result){
-			return false;
-		}
+		m_MenuBackground->SetDimensions(m_tooltipWidth, m_tooltipHeight);
 
 		// Render the tooltip background
 		result = m_MenuBackground->Render(m_D3D->GetDeviceContext(), m_tooltipX, m_tooltipY);

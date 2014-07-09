@@ -58,10 +58,10 @@ void BitmapClass::Shutdown(){
 	return;
 }
 
-bool BitmapClass::SetDimensions(int bitmapWidth, int bitmapHeight){
+void BitmapClass::SetDimensions(int bitmapWidth, int bitmapHeight){
 	// Don't do anything if the bitmap already has the specified dimensions
 	if (m_bitmapWidth == bitmapWidth && m_bitmapHeight == bitmapHeight){
-		return true;
+		return;
 	}
 
 	// Change the dimensions of the bitmap and set the resized flag to true so that the vertex buffer is properly updated for rendering
@@ -69,7 +69,7 @@ bool BitmapClass::SetDimensions(int bitmapWidth, int bitmapHeight){
 	m_bitmapHeight = bitmapHeight;
 	m_resized = true;
 
-	return true;
+	return;
 }
 
 bool BitmapClass::Render(ID3D11DeviceContext* deviceContext, int positionX, int positionY){

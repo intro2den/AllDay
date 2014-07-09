@@ -41,7 +41,7 @@ public:
 
 	ID3D11ShaderResourceView* GetTexture();
 
-	void BuildVertexArray(void*, char*, float, float);
+	void BuildVertexArray(void*, char*, float, float, int);
 
 private:
 	bool LoadFontData(char*);

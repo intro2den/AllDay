@@ -31,7 +31,7 @@ public:
 
 	bool Initialize(ID3D11Device*, int, int, CHAR*, int, int);
 	void Shutdown();
-	bool SetDimensions(int, int);
+	void SetDimensions(int, int);
 	bool Render(ID3D11DeviceContext*, int, int);
 
 	int GetIndexCount();

@@ -124,9 +124,10 @@ ID3D11ShaderResourceView* FontClass::GetTexture(){
 	return m_Texture->GetTexture();
 }
 
-void FontClass::BuildVertexArray(void* vertices, char* sentence, float drawX, float drawY){
+void FontClass::BuildVertexArray(void* vertices, char* sentence, float drawX, float drawY, int maxWidth){
 	VertexType* vertexPtr;
 	int numLetters, index, i, letter;
+	int xOffset;
 
 	// Coerce the input vertices into a VertexType structure.
 	vertexPtr = (VertexType*)vertices;
@@ -137,13 +138,17 @@ void FontClass::BuildVertexArray(void* vertices, char* sentence, float drawX, fl
 	// Initialize the index to the vertex array.
 	index = 0;
 
+	// Initialize the current xOffset
+	xOffset = 0;
+
 	// Draw each letter onto a quad.
 	for (i = 0; i<numLetters; i++){
 		letter = ((int)sentence[i]) - 32;
 
 		// If the letter is a space then just move over three pixels.
 		if (letter == 0){
-			drawX = drawX + 3.0f;
+			drawX += 3.0f;
+			xOffset += 3;
 		} else{
 			// First triangle in quad.
 			vertexPtr[index].position = D3DXVECTOR3(drawX, drawY, 0.0f);  // Top left.
@@ -172,7 +177,17 @@ void FontClass::BuildVertexArray(void* vertices, char* sentence, float drawX, fl
 			index++;
 
 			// Update the x location for drawing by the size of the letter and one pixel.
-			drawX = drawX + m_Font[letter].size + 1.0f;
+			drawX += m_Font[letter].size + 1.0f;
+			xOffset += m_Font[letter].size + 1;
+		}
+
+		// If the next character will exceed the maximum width of the text being drawn, continue drawing on the next line.
+		// NOTE: This does not yet account for words, only single characters exceeding the maximum width.
+		// TODO: Ensure that words are displayed on single lines and that new lines are not offset by spaces.
+		if ((maxWidth > 0 && i < numLetters - 1) && (xOffset + m_Font[(int)sentence[i + 1] - 32].size + 2) > maxWidth){
+			drawX -= (float)xOffset;
+			drawY -= 13;
+			xOffset = 0;
 		}
 	}
 

@@ -108,13 +108,16 @@ private:
 		UIMENU_COMBATMENUBAR
 	};
 
+	//////////////////////////////////
+	// UIELEMENT ENUMS AND CONSTANT //
+	//////////////////////////////////
+	const int UIELEMENT_NOELEMENT = -1;
 
 	///////////////////////
 	// MENU BUTTON ENUMS //
 	///////////////////////
 	enum MainMenuButton{
-		MAINMENUBUTTON_NOBUTTON = -1,
-		MAINMENUBUTTON_ENTERCOMBATMAP,
+		MAINMENUBUTTON_ENTERCOMBATMAP = 0,
 		MAINMENUBUTTON_OPTIONS,
 		MAINMENUBUTTON_EXIT
 	};
@@ -172,6 +175,7 @@ private:
 
 	// Update
 	bool Update(float, bool);
+	bool UpdateTooltip();
 
 	// Render
 	bool RenderGraphics();

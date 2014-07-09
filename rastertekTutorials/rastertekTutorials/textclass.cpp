@@ -91,18 +91,18 @@ bool TextClass::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceCont
 		return false;
 	}
 
-	result = InitializeSentence(&m_tooltipDescription, 32, device);
+	result = InitializeSentence(&m_tooltipDescription, 64, device);
 	if (!result){
 		return false;
 	}
 
 	// Both tooltip sentences should be empty to begin with
-	result = UpdateSentence(m_tooltipLabel, "", 0, 0, 1.0f, 1.0f, 1.0f, deviceContext);
+	result = UpdateSentence(m_tooltipLabel, "", 0, 0, 1.0f, 1.0f, 1.0f, NO_LENGTH_LIMIT, deviceContext);
 	if (!result){
 		return false;
 	}
 
-	result = UpdateSentence(m_tooltipDescription, "", 0, 0, 1.0f, 1.0f, 1.0f, deviceContext);
+	result = UpdateSentence(m_tooltipDescription, "", 0, 0, 1.0f, 1.0f, 1.0f, NO_LENGTH_LIMIT, deviceContext);
 	if (!result){
 		return false;
 	}
@@ -131,7 +131,7 @@ bool TextClass::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceCont
 	}
 
 	// Initially there should be no selected Agent
-	result = UpdateSentence(m_selectedAgent, "", 20, m_screenHeight - 80, 1.0f, 1.0f, 1.0f, deviceContext);
+	result = UpdateSentence(m_selectedAgent, "", 20, m_screenHeight - 80, 1.0f, 1.0f, 1.0f, NO_LENGTH_LIMIT, deviceContext);
 	if (!result){
 		return false;
 	}
@@ -142,7 +142,7 @@ bool TextClass::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceCont
 		return false;
 	}
 
-	result = UpdateSentence(m_cursorXCoordinate, "", 20, 20, 1.0f, 1.0f, 1.0f, deviceContext);
+	result = UpdateSentence(m_cursorXCoordinate, "", 20, 20, 1.0f, 1.0f, 1.0f, NO_LENGTH_LIMIT, deviceContext);
 	if (!result){
 		return false;
 	}
@@ -152,7 +152,7 @@ bool TextClass::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceCont
 		return false;
 	}
 
-	result = UpdateSentence(m_cursorYCoordinate, "", 20, 40, 1.0f, 1.0f, 1.0f, deviceContext);
+	result = UpdateSentence(m_cursorYCoordinate, "", 20, 40, 1.0f, 1.0f, 1.0f, NO_LENGTH_LIMIT, deviceContext);
 	if (!result){
 		return false;
 	}
@@ -228,7 +228,7 @@ bool TextClass::Frame(float frameTime, ID3D11DeviceContext* deviceContext){
 		if (m_errorTime1 >= MAX_ERROR_TIME){
 			// Replace the first error message with the second
 			m_errorTime1 = m_errorTime2;
-			result = UpdateSentence(m_errorText1, m_secondErrorString, m_screenWidth / 2 - 80, 80, 1.0f, 0.0f, 0.0f, deviceContext);
+			result = UpdateSentence(m_errorText1, m_secondErrorString, m_screenWidth / 2 - 80, 80, 1.0f, 0.0f, 0.0f, NO_LENGTH_LIMIT, deviceContext);
 			if (!result){
 				return false;
 			}
@@ -236,7 +236,7 @@ bool TextClass::Frame(float frameTime, ID3D11DeviceContext* deviceContext){
 			// Clear the second error message
 			m_errorTime2 = MAX_ERROR_TIME;
 			strcpy_s(m_secondErrorString, "");
-			result = UpdateSentence(m_errorText2, m_secondErrorString, 0, 0, 1.0f, 0.0f, 0.0f, deviceContext);
+			result = UpdateSentence(m_errorText2, m_secondErrorString, 0, 0, 1.0f, 0.0f, 0.0f, NO_LENGTH_LIMIT, deviceContext);
 			if (!result){
 				return false;
 			}
@@ -324,22 +324,22 @@ bool TextClass::SetMainMenuText(int horizontalOffset, int verticalOffset, int bu
 	// Update all menuText strings to display labels for each option on the Main Menu
 	bool result;
 
-	result = UpdateSentence(m_menuText1, "Enter CombatMap", horizontalOffset + 15, verticalOffset + (buttonHeight / 2) - 4, 0.0f, 0.0f, 0.0f, deviceContext);
+	result = UpdateSentence(m_menuText1, "Enter CombatMap", horizontalOffset + 15, verticalOffset + (buttonHeight / 2) - 4, 0.0f, 0.0f, 0.0f, NO_LENGTH_LIMIT, deviceContext);
 	if (!result){
 		return false;
 	}
 
-	result = UpdateSentence(m_menuText2, "Options", horizontalOffset + 15, verticalOffset + (buttonHeight / 2) + (buttonHeight + buttonSpacing) - 4, 0.0f, 0.0f, 0.0f, deviceContext);
+	result = UpdateSentence(m_menuText2, "Options", horizontalOffset + 15, verticalOffset + (buttonHeight / 2) + (buttonHeight + buttonSpacing) - 4, 0.0f, 0.0f, 0.0f, NO_LENGTH_LIMIT, deviceContext);
 	if (!result){
 		return false;
 	}
 
-	result = UpdateSentence(m_menuText3, "Exit Application", horizontalOffset + 15, verticalOffset + (buttonHeight / 2) + 2 * (buttonHeight + buttonSpacing) - 4, 0.0f, 0.0f, 0.0f, deviceContext);
+	result = UpdateSentence(m_menuText3, "Exit Application", horizontalOffset + 15, verticalOffset + (buttonHeight / 2) + 2 * (buttonHeight + buttonSpacing) - 4, 0.0f, 0.0f, 0.0f, NO_LENGTH_LIMIT, deviceContext);
 	if (!result){
 		return false;
 	}
 
-	result = UpdateSentence(m_menuText4, "", horizontalOffset + 15, verticalOffset + (buttonHeight / 2) + 3 * (buttonHeight + buttonSpacing) - 4, 0.0f, 0.0f, 0.0f, deviceContext);
+	result = UpdateSentence(m_menuText4, "", horizontalOffset + 15, verticalOffset + (buttonHeight / 2) + 3 * (buttonHeight + buttonSpacing) - 4, 0.0f, 0.0f, 0.0f, NO_LENGTH_LIMIT, deviceContext);
 	if (!result){
 		return false;
 	}
@@ -355,22 +355,22 @@ bool TextClass::SetOptionsMenuText(int horizontalOffset, int verticalOffset, int
 	//       such as the button the text is meant to be a part of. This will have to change,
 	//       particularly when we support multiple resolutions (Text size may also need to change)
 
-	result = UpdateSentence(m_menuText1, "Back", horizontalOffset + 15, verticalOffset + (buttonHeight / 2) - 4, 0.0f, 0.0f, 0.0f, deviceContext);
+	result = UpdateSentence(m_menuText1, "Back", horizontalOffset + 15, verticalOffset + (buttonHeight / 2) - 4, 0.0f, 0.0f, 0.0f, NO_LENGTH_LIMIT, deviceContext);
 	if (!result){
 		return false;
 	}
 
-	result = UpdateSentence(m_menuText2, "", 0, 0, 0.0f, 0.0f, 0.0f, deviceContext);
+	result = UpdateSentence(m_menuText2, "", 0, 0, 0.0f, 0.0f, 0.0f, NO_LENGTH_LIMIT, deviceContext);
 	if (!result){
 		return false;
 	}
 	
-	result = UpdateSentence(m_menuText3, "", 0, 0, 0.0f, 0.0f, 0.0f, deviceContext);
+	result = UpdateSentence(m_menuText3, "", 0, 0, 0.0f, 0.0f, 0.0f, NO_LENGTH_LIMIT, deviceContext);
 	if (!result){
 		return false;
 	}
 
-	result = UpdateSentence(m_menuText4, "", horizontalOffset + 15, verticalOffset + (buttonHeight / 2) + 3 * (buttonHeight + buttonSpacing) - 4, 0.0f, 0.0f, 0.0f, deviceContext);
+	result = UpdateSentence(m_menuText4, "", horizontalOffset + 15, verticalOffset + (buttonHeight / 2) + 3 * (buttonHeight + buttonSpacing) - 4, 0.0f, 0.0f, 0.0f, NO_LENGTH_LIMIT, deviceContext);
 	if (!result){
 		return false;
 	}
@@ -386,22 +386,22 @@ bool TextClass::SetCombatMapText(ID3D11DeviceContext* deviceContext){
 	//       such as the button the text is meant to be a part of. This will have to change,
 	//       particularly when we support multiple resolutions (Text size may also need to change)
 
-	result = UpdateSentence(m_menuText1, "End Turn", m_screenWidth - 115, m_screenHeight - 70, 0.0f, 0.0f, 0.0f, deviceContext);
+	result = UpdateSentence(m_menuText1, "End Turn", m_screenWidth - 115, m_screenHeight - 70, 0.0f, 0.0f, 0.0f, NO_LENGTH_LIMIT, deviceContext);
 	if (!result){
 		return false;
 	}
 
-	result = UpdateSentence(m_menuText2, "Main Menu", m_screenWidth - 115, m_screenHeight - 38, 0.0f, 0.0f, 0.0f, deviceContext);
+	result = UpdateSentence(m_menuText2, "Main Menu", m_screenWidth - 115, m_screenHeight - 38, 0.0f, 0.0f, 0.0f, NO_LENGTH_LIMIT, deviceContext);
 	if (!result){
 		return false;
 	}
 
-	result = UpdateSentence(m_menuText3, "Move", m_screenWidth - 215, m_screenHeight - 70, 0.0f, 0.0f, 0.0f, deviceContext);
+	result = UpdateSentence(m_menuText3, "Move", m_screenWidth - 215, m_screenHeight - 70, 0.0f, 0.0f, 0.0f, NO_LENGTH_LIMIT, deviceContext);
 	if (!result){
 		return false;
 	}
 
-	result = UpdateSentence(m_menuText4, "Attack", m_screenWidth - 215, m_screenHeight - 38, 0.0f, 0.0f, 0.0f, deviceContext);
+	result = UpdateSentence(m_menuText4, "Attack", m_screenWidth - 215, m_screenHeight - 38, 0.0f, 0.0f, 0.0f, NO_LENGTH_LIMIT, deviceContext);
 	if (!result){
 		return false;
 	}
@@ -409,17 +409,17 @@ bool TextClass::SetCombatMapText(ID3D11DeviceContext* deviceContext){
 	return true;
 }
 
-bool TextClass::SetTooltipText(int tooltipX, int tooltipY, ID3D11DeviceContext* deviceContext){
+bool TextClass::SetTooltipText(int tooltipX, int tooltipY, char* label, char* desc, int tooltipWidth, ID3D11DeviceContext* deviceContext){
 	// Update the tooltip sentences with helpful information about the currently highlighted
 	// UI object.
 	bool result;
 
-	result = UpdateSentence(m_tooltipLabel, "Tooltip Label", tooltipX + 3, tooltipY + 3, 1.0f, 1.0f, 1.0f, deviceContext);
+	result = UpdateSentence(m_tooltipLabel, label, tooltipX + 3, tooltipY + 3, 1.0f, 1.0f, 1.0f, tooltipWidth, deviceContext);
 	if (!result){
 		return false;
 	}
 
-	result = UpdateSentence(m_tooltipDescription, "Helpful tooltip text", tooltipX + 3, tooltipY + 16, 1.0f, 1.0f, 1.0f, deviceContext);
+	result = UpdateSentence(m_tooltipDescription, desc, tooltipX + 3, tooltipY + 16, 1.0f, 1.0f, 1.0f, tooltipWidth, deviceContext);
 	if (!result){
 		return false;
 	}
@@ -437,7 +437,7 @@ bool TextClass::NewErrorMessage(char* text, ID3D11DeviceContext* deviceContext){
 	if (m_errorTime1 >= MAX_ERROR_TIME){
 		// Use the first error sentence to display the new error
 		m_errorTime1 = 0.0f;
-		result = UpdateSentence(m_errorText1, text, m_screenWidth / 2 - 80, 80, 1.0f, 0.0f, 0.0f, deviceContext);
+		result = UpdateSentence(m_errorText1, text, m_screenWidth / 2 - 80, 80, 1.0f, 0.0f, 0.0f, NO_LENGTH_LIMIT, deviceContext);
 		if (!result){
 			return false;
 		}
@@ -445,7 +445,7 @@ bool TextClass::NewErrorMessage(char* text, ID3D11DeviceContext* deviceContext){
 		// Only 1 error already exists, use the second error sentence to display the new error
 		strcpy_s(m_secondErrorString, text);
 		m_errorTime2 = 0.0f;
-		result = UpdateSentence(m_errorText2, m_secondErrorString, m_screenWidth / 2 - 80, 96, 1.0f, 0.0f, 0.0f, deviceContext);
+		result = UpdateSentence(m_errorText2, m_secondErrorString, m_screenWidth / 2 - 80, 96, 1.0f, 0.0f, 0.0f, NO_LENGTH_LIMIT, deviceContext);
 		if (!result){
 			return false;
 		}
@@ -453,14 +453,14 @@ bool TextClass::NewErrorMessage(char* text, ID3D11DeviceContext* deviceContext){
 		// There are already 2 error messages, overwrite the first using the second and use the
 		// second error sentence to display the new error
 		m_errorTime1 = m_errorTime2;
-		result = UpdateSentence(m_errorText1, m_secondErrorString, m_screenWidth / 2 - 80, 80, 1.0f, 0.0f, 0.0f, deviceContext);
+		result = UpdateSentence(m_errorText1, m_secondErrorString, m_screenWidth / 2 - 80, 80, 1.0f, 0.0f, 0.0f, NO_LENGTH_LIMIT, deviceContext);
 		if (!result){
 			return false;
 		}
 
 		strcpy_s(m_secondErrorString, text);
 		m_errorTime2 = 0.0f;
-		result = UpdateSentence(m_errorText2, m_secondErrorString, m_screenWidth / 2 - 80, 96, 1.0f, 0.0f, 0.0f, deviceContext);
+		result = UpdateSentence(m_errorText2, m_secondErrorString, m_screenWidth / 2 - 80, 96, 1.0f, 0.0f, 0.0f, NO_LENGTH_LIMIT, deviceContext);
 		if (!result){
 			return false;
 		}
@@ -477,12 +477,12 @@ bool TextClass::ClearErrors(ID3D11DeviceContext* deviceContext){
 	m_errorTime2 = MAX_ERROR_TIME;
 	strcpy_s(m_secondErrorString, "");
 
-	result = UpdateSentence(m_errorText1, m_secondErrorString, 0, 0, 1.0f, 0.0f, 0.0f, deviceContext);
+	result = UpdateSentence(m_errorText1, m_secondErrorString, 0, 0, 1.0f, 0.0f, 0.0f, NO_LENGTH_LIMIT, deviceContext);
 	if (!result){
 		return false;
 	}
 
-	result = UpdateSentence(m_errorText2, m_secondErrorString, 0, 0, 1.0f, 0.0f, 0.0f, deviceContext);
+	result = UpdateSentence(m_errorText2, m_secondErrorString, 0, 0, 1.0f, 0.0f, 0.0f, NO_LENGTH_LIMIT, deviceContext);
 	if (!result){
 		return false;
 	}
@@ -503,7 +503,7 @@ bool TextClass::SetMousePosition(int mouseX, int mouseY, ID3D11DeviceContext* de
 	strcat_s(mouseString, tempString);
 
 	// Update the sentence vertex buffer with the new string information.
-	result = UpdateSentence(m_cursorXCoordinate, mouseString, 20, 20, 1.0f, 1.0f, 1.0f, deviceContext);
+	result = UpdateSentence(m_cursorXCoordinate, mouseString, 20, 20, 1.0f, 1.0f, 1.0f, NO_LENGTH_LIMIT, deviceContext);
 	if (!result){
 		return false;
 	}
@@ -516,7 +516,7 @@ bool TextClass::SetMousePosition(int mouseX, int mouseY, ID3D11DeviceContext* de
 	strcat_s(mouseString, tempString);
 
 	// Update the sentence vertex buffer with the new string information.
-	result = UpdateSentence(m_cursorYCoordinate, mouseString, 20, 40, 1.0f, 1.0f, 1.0f, deviceContext);
+	result = UpdateSentence(m_cursorYCoordinate, mouseString, 20, 40, 1.0f, 1.0f, 1.0f, NO_LENGTH_LIMIT, deviceContext);
 	if (!result){
 		return false;
 	}
@@ -537,7 +537,7 @@ bool TextClass::SetSelectedAgent(char* agentName, ID3D11DeviceContext* deviceCon
 	}
 
 	// Update the sentence vertex buffer with the new string information.
-	result = UpdateSentence(m_selectedAgent, newString, 20, m_screenHeight - 80, 1.0f, 1.0f, 1.0f, deviceContext);
+	result = UpdateSentence(m_selectedAgent, newString, 20, m_screenHeight - 80, 1.0f, 1.0f, 1.0f, NO_LENGTH_LIMIT, deviceContext);
 	if (!result){
 		return false;
 	}
@@ -641,7 +641,7 @@ bool TextClass::InitializeSentence(SentenceType** sentence, int maxLength, ID3D1
 	return true;
 }
 
-bool TextClass::UpdateSentence(SentenceType* sentence, char* text, int positionX, int positionY, float red, float green, float blue, ID3D11DeviceContext* deviceContext){
+bool TextClass::UpdateSentence(SentenceType* sentence, char* text, int positionX, int positionY, float red, float green, float blue, int maxWidth, ID3D11DeviceContext* deviceContext){
 	int numLetters;
 	VertexType* vertices;
 	float drawX, drawY;
@@ -676,7 +676,7 @@ bool TextClass::UpdateSentence(SentenceType* sentence, char* text, int positionX
 	drawY = (float)((m_screenHeight / 2) - positionY);
 
 	// Use the font class to build the vertex array from the sentence text and sentence draw location.
-	m_Font->BuildVertexArray((void*)vertices, text, drawX, drawY);
+	m_Font->BuildVertexArray((void*)vertices, text, drawX, drawY, maxWidth);
 
 	// Lock the vertex buffer so it can be written to.
 	result = deviceContext->Map(sentence->vertexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
