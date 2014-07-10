@@ -1106,132 +1106,137 @@ void ApplicationClass::ClearMovementMap(){
 }
 
 void ApplicationClass::ProcessPathnodes(int processLimit){
-	// Process up to processLimit pathnodes in the MovementQueue and update
-	// the MovementMap
+	// Process up to processLimit pathnodes in the MovementQueue and update the
+	// MovementMap. Nodes are processed in batches of equal cost nodes. If
+	// processing all minimum cost nodes exceeds the processLimit, all nodes in
+	// the batch will be processed before returning.
+	int minCost;
+	std::list<Pathnode*>::iterator pathnode;
 	int currX, currY;
 	int currIndex, neighbourIndex;
 	int nodesProcessed = 0;
 
-	// Search Loop - update the Pathnodes that correspond to all the tiles that
-	// the currently selected Agent can path to.
+	// Process Loop - Find the minimum cost of all pathnodes in the
+	// MovementQueue then process all pathnodes with the minimum cost.
 	while (!m_MovementQueue.empty() && nodesProcessed < processLimit){
-		// Process the next node in the queue
+		// Initialize minCost to -1
+		minCost = -1;
 
-		// The path found to the current pathnode is guaranteed to be the
-		// shortest path from the current Agent's location.
-		m_MovementQueue.front()->optimal = true;
-
-		// For the current pathnode, find and update any adjacent pathnodes
-		// that have not yet been visited.
-		currX = m_MovementQueue.front()->tileX;
-		currY = m_MovementQueue.front()->tileY;
-		currIndex = currX * m_combatMapHeight + currY;
-
-		// Check neighbours of the current tile in a clockwise direction starting
-		// with the tile directly above the current tile
-		// NOTE: The coordinates of adjacent pathnodes/tiles is dependant on
-		//       the x-coordinate of the current tile
-		if (currX % 2 == 0){
-			// Even Column hex
-
-			// Check if there is a tile above the current tile
-			if (currY > 0){
-				// There is a tile above the current tile
-				neighbourIndex = currIndex - 1;
-				VisitPathnode(currIndex, neighbourIndex);
-			}
-
-			// Check if there are any tiles to the right (Agent not on the rightmost edge of the map)
-			if (currX < m_combatMapWidth - 1){
-				// Check if there is a tile above and to the right
-				if (currY > 0){
-					// There is a tile above and to the right of the current tile
-					neighbourIndex = currIndex + m_combatMapHeight - 1;
-					VisitPathnode(currIndex, neighbourIndex);
-				}
-
-				// There is a tile below and to the right of the current tile
-				// NOTE: This is because the current tile is an even column tile with tiles to the right of it
-				neighbourIndex = currIndex + m_combatMapHeight;
-				VisitPathnode(currIndex, neighbourIndex);
-			}
-
-			// Check if there is a tile below the current tile
-			if (currY < m_combatMapHeight - 1){
-				// There is a tile below the current tile
-				neighbourIndex = currIndex + 1;
-				VisitPathnode(currIndex, neighbourIndex);
-			}
-
-			// Check if there are any tiles to the left (Agent not on the rightmost edge of the map)
-			if (currX > 0){
-				// There is a tile below and to the left of the current tile
-				// NOTE: This is because the current tile is an even column tile with tiles to the left of it
-				neighbourIndex = currIndex - m_combatMapHeight;
-				VisitPathnode(currIndex, neighbourIndex);
-
-				// Check if there is a tile above and to the left
-				if (currY > 0){
-					// There is a tile above and to the left of the current tile
-					neighbourIndex = currIndex - m_combatMapHeight - 1;
-					VisitPathnode(currIndex, neighbourIndex);
-				}
-			}
-		} else{
-			// Odd Column hex
-
-			// Check if there is a tile above the current tile
-			if (currY > 0){
-				// There is a tile above the current tile
-				neighbourIndex = currIndex - 1;
-				VisitPathnode(currIndex, neighbourIndex);
-			}
-
-			// Check if there are any tiles to the right (Agent not on the rightmost edge of the map)
-			if (currX < m_combatMapWidth - 1){
-				// There is a tile above and to the right of the current tile
-				// NOTE: This is because the current tile is an odd column tile with tiles to the right of it
-				neighbourIndex = currIndex + m_combatMapHeight;
-				VisitPathnode(currIndex, neighbourIndex);
-
-				// Check if there is a tile below and to the right
-				if (currY < m_combatMapHeight - 1){
-					// There is a tile below and to the right of the current tile
-					neighbourIndex = currIndex + m_combatMapHeight + 1;
-					VisitPathnode(currIndex, neighbourIndex);
-				}
-			}
-
-			// Check if there is a tile below the current tile
-			if (currY < m_combatMapHeight - 1){
-				// There is a tile below the current tile
-				neighbourIndex = currIndex + 1;
-				VisitPathnode(currIndex, neighbourIndex);
-			}
-
-			// Check if there are any tiles to the left (Agent not on the rightmost edge of the map)
-			if (currX > 0){
-				// Check if there is a tile below and to the left
-				if (currY < m_combatMapHeight - 1){
-					// There is a tile below and to the left of the current tile
-					neighbourIndex = currIndex - m_combatMapHeight + 1;
-					VisitPathnode(currIndex, neighbourIndex);
-				}
-
-				// There is a tile above and to the left of the current tile
-				// NOTE: This is because the current tile is an odd column tile with tiles to the left of it
-				neighbourIndex = currIndex - m_combatMapHeight;
-				VisitPathnode(currIndex, neighbourIndex);
-			}
+		// Find the minimum cost of all pathnodes in the MovementQueue
+		for (pathnode = m_MovementQueue.begin(); pathnode != m_MovementQueue.end(); ++pathnode){
+			if ((*pathnode)->cost < minCost || (minCost = -1 && (*pathnode)->cost >= 0)) minCost = (*pathnode)->cost;
 		}
 
-		// Pop the front of the queue and sort the remaining pathnodes
-		m_MovementQueue.pop_front();
-		m_MovementQueue.sort(compare2);
+		// Process all minimum cost pathnodes in the queue.
+		pathnode = m_MovementQueue.begin();
+		while (pathnode != m_MovementQueue.end()){
+			if ((*pathnode)->cost == minCost){
+				// Process this node
 
-		// Increase nodesProcessed
-		nodesProcessed++;
+				// The path found to the current pathnode is guaranteed to be the
+				// shortest path from the current Agent's location.
+				(*pathnode)->optimal = true;
+
+				// For the current pathnode, find and update any adjacent pathnodes
+				// that have not yet been visited.
+				currX = (*pathnode)->tileX;
+				currY = (*pathnode)->tileY;
+				currIndex = currX * m_combatMapHeight + currY;
+
+				// Visit neighbours of the current tile
+				// NOTE: The coordinates of some adjacent pathnodes/tiles are dependant on
+				//       the x-coordinate of the current tile
+
+				// Check if there is a tile above the current tile
+				if (currY > 0){
+					// There is a tile above the current tile
+					neighbourIndex = currIndex - 1;
+					VisitPathnode(currIndex, neighbourIndex);
+				}
+
+				// Check if there is a tile below the current tile
+				if (currY < m_combatMapHeight - 1){
+					// There is a tile below the current tile
+					neighbourIndex = currIndex + 1;
+					VisitPathnode(currIndex, neighbourIndex);
+				}
+
+				if (currX % 2 == 0){
+					// Even Column hex
+
+					// Check if there are any tiles to the right (Agent not on the rightmost edge of the map)
+					if (currX < m_combatMapWidth - 1){
+						// Check if there is a tile above and to the right
+						if (currY > 0){
+							// There is a tile above and to the right of the current tile
+							neighbourIndex = currIndex + m_combatMapHeight - 1;
+							VisitPathnode(currIndex, neighbourIndex);
+						}
+
+						// There is a tile below and to the right of the current tile
+						// NOTE: This is because the current tile is an even column tile with tiles to the right of it
+						neighbourIndex = currIndex + m_combatMapHeight;
+						VisitPathnode(currIndex, neighbourIndex);
+					}
+
+					// Check if there are any tiles to the left (Agent not on the rightmost edge of the map)
+					if (currX > 0){
+						// There is a tile below and to the left of the current tile
+						// NOTE: This is because the current tile is an even column tile with tiles to the left of it
+						neighbourIndex = currIndex - m_combatMapHeight;
+						VisitPathnode(currIndex, neighbourIndex);
+
+						// Check if there is a tile above and to the left
+						if (currY > 0){
+							// There is a tile above and to the left of the current tile
+							neighbourIndex = currIndex - m_combatMapHeight - 1;
+							VisitPathnode(currIndex, neighbourIndex);
+						}
+					}
+				} else{
+					// Odd Column hex
+
+					// Check if there are any tiles to the right (Agent not on the rightmost edge of the map)
+					if (currX < m_combatMapWidth - 1){
+						// There is a tile above and to the right of the current tile
+						// NOTE: This is because the current tile is an odd column tile with tiles to the right of it
+						neighbourIndex = currIndex + m_combatMapHeight;
+						VisitPathnode(currIndex, neighbourIndex);
+
+						// Check if there is a tile below and to the right
+						if (currY < m_combatMapHeight - 1){
+							// There is a tile below and to the right of the current tile
+							neighbourIndex = currIndex + m_combatMapHeight + 1;
+							VisitPathnode(currIndex, neighbourIndex);
+						}
+					}
+
+					// Check if there are any tiles to the left (Agent not on the rightmost edge of the map)
+					if (currX > 0){
+						// Check if there is a tile below and to the left
+						if (currY < m_combatMapHeight - 1){
+							// There is a tile below and to the left of the current tile
+							neighbourIndex = currIndex - m_combatMapHeight + 1;
+							VisitPathnode(currIndex, neighbourIndex);
+						}
+
+						// There is a tile above and to the left of the current tile
+						// NOTE: This is because the current tile is an odd column tile with tiles to the left of it
+						neighbourIndex = currIndex - m_combatMapHeight;
+						VisitPathnode(currIndex, neighbourIndex);
+					}
+				}
+
+				// Remove the processed node from the Queue and move the iterator to the next node
+				pathnode = m_MovementQueue.erase(pathnode);
+				++nodesProcessed;
+			} else {
+				++pathnode;
+			}
+		}
 	}
+
+	return;
 }
 
 void ApplicationClass::VisitPathnode(int currIndex, int neighbourIndex){
