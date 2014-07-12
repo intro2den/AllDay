@@ -344,11 +344,6 @@ bool TextClass::SetMainMenuText(int horizontalOffset, int verticalOffset, int bu
 		return false;
 	}
 
-	result = UpdateSentence(m_menuText4, "", horizontalOffset + 15, verticalOffset + (buttonHeight / 2) + 3 * (buttonHeight + buttonSpacing) - 4, 0.0f, 0.0f, 0.0f, NO_LENGTH_LIMIT, deviceContext);
-	if (!result){
-		return false;
-	}
-
 	return true;
 }
 
@@ -371,11 +366,6 @@ bool TextClass::SetOptionsMenuText(int horizontalOffset, int verticalOffset, int
 	}
 	
 	result = UpdateSentence(m_menuText3, "", 0, 0, 0.0f, 0.0f, 0.0f, NO_LENGTH_LIMIT, deviceContext);
-	if (!result){
-		return false;
-	}
-
-	result = UpdateSentence(m_menuText4, "", horizontalOffset + 15, verticalOffset + (buttonHeight / 2) + 3 * (buttonHeight + buttonSpacing) - 4, 0.0f, 0.0f, 0.0f, NO_LENGTH_LIMIT, deviceContext);
 	if (!result){
 		return false;
 	}
