@@ -21,9 +21,8 @@ bool SystemClass::Initialize(){
 	int screenWidth, screenHeight;
 	bool result;
 
-	// Initialize the width and height of the screen to zero before sending the variables into the function.
-	screenWidth = 0;
-	screenHeight = 0;
+	// Initialize settings from the configuration file
+	ReadConfig(screenWidth, screenHeight);
 
 	// Initialize the windows api.
 	InitializeWindows(screenWidth, screenHeight);
@@ -35,7 +34,7 @@ bool SystemClass::Initialize(){
 	}
 
 	// Initialize the application wrapper object
-	result = m_Application->Initialize(m_hinstance, m_hwnd, screenWidth, screenHeight);
+	result = m_Application->Initialize(m_hinstance, m_hwnd, screenWidth, screenHeight, m_fullscreen);
 	if (!result){
 		MessageBox(m_hwnd, "Could not initialize the input object.", "Error", MB_OK);
 		return false;
@@ -71,13 +70,13 @@ void SystemClass::Run(){
 	// Loop until there is a quit message from the window or the user.
 	done = false;
 	while (!done){
-		// Handle the windows messages.
+		// Handle the window's messages.
 		if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)){
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);
 		}
 
-		// If windows signals to end the application then exit out.
+		// If the window signals to end the application then exit out.
 		if (msg.message == WM_QUIT){
 			done = true;
 		} else{
@@ -92,6 +91,72 @@ void SystemClass::Run(){
 	return;
 }
 
+// Direct Input handles all input now, this just passes messages back to the default Windows message handler
+LRESULT CALLBACK SystemClass::MessageHandler(HWND hwnd, UINT umsg, WPARAM wparam, LPARAM lparam){
+	return DefWindowProc(hwnd, umsg, wparam, lparam);
+}
+
+void SystemClass::ReadConfig(int& screenWidth, int& screenHeight){
+	// Read the configuration file for initial application settings.
+	// If settings are missing from the file or the file can't be opened, use
+	// default values for those settings.
+	ifstream fin;
+	char configString[20];
+
+	// Set all values to their default
+	screenWidth = 800;
+	screenHeight = 600;
+	m_fullscreen = false;
+
+	// Open the configuration file
+	fin.open("../rastertekTutorials/data/configuration.txt");
+	if (fin.fail()){
+		// The file couldn't be opened, return with the default settings
+		return;
+	}
+
+	// Read through the configuration file and adjust settings accordingly
+	// NOTE: Currently, for proper parsing of the config file each setting
+	//       should occupy a single line, starting with the first line.
+	//       Should find better method of parsing files.
+	fin.getline(configString, 20, ' ');
+
+	while (!fin.eof()){
+		// Screen Width
+		if (strncmp(configString, "screenwidth", 11) == 0){
+			fin.getline(configString, 20, '\n');
+			screenWidth = atoi(configString);
+			fin.getline(configString, 20, ' ');
+			continue;
+		}
+
+		// Screen Height
+		if (strncmp(configString, "screenheight", 12) == 0){
+			fin.getline(configString, 20, '\n');
+			screenHeight = atoi(configString);
+			fin.getline(configString, 20, ' ');
+			continue;
+		}
+
+		// Full Screen
+		if (strncmp(configString, "fullscreen", 10) == 0){
+			fin.getline(configString, 20, '\n');
+			if (strncmp(configString, "true", 4) == 0) m_fullscreen = true;
+			fin.getline(configString, 20, ' ');
+			continue;
+		}
+
+		// Read from the next line.
+		fin.getline(configString, 20, '\n');
+		fin.getline(configString, 20, ' ');
+	}
+
+	// Close the configuration file
+	fin.close();
+	return;
+}
+
+
 // All processing for application done here
 bool SystemClass::Frame(){
 	bool result;
@@ -105,13 +170,7 @@ bool SystemClass::Frame(){
 	return true;
 }
 
-// Direct Input handles all input now, this just passes messages back to the default Windows message handler
-LRESULT CALLBACK SystemClass::MessageHandler(HWND hwnd, UINT umsg, WPARAM wparam, LPARAM lparam){
-	return DefWindowProc(hwnd, umsg, wparam, lparam);
-}
-
 // Build the window we will be rendering to, returns screenWidth and screenHeight so we can use them
-// FULL_SCREEN can be found in graphicsclass.h
 void SystemClass::InitializeWindows(int& screenWidth, int& screenHeight){
 	WNDCLASSEX wc;
 	DEVMODE dmScreenSettings;
@@ -124,7 +183,7 @@ void SystemClass::InitializeWindows(int& screenWidth, int& screenHeight){
 	m_hinstance = GetModuleHandle(NULL);
 
 	// Give the application a name.
-	m_applicationName = "rastertekTutorials";
+	m_applicationName = "AllDay";
 
 	// Setup the windows class with default settings.
 	wc.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
@@ -143,12 +202,12 @@ void SystemClass::InitializeWindows(int& screenWidth, int& screenHeight){
 	// Register the window class.
 	RegisterClassEx(&wc);
 
-	// Determine the resolution of the clients desktop screen.
-	screenWidth = GetSystemMetrics(SM_CXSCREEN);
-	screenHeight = GetSystemMetrics(SM_CYSCREEN);
-
 	// Setup the screen settings depending on whether it is running in full screen or in windowed mode.
-	if (FULL_SCREEN){
+	if (m_fullscreen){
+		// Set the screen to the maximum resolution of the user's desktop
+		screenWidth = GetSystemMetrics(SM_CXSCREEN);
+		screenHeight = GetSystemMetrics(SM_CYSCREEN);
+
 		// If full screen set the screen to maximum size of the users desktop and 32bit.
 		memset(&dmScreenSettings, 0, sizeof(dmScreenSettings));
 		dmScreenSettings.dmSize = sizeof(dmScreenSettings);
@@ -163,10 +222,6 @@ void SystemClass::InitializeWindows(int& screenWidth, int& screenHeight){
 		// Set the position of the window to the top left corner.
 		posX = posY = 0;
 	} else{
-		// If windowed then set it to 800x600 resolution.
-		screenWidth = 800;
-		screenHeight = 600;
-
 		// Place the window in the middle of the screen.
 		posX = (GetSystemMetrics(SM_CXSCREEN) - screenWidth) / 2;
 		posY = (GetSystemMetrics(SM_CYSCREEN) - screenHeight) / 2;
@@ -194,7 +249,7 @@ void SystemClass::ShutdownWindows(){
 	ShowCursor(true);
 
 	// Fix the display settings if leaving full screen mode.
-	if (FULL_SCREEN){
+	if (m_fullscreen){
 		ChangeDisplaySettings(NULL, 0);
 	}
 
@@ -218,21 +273,21 @@ void SystemClass::ShutdownWindows(){
 // to the class and keep the code clean
 LRESULT CALLBACK WndProc(HWND hwnd, UINT umessage, WPARAM wparam, LPARAM lparam){
 	switch (umessage){
-		// Check if the window is being destroyed.
-		case WM_DESTROY:{
-					   PostQuitMessage(0);
-					   return 0;
-		}
+	// Check if the window is being destroyed.
+	case WM_DESTROY:
+		PostQuitMessage(0);
+		return 0;
+		break;
 
-		// Check if the window is being closed.
-		case WM_CLOSE:{
-					 PostQuitMessage(0);
-					 return 0;
-		}
+	// Check if the window is being closed.
+	case WM_CLOSE:
+		PostQuitMessage(0);
+		return 0;
+		break;
 
-		// All other messages pass to the message handler in the system class.
-		default:{
-			   return ApplicationHandle->MessageHandler(hwnd, umessage, wparam, lparam);
-		}
+	// All other messages pass to the message handler in the system class.
+	default:
+		return ApplicationHandle->MessageHandler(hwnd, umessage, wparam, lparam);
+
 	}
 }

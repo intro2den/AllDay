@@ -37,7 +37,7 @@ ApplicationClass::~ApplicationClass(){
 }
 
 // Initialize - creates window for application, initializes input and graphics objects
-bool ApplicationClass::Initialize(HINSTANCE hinstance, HWND hwnd, int screenWidth, int screenHeight){
+bool ApplicationClass::Initialize(HINSTANCE hinstance, HWND hwnd, int screenWidth, int screenHeight, bool fullscreen){
 	bool result;
 	float cameraX, cameraY, cameraZ;
 	D3DXMATRIX baseViewMatrix;
@@ -45,6 +45,7 @@ bool ApplicationClass::Initialize(HINSTANCE hinstance, HWND hwnd, int screenWidt
 	// Keep track of the screen width and height for bounding the camera, dynamic bitmap initialization and/or scaling(?)
 	m_screenWidth = screenWidth;
 	m_screenHeight = screenHeight;
+	m_fullscreen = fullscreen;
 
 	// Set initial MainState, MenuState and CommandState
 	m_MainState = MAINSTATE_MAINMENU;
@@ -61,7 +62,7 @@ bool ApplicationClass::Initialize(HINSTANCE hinstance, HWND hwnd, int screenWidt
 
 	// Initialize the currently highlighted UI menu and element to none, no UI elements are highlighted on initialization
 	m_currentUIMenu = UIMENU_NOMENU;
-	m_currentUIElement = MAINMENUBUTTON_NOBUTTON;
+	m_currentUIElement = UIELEMENT_NOELEMENT;
 
 	// Initialize the coordinates and index for the currently highlighted tile (for the CombatMap - initially invalid coordinates)
 	m_currentTileX = -1;
@@ -78,8 +79,8 @@ bool ApplicationClass::Initialize(HINSTANCE hinstance, HWND hwnd, int screenWidt
 	m_cursorIdleTime = 0.0f;
 	m_tooltipX = 0;
 	m_tooltipY = 0;
-	m_tooltipWidth = 0;
-	m_tooltipHeight = 0;
+	m_tooltipWidth = 200;
+	m_tooltipHeight = 48;
 
 	// Create the input object.  The input object will be used to handle reading the keyboard and mouse input from the user.
 	m_Input = new InputClass;
@@ -101,7 +102,7 @@ bool ApplicationClass::Initialize(HINSTANCE hinstance, HWND hwnd, int screenWidt
 	}
 
 	// Initialize the Direct3D object.
-	result = m_D3D->Initialize(m_screenWidth, m_screenHeight, VSYNC_ENABLED, hwnd, FULL_SCREEN, SCREEN_DEPTH, SCREEN_NEAR);
+	result = m_D3D->Initialize(m_screenWidth, m_screenHeight, VSYNC_ENABLED, hwnd, m_fullscreen, SCREEN_DEPTH, SCREEN_NEAR);
 	if (!result){
 		MessageBox(hwnd, "Could not initialize DirectX 11.", "Error", MB_OK);
 		return false;
@@ -396,9 +397,11 @@ bool ApplicationClass::Frame(){
 }
 
 // Read Configuration File to configure settings
-// NOTE: This should probably be done in the SystemClass before the
-//       ApplicationClass is instantiated, specifically for setting the
-//       resolution of the application window.
+// NOTE: Some parsing of the configuration file is done in the SystemClass
+//       before the ApplicationClass is instantiated. As such, not all of the
+//       parsed data is valid in this function. If possible, all configuration
+//       data should be parsed in the SystemClass and passed into the
+//       instantiation of the ApplicationClass.
 bool ApplicationClass::ReadConfig(){
 	bool result;
 	ifstream fin;
@@ -407,7 +410,8 @@ bool ApplicationClass::ReadConfig(){
 	// Proof of Concept for reading Configuration File
 	fin.open("../rastertekTutorials/data/configuration.txt");
 	if (fin.fail()){
-		return false;
+		// If the configuration file can't be opened return
+		return true;
 	}
 
 	// Read through the Configuration File and set relevant variables accordingly
@@ -416,8 +420,7 @@ bool ApplicationClass::ReadConfig(){
 	while (!fin.eof()){
 		// This is probably not a good way to parse a text file
 		if (strncmp(configString, "mainstate", 8) == 0){
-			fin.getline(configString, 20, ' ');
-			fin.getline(configString, 20, ' ');
+			fin.getline(configString, 20, '\n');
 
 			if (strncmp(configString, "combat", 6) == 0){
 				// Change the MainState to CombatMap, create a new CombatMap and begin the first round
@@ -449,6 +452,7 @@ bool ApplicationClass::ReadConfig(){
 
 		}
 
+		fin.getline(configString, 20, '\n');
 		fin.getline(configString, 20, ' ');
 	}
 
@@ -469,7 +473,7 @@ void ApplicationClass::FindCurrentUIElement(){
 
 	// Reset the current menu and UI element to none, the previous element should not be remembered.
 	m_currentUIMenu = UIMENU_NOMENU;
-	m_currentUIElement = MAINMENUBUTTON_NOBUTTON;
+	m_currentUIElement = UIELEMENT_NOELEMENT;
 
 	// The current MainState determines the placement of open menus and other UI Elements
 	switch (m_MainState){
@@ -1102,132 +1106,137 @@ void ApplicationClass::ClearMovementMap(){
 }
 
 void ApplicationClass::ProcessPathnodes(int processLimit){
-	// Process up to processLimit pathnodes in the MovementQueue and update
-	// the MovementMap
+	// Process up to processLimit pathnodes in the MovementQueue and update the
+	// MovementMap. Nodes are processed in batches of equal cost nodes. If
+	// processing all minimum cost nodes exceeds the processLimit, all nodes in
+	// the batch will be processed before returning.
+	int minCost;
+	std::list<Pathnode*>::iterator pathnode;
 	int currX, currY;
 	int currIndex, neighbourIndex;
 	int nodesProcessed = 0;
 
-	// Search Loop - update the Pathnodes that correspond to all the tiles that
-	// the currently selected Agent can path to.
+	// Process Loop - Find the minimum cost of all pathnodes in the
+	// MovementQueue then process all pathnodes with the minimum cost.
 	while (!m_MovementQueue.empty() && nodesProcessed < processLimit){
-		// Process the next node in the queue
+		// Initialize minCost to -1
+		minCost = -1;
 
-		// The path found to the current pathnode is guaranteed to be the
-		// shortest path from the current Agent's location.
-		m_MovementQueue.front()->optimal = true;
-
-		// For the current pathnode, find and update any adjacent pathnodes
-		// that have not yet been visited.
-		currX = m_MovementQueue.front()->tileX;
-		currY = m_MovementQueue.front()->tileY;
-		currIndex = currX * m_combatMapHeight + currY;
-
-		// Check neighbours of the current tile in a clockwise direction starting
-		// with the tile directly above the current tile
-		// NOTE: The coordinates of adjacent pathnodes/tiles is dependant on
-		//       the x-coordinate of the current tile
-		if (currX % 2 == 0){
-			// Even Column hex
-
-			// Check if there is a tile above the current tile
-			if (currY > 0){
-				// There is a tile above the current tile
-				neighbourIndex = currIndex - 1;
-				VisitPathnode(currIndex, neighbourIndex);
-			}
-
-			// Check if there are any tiles to the right (Agent not on the rightmost edge of the map)
-			if (currX < m_combatMapWidth - 1){
-				// Check if there is a tile above and to the right
-				if (currY > 0){
-					// There is a tile above and to the right of the current tile
-					neighbourIndex = currIndex + m_combatMapHeight - 1;
-					VisitPathnode(currIndex, neighbourIndex);
-				}
-
-				// There is a tile below and to the right of the current tile
-				// NOTE: This is because the current tile is an even column tile with tiles to the right of it
-				neighbourIndex = currIndex + m_combatMapHeight;
-				VisitPathnode(currIndex, neighbourIndex);
-			}
-
-			// Check if there is a tile below the current tile
-			if (currY < m_combatMapHeight - 1){
-				// There is a tile below the current tile
-				neighbourIndex = currIndex + 1;
-				VisitPathnode(currIndex, neighbourIndex);
-			}
-
-			// Check if there are any tiles to the left (Agent not on the rightmost edge of the map)
-			if (currX > 0){
-				// There is a tile below and to the left of the current tile
-				// NOTE: This is because the current tile is an even column tile with tiles to the left of it
-				neighbourIndex = currIndex - m_combatMapHeight;
-				VisitPathnode(currIndex, neighbourIndex);
-
-				// Check if there is a tile above and to the left
-				if (currY > 0){
-					// There is a tile above and to the left of the current tile
-					neighbourIndex = currIndex - m_combatMapHeight - 1;
-					VisitPathnode(currIndex, neighbourIndex);
-				}
-			}
-		} else{
-			// Odd Column hex
-
-			// Check if there is a tile above the current tile
-			if (currY > 0){
-				// There is a tile above the current tile
-				neighbourIndex = currIndex - 1;
-				VisitPathnode(currIndex, neighbourIndex);
-			}
-
-			// Check if there are any tiles to the right (Agent not on the rightmost edge of the map)
-			if (currX < m_combatMapWidth - 1){
-				// There is a tile above and to the right of the current tile
-				// NOTE: This is because the current tile is an odd column tile with tiles to the right of it
-				neighbourIndex = currIndex + m_combatMapHeight;
-				VisitPathnode(currIndex, neighbourIndex);
-
-				// Check if there is a tile below and to the right
-				if (currY < m_combatMapHeight - 1){
-					// There is a tile below and to the right of the current tile
-					neighbourIndex = currIndex + m_combatMapHeight + 1;
-					VisitPathnode(currIndex, neighbourIndex);
-				}
-			}
-
-			// Check if there is a tile below the current tile
-			if (currY < m_combatMapHeight - 1){
-				// There is a tile below the current tile
-				neighbourIndex = currIndex + 1;
-				VisitPathnode(currIndex, neighbourIndex);
-			}
-
-			// Check if there are any tiles to the left (Agent not on the rightmost edge of the map)
-			if (currX > 0){
-				// Check if there is a tile below and to the left
-				if (currY < m_combatMapHeight - 1){
-					// There is a tile below and to the left of the current tile
-					neighbourIndex = currIndex - m_combatMapHeight + 1;
-					VisitPathnode(currIndex, neighbourIndex);
-				}
-
-				// There is a tile above and to the left of the current tile
-				// NOTE: This is because the current tile is an odd column tile with tiles to the left of it
-				neighbourIndex = currIndex - m_combatMapHeight;
-				VisitPathnode(currIndex, neighbourIndex);
-			}
+		// Find the minimum cost of all pathnodes in the MovementQueue
+		for (pathnode = m_MovementQueue.begin(); pathnode != m_MovementQueue.end(); ++pathnode){
+			if ((*pathnode)->cost < minCost || (minCost = -1 && (*pathnode)->cost >= 0)) minCost = (*pathnode)->cost;
 		}
 
-		// Pop the front of the queue and sort the remaining pathnodes
-		m_MovementQueue.pop_front();
-		m_MovementQueue.sort(compare2);
+		// Process all minimum cost pathnodes in the queue.
+		pathnode = m_MovementQueue.begin();
+		while (pathnode != m_MovementQueue.end()){
+			if ((*pathnode)->cost == minCost){
+				// Process this node
 
-		// Increase nodesProcessed
-		nodesProcessed++;
+				// The path found to the current pathnode is guaranteed to be the
+				// shortest path from the current Agent's location.
+				(*pathnode)->optimal = true;
+
+				// For the current pathnode, find and update any adjacent pathnodes
+				// that have not yet been visited.
+				currX = (*pathnode)->tileX;
+				currY = (*pathnode)->tileY;
+				currIndex = currX * m_combatMapHeight + currY;
+
+				// Visit neighbours of the current tile
+				// NOTE: The coordinates of some adjacent pathnodes/tiles are dependant on
+				//       the x-coordinate of the current tile
+
+				// Check if there is a tile above the current tile
+				if (currY > 0){
+					// There is a tile above the current tile
+					neighbourIndex = currIndex - 1;
+					VisitPathnode(currIndex, neighbourIndex);
+				}
+
+				// Check if there is a tile below the current tile
+				if (currY < m_combatMapHeight - 1){
+					// There is a tile below the current tile
+					neighbourIndex = currIndex + 1;
+					VisitPathnode(currIndex, neighbourIndex);
+				}
+
+				if (currX % 2 == 0){
+					// Even Column hex
+
+					// Check if there are any tiles to the right (Agent not on the rightmost edge of the map)
+					if (currX < m_combatMapWidth - 1){
+						// Check if there is a tile above and to the right
+						if (currY > 0){
+							// There is a tile above and to the right of the current tile
+							neighbourIndex = currIndex + m_combatMapHeight - 1;
+							VisitPathnode(currIndex, neighbourIndex);
+						}
+
+						// There is a tile below and to the right of the current tile
+						// NOTE: This is because the current tile is an even column tile with tiles to the right of it
+						neighbourIndex = currIndex + m_combatMapHeight;
+						VisitPathnode(currIndex, neighbourIndex);
+					}
+
+					// Check if there are any tiles to the left (Agent not on the rightmost edge of the map)
+					if (currX > 0){
+						// There is a tile below and to the left of the current tile
+						// NOTE: This is because the current tile is an even column tile with tiles to the left of it
+						neighbourIndex = currIndex - m_combatMapHeight;
+						VisitPathnode(currIndex, neighbourIndex);
+
+						// Check if there is a tile above and to the left
+						if (currY > 0){
+							// There is a tile above and to the left of the current tile
+							neighbourIndex = currIndex - m_combatMapHeight - 1;
+							VisitPathnode(currIndex, neighbourIndex);
+						}
+					}
+				} else{
+					// Odd Column hex
+
+					// Check if there are any tiles to the right (Agent not on the rightmost edge of the map)
+					if (currX < m_combatMapWidth - 1){
+						// There is a tile above and to the right of the current tile
+						// NOTE: This is because the current tile is an odd column tile with tiles to the right of it
+						neighbourIndex = currIndex + m_combatMapHeight;
+						VisitPathnode(currIndex, neighbourIndex);
+
+						// Check if there is a tile below and to the right
+						if (currY < m_combatMapHeight - 1){
+							// There is a tile below and to the right of the current tile
+							neighbourIndex = currIndex + m_combatMapHeight + 1;
+							VisitPathnode(currIndex, neighbourIndex);
+						}
+					}
+
+					// Check if there are any tiles to the left (Agent not on the rightmost edge of the map)
+					if (currX > 0){
+						// Check if there is a tile below and to the left
+						if (currY < m_combatMapHeight - 1){
+							// There is a tile below and to the left of the current tile
+							neighbourIndex = currIndex - m_combatMapHeight + 1;
+							VisitPathnode(currIndex, neighbourIndex);
+						}
+
+						// There is a tile above and to the left of the current tile
+						// NOTE: This is because the current tile is an odd column tile with tiles to the left of it
+						neighbourIndex = currIndex - m_combatMapHeight;
+						VisitPathnode(currIndex, neighbourIndex);
+					}
+				}
+
+				// Remove the processed node from the Queue and move the iterator to the next node
+				pathnode = m_MovementQueue.erase(pathnode);
+				++nodesProcessed;
+			} else {
+				++pathnode;
+			}
+		}
 	}
+
+	return;
 }
 
 void ApplicationClass::VisitPathnode(int currIndex, int neighbourIndex){
@@ -1635,21 +1644,13 @@ bool ApplicationClass::Update(float frameTime, bool cursorIdle){
 	// because the cursor moved or wasn't idle for long enough) determine which
 	// tooltip should be displayed and set the appropriate variables and text
 	// to display the tooltip.
-	if (m_cursorIdleTime >= m_tooltipDelay && !m_displayTooltip){
+	if (m_cursorIdleTime >= m_tooltipDelay && !m_displayTooltip && m_currentUIElement != UIELEMENT_NOELEMENT){
 		// If the UI element under the cursor has a tooltip, it should be
 		// displayed
 		m_displayTooltip = true;
 
-		// Determine which UI element is under the cursor and update the
-		// tooltip to be displayed
-
-		// Proof of Concept
-		m_tooltipX = m_screenWidth - 150;
-		m_tooltipY = 50;
-		m_tooltipWidth = 100;
-		m_tooltipHeight = 40;
-
-		result = m_Text->SetTooltipText(m_tooltipX, m_tooltipY, m_D3D->GetDeviceContext());
+		// Update the tooltip to be displayed
+		result = UpdateTooltip();
 		if (!result){
 			return false;
 		}
@@ -1666,6 +1667,204 @@ bool ApplicationClass::Update(float frameTime, bool cursorIdle){
 	return true;
 }
 
+bool ApplicationClass::UpdateTooltip(){
+	// Set the tooltip position and dimensions and set the text based on the
+	// UI element that is currently under the cursor.
+	bool result;
+
+	// NOTE: Tooltips should appear close to the UI element that they apply to
+	//       without obscuring it or any related elements.
+	//       For example: Tooltips for UI elements on the CombatMap menu bar
+	//       should appear immediately above the menu bar, close to the element
+	//       being described but not obscuring any part of the menu bar.
+	// NOTE2: This is partially proof of concept - all tooltip labels and
+	//        descriptions should be stored as constants (or variables set
+	//        from data files) or in some cases stored with the object that the
+	//        tooltip will describe.
+	// NOTE3: This code should be cleaned up, split into helper functions to
+	//        reduce duplicate code (same tooltips with different positions).
+
+	// The display of certain Tooltips varies with the MainState and MenuState
+	switch (m_MainState){
+	case MAINSTATE_MAINMENU:
+		// Main Menu tooltips
+
+		// Initial tooltip location for the Main Menu is to the right of the buttons, at the same height
+		m_tooltipX = MAIN_MENU_BUTTON_HORIZONTAL_OFFSET + MAIN_MENU_BUTTON_WIDTH;
+		m_tooltipY = MAIN_MENU_BUTTON_VERTICAL_OFFSET;
+
+		switch (m_MenuState){
+		case MENUSTATE_MAINMENU:
+			switch (m_currentUIElement){
+			case MAINMENUBUTTON_ENTERCOMBATMAP:
+				result = m_Text->SetTooltipText(m_tooltipX, m_tooltipY, "Enter Combat", "Generates and starts a combat scenario", m_tooltipWidth, m_D3D->GetDeviceContext());
+				if (!result){
+					return false;
+				}
+				break;
+
+			case MAINMENUBUTTON_OPTIONS:
+				// Shift the tooltip location down to the same height as the button
+				m_tooltipY += MAIN_MENU_BUTTON_HEIGHT + MAIN_MENU_BUTTON_SPACING;
+
+				result = m_Text->SetTooltipText(m_tooltipX, m_tooltipY, "Options Menu", "Adjust audio and graphics setttings", m_tooltipWidth, m_D3D->GetDeviceContext());
+				if (!result){
+					return false;
+				}
+				break;
+
+			case MAINMENUBUTTON_EXIT:
+				// Shift the tooltip location down to the same height as the button
+				m_tooltipY += 2 * (MAIN_MENU_BUTTON_HEIGHT + MAIN_MENU_BUTTON_SPACING);
+
+				result = m_Text->SetTooltipText(m_tooltipX, m_tooltipY, "Exit Application", "Shutdown the game and return to desktop", m_tooltipWidth, m_D3D->GetDeviceContext());
+				if (!result){
+					return false;
+				}
+				break;
+
+			default:
+				m_displayTooltip = false;
+			}
+
+			break;
+
+		case MENUSTATE_OPTIONMENU:
+			switch (m_currentUIElement){
+			case OPTIONSMENUBUTTON_BACK:
+				result = m_Text->SetTooltipText(m_tooltipX, m_tooltipY, "Main Menu", "Return to the Main Menu", m_tooltipWidth, m_D3D->GetDeviceContext());
+				if (!result){
+					return false;
+				}
+				break;
+
+			default:
+				m_displayTooltip = false;
+			}
+
+			break;
+
+		default:
+			m_displayTooltip = false;
+		}
+
+		break;
+
+	case MAINSTATE_COMBATMAP:
+		switch (m_MenuState){
+		// TODO: Create Main Menu Interface for the Combat Map and position tooltips accordingly
+
+		case MENUSTATE_MAINMENU:
+			switch (m_currentUIMenu){
+			case UIMENU_MAINMENU:
+				switch (m_currentUIElement){
+				case MAINMENUBUTTON_OPTIONS:
+					result = m_Text->SetTooltipText(m_tooltipX, m_tooltipY, "Options", "Adjust audio and graphics settings", m_tooltipWidth, m_D3D->GetDeviceContext());
+					if (!result){
+						return false;
+					}
+					break;
+
+				case MAINMENUBUTTON_EXIT:
+					result = m_Text->SetTooltipText(m_tooltipX, m_tooltipY, "Exit Application", "Shutdown the game and return to desktop", m_tooltipWidth, m_D3D->GetDeviceContext());
+					if (!result){
+						return false;
+					}
+					break;
+
+				default:
+					m_displayTooltip = false;
+				}
+
+				break;
+
+			default:
+				m_displayTooltip = false;
+			}
+			break;
+
+		case MENUSTATE_OPTIONMENU:
+			switch (m_currentUIMenu){
+			case UIMENU_OPTIONSMENU:
+				switch (m_currentUIElement){
+				case OPTIONSMENUBUTTON_BACK:
+					result = m_Text->SetTooltipText(m_tooltipX, m_tooltipY, "Back", "Return to the Main Menu", m_tooltipWidth, m_D3D->GetDeviceContext());
+					if (!result){
+						return false;
+					}
+					break;
+
+				default:
+					m_displayTooltip = false;
+				}
+
+				break;
+
+			default:
+				m_displayTooltip = false;
+			}
+			break;
+
+		case MENUSTATE_NOMENU:
+			switch (m_currentUIMenu){
+			case UIMENU_COMBATMENUBAR:
+				// Set the tooltip position to directly above the command buttons on the menu bar
+				m_tooltipX = m_screenWidth - m_tooltipWidth;
+				m_tooltipY = m_screenHeight - COMBAT_MENU_HEIGHT - m_tooltipHeight;
+
+				switch (m_currentUIElement){
+				case COMBATMENUBUTTON_MOVE:
+					result = m_Text->SetTooltipText(m_tooltipX, m_tooltipY, "Move", "Command the selected Agent to move to a specific location", m_tooltipWidth, m_D3D->GetDeviceContext());
+					if (!result){
+						return false;
+					}
+					break;
+
+				case COMBATMENUBUTTON_ATTACK:
+					result = m_Text->SetTooltipText(m_tooltipX, m_tooltipY, "Attack", "Command the selected Agent to attack a specific target", m_tooltipWidth, m_D3D->GetDeviceContext());
+					if (!result){
+						return false;
+					}
+					break;
+
+				case COMBATMENUBUTTON_ENDTURN:
+					result = m_Text->SetTooltipText(m_tooltipX, m_tooltipY, "End Turn", "End the turn of all currently active Agents", m_tooltipWidth, m_D3D->GetDeviceContext());
+					if (!result){
+						return false;
+					}
+					break;
+
+				case COMBATMENUBUTTON_MENU:
+					result = m_Text->SetTooltipText(m_tooltipX, m_tooltipY, "Menu", "Open the Main Menu", m_tooltipWidth, m_D3D->GetDeviceContext());
+					if (!result){
+						return false;
+					}
+					break;
+
+				default:
+					m_displayTooltip = false;
+				}
+
+				break;
+
+			default:
+				m_displayTooltip = false;
+			}
+
+			break;
+
+		default:
+			m_displayTooltip = false;
+		}
+
+		break;
+
+	default:
+		m_displayTooltip = false;
+	}
+
+	return true;
+}
 
 bool ApplicationClass::RenderGraphics(){
 	D3DXMATRIX worldMatrix, viewMatrix, projectionMatrix, orthoMatrix;
@@ -1719,10 +1918,7 @@ bool ApplicationClass::RenderGraphics(){
 		// Render the Main Menu buttons
 		
 		// First ensure the buttons have the proper dimensions
-		result = m_StandardButton->SetDimensions(MAIN_MENU_BUTTON_WIDTH, MAIN_MENU_BUTTON_HEIGHT);
-		if (!result){
-			return false;
-		}
+		m_StandardButton->SetDimensions(MAIN_MENU_BUTTON_WIDTH, MAIN_MENU_BUTTON_HEIGHT);
 
 		// Render buttons based on the MenuState
 		switch (m_MenuState){
@@ -1899,10 +2095,7 @@ bool ApplicationClass::RenderGraphics(){
 
 		// Render the CombatMap menubar
 		// First ensure the menuBackground has the proper dimensions
-		result = m_MenuBackground->SetDimensions(m_screenWidth, COMBAT_MENU_HEIGHT);
-		if (!result){
-			return false;
-		}
+		m_MenuBackground->SetDimensions(m_screenWidth, COMBAT_MENU_HEIGHT);
 
 		result = m_MenuBackground->Render(m_D3D->GetDeviceContext(), 0, m_screenHeight - COMBAT_MENU_HEIGHT);
 		if (!result){
@@ -1917,10 +2110,7 @@ bool ApplicationClass::RenderGraphics(){
 		// Render the buttons on the menubar
 		
 		// First ensure the buttons have the proper dimensions
-		result = m_StandardButton->SetDimensions(COMBAT_MENU_BUTTON_WIDTH, COMBAT_MENU_BUTTON_HEIGHT);
-		if (!result){
-			return false;
-		}
+		m_StandardButton->SetDimensions(COMBAT_MENU_BUTTON_WIDTH, COMBAT_MENU_BUTTON_HEIGHT);
 
 		for (i = 0; i < COMBAT_MENU_BUTTON_COUNT; i++){
 			result = m_StandardButton->Render(m_D3D->GetDeviceContext(), m_screenWidth + COMBAT_MENU_BUTTON_HORIZONTAL_OFFSET + COMBAT_MENU_BUTTON_WIDTH * (i / 2), m_screenHeight - COMBAT_MENU_HEIGHT + COMBAT_MENU_BUTTON_VERTICAL_OFFSET + COMBAT_MENU_BUTTON_HEIGHT * (i % 2));
@@ -1960,10 +2150,7 @@ bool ApplicationClass::RenderGraphics(){
 		m_D3D->TurnOffAlphaBlending();
 
 		// Set the dimensions of the MenuBackground bitmap to render the tooltip background
-		result = m_MenuBackground->SetDimensions(m_tooltipWidth, m_tooltipHeight);
-		if (!result){
-			return false;
-		}
+		m_MenuBackground->SetDimensions(m_tooltipWidth, m_tooltipHeight);
 
 		// Render the tooltip background
 		result = m_MenuBackground->Render(m_D3D->GetDeviceContext(), m_tooltipX, m_tooltipY);

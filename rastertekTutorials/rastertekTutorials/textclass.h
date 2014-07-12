@@ -7,7 +7,6 @@
 // GLOBAlS //
 /////////////
 const int MAX_ERROR_LENGTH = 40;
-const float MAX_ERROR_TIME = 5000.0f;
 
 ////////////////////
 // CLASS INCLUDES //
@@ -20,6 +19,9 @@ const float MAX_ERROR_TIME = 5000.0f;
 ////////////////////////////////////////////////////////////////////////////////
 class TextClass{
 private:
+	/////////////
+	// STRUCTS //
+	/////////////
 	struct SentenceType{
 		ID3D11Buffer *vertexBuffer, *indexBuffer;
 		int vertexCount, indexCount, maxLength;
@@ -30,6 +32,12 @@ private:
 		D3DXVECTOR3 position;
 		D3DXVECTOR2 texture;
 	};
+
+	///////////////
+	// CONSTANTS //
+	///////////////
+	const float MAX_ERROR_TIME = 5000.0f;
+	const int NO_LENGTH_LIMIT = -1;
 
 public:
 	TextClass();
@@ -48,7 +56,7 @@ public:
 	bool SetOptionsMenuText(int, int, int, int, ID3D11DeviceContext*);
 	bool SetCombatMapText(ID3D11DeviceContext*);
 
-	bool SetTooltipText(int, int, ID3D11DeviceContext*);
+	bool SetTooltipText(int, int, char*, char*, int, ID3D11DeviceContext*);
 
 	bool NewErrorMessage(char*, ID3D11DeviceContext*);
 	bool ClearErrors(ID3D11DeviceContext*);
@@ -58,7 +66,7 @@ public:
 
 private:
 	bool InitializeSentence(SentenceType**, int, ID3D11Device*);
-	bool UpdateSentence(SentenceType*, char*, int, int, float, float, float, ID3D11DeviceContext*);
+	bool UpdateSentence(SentenceType*, char*, int, int, float, float, float, int, ID3D11DeviceContext*);
 	void ReleaseSentence(SentenceType**);
 	bool RenderSentence(ID3D11DeviceContext*, SentenceType*, D3DXMATRIX, D3DXMATRIX);
 
