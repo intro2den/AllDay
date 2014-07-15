@@ -414,12 +414,12 @@ bool TextClass::SetTooltipText(int tooltipX, int tooltipY, char* label, char* de
 	// UI object.
 	bool result;
 
-	result = UpdateSentence(m_tooltipLabel, label, tooltipX + 3, tooltipY + 3, 1.0f, 1.0f, 1.0f, tooltipWidth, deviceContext);
+	result = UpdateSentence(m_tooltipLabel, label, tooltipX + 3, tooltipY + 3, 1.0f, 1.0f, 1.0f, tooltipWidth - 6, deviceContext);
 	if (!result){
 		return false;
 	}
 
-	result = UpdateSentence(m_tooltipDescription, desc, tooltipX + 3, tooltipY + 16, 1.0f, 1.0f, 1.0f, tooltipWidth, deviceContext);
+	result = UpdateSentence(m_tooltipDescription, desc, tooltipX + 3, tooltipY + 16, 1.0f, 1.0f, 1.0f, tooltipWidth - 6, deviceContext);
 	if (!result){
 		return false;
 	}

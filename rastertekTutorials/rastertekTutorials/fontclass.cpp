@@ -126,10 +126,10 @@ ID3D11ShaderResourceView* FontClass::GetTexture(){
 
 void FontClass::BuildVertexArray(void* vertices, char* sentence, float drawX, float drawY, int maxWidth){
 	VertexType* vertexPtr;
-	int numLetters, index, i, letter;
-	int xOffset;
+	int numLetters, index, i, j, letter;
+	int xOffset, wordLength;
 
-	// Coerce the input vertices into a VertexType structure.
+	// Convert the input vertices into a VertexType structure.
 	vertexPtr = (VertexType*)vertices;
 
 	// Get the number of letters in the sentence.
@@ -145,10 +145,32 @@ void FontClass::BuildVertexArray(void* vertices, char* sentence, float drawX, fl
 	for (i = 0; i<numLetters; i++){
 		letter = ((int)sentence[i]) - 32;
 
-		// If the letter is a space then just move over three pixels.
+		// If the letter is a space then move over three pixels and check if the
+		// next word will fit on the current line.
 		if (letter == 0){
 			drawX += 3.0f;
 			xOffset += 3;
+
+			// Check if the next word will fit on the current line
+			j = i + 1;
+			wordLength = 0;
+
+			// Calculate the length of the next word
+			while (j < numLetters){
+				letter = ((int)sentence[j]) - 32;
+				if (letter == 0) break;
+				wordLength += m_Font[letter].size + 1;
+				++j;
+			}
+
+			// If drawing the word on the current line exceeds the maxWidth
+			// move to the next line.
+			if (maxWidth > 0 && (xOffset + wordLength) > maxWidth){
+				drawX -= (float)xOffset;
+				drawY -= 13;
+				xOffset = 0;
+			}
+
 		} else{
 			// First triangle in quad.
 			vertexPtr[index].position = D3DXVECTOR3(drawX, drawY, 0.0f);  // Top left.
@@ -184,7 +206,7 @@ void FontClass::BuildVertexArray(void* vertices, char* sentence, float drawX, fl
 		// If the next character will exceed the maximum width of the text being drawn, continue drawing on the next line.
 		// NOTE: This does not yet account for words, only single characters exceeding the maximum width.
 		// TODO: Ensure that words are displayed on single lines and that new lines are not offset by spaces.
-		if ((maxWidth > 0 && i < numLetters - 1) && (xOffset + m_Font[(int)sentence[i + 1] - 32].size + 2) > maxWidth){
+		if ((maxWidth > 0 && i < numLetters - 1) && (xOffset + m_Font[(int)sentence[i + 1] - 32].size) > maxWidth){
 			drawX -= (float)xOffset;
 			drawY -= 13;
 			xOffset = 0;
