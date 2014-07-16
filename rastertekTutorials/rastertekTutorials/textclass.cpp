@@ -60,22 +60,22 @@ bool TextClass::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceCont
 	}
 
 	// Initialize menu text for the Main Menu
-	result = InitializeSentence(&m_menuText1, 16, device);
+	result = InitializeSentence(&m_menuText1, 20, device);
 	if (!result){
 		return false;
 	}
 
-	result = InitializeSentence(&m_menuText2, 16, device);
+	result = InitializeSentence(&m_menuText2, 20, device);
 	if (!result){
 		return false;
 	}
 
-	result = InitializeSentence(&m_menuText3, 16, device);
+	result = InitializeSentence(&m_menuText3, 20, device);
 	if (!result){
 		return false;
 	}
 
-	result = InitializeSentence(&m_menuText4, 16, device);
+	result = InitializeSentence(&m_menuText4, 20, device);
 	if (!result){
 		return false;
 	}
@@ -86,7 +86,7 @@ bool TextClass::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceCont
 	}
 
 	// Initialize sentences for the displaying of tooltips
-	result = InitializeSentence(&m_tooltipLabel, 16, device);
+	result = InitializeSentence(&m_tooltipLabel, 20, device);
 	if (!result){
 		return false;
 	}
@@ -250,7 +250,31 @@ bool TextClass::Frame(float frameTime, ID3D11DeviceContext* deviceContext){
 bool TextClass::Render(ID3D11DeviceContext* deviceContext, D3DXMATRIX worldMatrix, D3DXMATRIX orthoMatrix){
 	bool result;
 
-	// Draw the menu related sentences
+	// Draw the sentence indicating which agent is selected
+	result = RenderSentence(deviceContext, m_selectedAgent, worldMatrix, orthoMatrix);
+	if (!result){
+		return false;
+	}
+
+	// Draw the sentence with the X coordinate of the mouse.
+	result = RenderSentence(deviceContext, m_cursorXCoordinate, worldMatrix, orthoMatrix);
+	if (!result){
+		return false;
+	}
+
+	// Draw the sentence with the Y coordinate of the mouse.
+	result = RenderSentence(deviceContext, m_cursorYCoordinate, worldMatrix, orthoMatrix);
+	if (!result){
+		return false;
+	}
+
+	return true;
+}
+
+bool TextClass::RenderMenuText(ID3D11DeviceContext* deviceContext, D3DXMATRIX worldMatrix, D3DXMATRIX orthoMatrix){
+	// Draw the text for menu buttons
+	bool result;
+
 	result = RenderSentence(deviceContext, m_menuText1, worldMatrix, orthoMatrix);
 	if (!result){
 		return false;
@@ -271,35 +295,6 @@ bool TextClass::Render(ID3D11DeviceContext* deviceContext, D3DXMATRIX worldMatri
 		return false;
 	}
 
-	// Draw the sentence indicating which agent is selected
-	result = RenderSentence(deviceContext, m_selectedAgent, worldMatrix, orthoMatrix);
-	if (!result){
-		return false;
-	}
-
-	// Draw the sentence with the X coordinate of the mouse.
-	result = RenderSentence(deviceContext, m_cursorXCoordinate, worldMatrix, orthoMatrix);
-	if (!result){
-		return false;
-	}
-
-	// Draw the sentence with the Y coordinate of the mouse.
-	result = RenderSentence(deviceContext, m_cursorYCoordinate, worldMatrix, orthoMatrix);
-	if (!result){
-		return false;
-	}
-
-	// Draw the error sentences
-	result = RenderSentence(deviceContext, m_errorText1, worldMatrix, orthoMatrix);
-	if (!result){
-		return false;
-	}
-
-	result = RenderSentence(deviceContext, m_errorText2, worldMatrix, orthoMatrix);
-	if (!result){
-		return false;
-	}
-
 	return true;
 }
 
@@ -313,6 +308,50 @@ bool TextClass::RenderTooltip(ID3D11DeviceContext* deviceContext, D3DXMATRIX wor
 	}
 
 	result = RenderSentence(deviceContext, m_tooltipDescription, worldMatrix, orthoMatrix);
+	if (!result){
+		return false;
+	}
+
+	return true;
+}
+
+bool TextClass::RenderErrorText(ID3D11DeviceContext* deviceContext, D3DXMATRIX worldMatrix, D3DXMATRIX orthoMatrix){
+	// Draw the text for error messages
+	bool result;
+
+	result = RenderSentence(deviceContext, m_errorText1, worldMatrix, orthoMatrix);
+	if (!result){
+		return false;
+	}
+
+	result = RenderSentence(deviceContext, m_errorText2, worldMatrix, orthoMatrix);
+	if (!result){
+		return false;
+	}
+
+	return true;
+}
+
+bool TextClass::ClearMenuText(ID3D11DeviceContext* deviceContext){
+	// Update all menuText strings to display nothing
+	bool result;
+
+	result = UpdateSentence(m_menuText1, "", 0, 0, 0.0f, 0.0f, 0.0f, NO_LENGTH_LIMIT, deviceContext);
+	if (!result){
+		return false;
+	}
+
+	result = UpdateSentence(m_menuText2, "", 0, 0, 0.0f, 0.0f, 0.0f, NO_LENGTH_LIMIT, deviceContext);
+	if (!result){
+		return false;
+	}
+
+	result = UpdateSentence(m_menuText3, "", 0, 0, 0.0f, 0.0f, 0.0f, NO_LENGTH_LIMIT, deviceContext);
+	if (!result){
+		return false;
+	}
+
+	result = UpdateSentence(m_menuText4, "", 0, 0, 0.0f, 0.0f, 0.0f, NO_LENGTH_LIMIT, deviceContext);
 	if (!result){
 		return false;
 	}
@@ -339,7 +378,7 @@ bool TextClass::SetMainMenuText(int horizontalOffset, int verticalOffset, int bu
 		return false;
 	}
 
-	result = UpdateSentence(m_menuText4, "", horizontalOffset + 15, verticalOffset + (buttonHeight / 2) + 3 * (buttonHeight + buttonSpacing) - 4, 0.0f, 0.0f, 0.0f, NO_LENGTH_LIMIT, deviceContext);
+	result = UpdateSentence(m_menuText4, "", 0, 0, 0.0f, 0.0f, 0.0f, NO_LENGTH_LIMIT, deviceContext);
 	if (!result){
 		return false;
 	}
@@ -370,7 +409,7 @@ bool TextClass::SetOptionsMenuText(int horizontalOffset, int verticalOffset, int
 		return false;
 	}
 
-	result = UpdateSentence(m_menuText4, "", horizontalOffset + 15, verticalOffset + (buttonHeight / 2) + 3 * (buttonHeight + buttonSpacing) - 4, 0.0f, 0.0f, 0.0f, NO_LENGTH_LIMIT, deviceContext);
+	result = UpdateSentence(m_menuText4, "", 0, 0, 0.0f, 0.0f, 0.0f, NO_LENGTH_LIMIT, deviceContext);
 	if (!result){
 		return false;
 	}
@@ -378,7 +417,7 @@ bool TextClass::SetOptionsMenuText(int horizontalOffset, int verticalOffset, int
 	return true;
 }
 
-bool TextClass::SetCombatMapText(ID3D11DeviceContext* deviceContext){
+bool TextClass::SetCombatMapMainMenuText(int horizontalOffset, int verticalOffset, int buttonHeight, int buttonSpacing, ID3D11DeviceContext* deviceContext){
 	// Update all menuText strings to display labels for each option on the CombatMap Menu Bar
 	bool result;
 
@@ -386,22 +425,22 @@ bool TextClass::SetCombatMapText(ID3D11DeviceContext* deviceContext){
 	//       such as the button the text is meant to be a part of. This will have to change,
 	//       particularly when we support multiple resolutions (Text size may also need to change)
 
-	result = UpdateSentence(m_menuText1, "End Turn", m_screenWidth - 115, m_screenHeight - 70, 0.0f, 0.0f, 0.0f, NO_LENGTH_LIMIT, deviceContext);
+	result = UpdateSentence(m_menuText1, "Close Menu", horizontalOffset + 15, verticalOffset + (buttonHeight / 2) - 4, 0.0f, 0.0f, 0.0f, NO_LENGTH_LIMIT, deviceContext);
 	if (!result){
 		return false;
 	}
 
-	result = UpdateSentence(m_menuText2, "Main Menu", m_screenWidth - 115, m_screenHeight - 38, 0.0f, 0.0f, 0.0f, NO_LENGTH_LIMIT, deviceContext);
+	result = UpdateSentence(m_menuText2, "Exit to Main Menu", horizontalOffset + 15, verticalOffset + (buttonHeight / 2) + (buttonHeight + buttonSpacing) - 4, 0.0f, 0.0f, 0.0f, NO_LENGTH_LIMIT, deviceContext);
 	if (!result){
 		return false;
 	}
 
-	result = UpdateSentence(m_menuText3, "Move", m_screenWidth - 215, m_screenHeight - 70, 0.0f, 0.0f, 0.0f, NO_LENGTH_LIMIT, deviceContext);
+	result = UpdateSentence(m_menuText3, "Exit Application", horizontalOffset + 15, verticalOffset + (buttonHeight / 2) + 2 * (buttonHeight + buttonSpacing) - 4, 0.0f, 0.0f, 0.0f, NO_LENGTH_LIMIT, deviceContext);
 	if (!result){
 		return false;
 	}
 
-	result = UpdateSentence(m_menuText4, "Attack", m_screenWidth - 215, m_screenHeight - 38, 0.0f, 0.0f, 0.0f, NO_LENGTH_LIMIT, deviceContext);
+	result = UpdateSentence(m_menuText4, "", 0, 0, 0.0f, 0.0f, 0.0f, NO_LENGTH_LIMIT, deviceContext);
 	if (!result){
 		return false;
 	}

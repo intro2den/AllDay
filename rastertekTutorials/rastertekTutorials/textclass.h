@@ -50,11 +50,14 @@ public:
 	void Shutdown();
 	bool Frame(float, ID3D11DeviceContext*);
 	bool Render(ID3D11DeviceContext*, D3DXMATRIX, D3DXMATRIX);
+	bool RenderMenuText(ID3D11DeviceContext*, D3DXMATRIX, D3DXMATRIX);
 	bool RenderTooltip(ID3D11DeviceContext*, D3DXMATRIX, D3DXMATRIX);
+	bool RenderErrorText(ID3D11DeviceContext*, D3DXMATRIX, D3DXMATRIX);
 
+	bool ClearMenuText(ID3D11DeviceContext*);
 	bool SetMainMenuText(int, int, int, int, ID3D11DeviceContext*);
 	bool SetOptionsMenuText(int, int, int, int, ID3D11DeviceContext*);
-	bool SetCombatMapText(ID3D11DeviceContext*);
+	bool SetCombatMapMainMenuText(int, int, int, int, ID3D11DeviceContext*);
 
 	bool SetTooltipText(int, int, char*, char*, int, ID3D11DeviceContext*);
 

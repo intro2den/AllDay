@@ -10,34 +10,6 @@ const bool VSYNC_ENABLED = false;
 const float SCREEN_DEPTH = 1000.0f;
 const float SCREEN_NEAR = 0.1f;
 
-//////////////////
-// UI CONSTANTS //
-//////////////////
-// NOTE: Will likely replace many of these constants with variables to allow for resolution based resizing
-// Main Menu
-const int MAIN_MENU_BUTTON_WIDTH = 350;
-const int MAIN_MENU_BUTTON_HEIGHT = 50;
-const int MAIN_MENU_BUTTON_SPACING = 25;
-const int MAIN_MENU_BUTTON_COUNT = 3;
-const int MAIN_MENU_BUTTON_HORIZONTAL_OFFSET = 50;
-const int MAIN_MENU_BUTTON_VERTICAL_OFFSET = 125;
-
-// Options Menu
-// NOTE: Currently using Main Menu constants in place of constants specific to the Options Menu as they should look the same
-const int OPTIONS_MENU_BUTTON_COUNT = 1;
-
-// CombatMap Menu Bar
-// Buttons/Options from the Menu Bar are in a double row from the right side of the menu bar
-const int COMBAT_MENU_HEIGHT = 100;
-const int COMBAT_MENU_BUTTON_WIDTH = 100; // Will resize when text labels replaced by icons and tooltips
-const int COMBAT_MENU_BUTTON_HEIGHT = 32;
-const int COMBAT_MENU_BUTTON_COUNT = 4; // Should try to keep this as a multiple of 2 for proper rectangular set of options on the menu bar.
-const int COMBAT_MENU_BUTTON_HORIZONTAL_OFFSET = -20 - COMBAT_MENU_BUTTON_WIDTH * (COMBAT_MENU_BUTTON_COUNT / 2); // End the options at the right side of the menu bar
-const int COMBAT_MENU_BUTTON_VERTICAL_OFFSET = (COMBAT_MENU_HEIGHT / 2) - COMBAT_MENU_BUTTON_HEIGHT;
-
-// Maximum number of tiles processed per frame when building MovementMap
-const int MAX_PATHNODES_PER_FRAME = 1;
-
 ////////////////////
 // CLASS INCLUDES //
 ////////////////////
@@ -87,7 +59,6 @@ private:
 		MENUSTATE_NOMENU
 	};
 
-
 	//////////////////
 	// COMMAND ENUM //
 	//////////////////
@@ -96,7 +67,6 @@ private:
 		COMMAND_MOVE,
 		COMMAND_ATTACK
 	};
-
 
 	///////////////
 	// MENU ENUM //
@@ -127,11 +97,20 @@ private:
 	};
 
 	enum CombatMenuBarButton{
-		COMBATMENUBUTTON_MOVE = 0,
-		COMBATMENUBUTTON_ATTACK,
-		COMBATMENUBUTTON_ENDTURN,
-		COMBATMENUBUTTON_MENU
+		COMBATMENUBARBUTTON_MOVE = 0,
+		COMBATMENUBARBUTTON_ATTACK,
+		COMBATMENUBARBUTTON_ENDTURN,
+		COMBATMENUBARBUTTON_MENU
 	};
+
+	enum CombatMainMenuButton{
+		COMBATMAINMENUBUTTON_CLOSE = 0,
+		COMBATMAINMENUBUTTON_EXITCOMBAT,
+		COMBATMAINMENUBUTTON_EXITAPPLICATION
+	};
+
+	// Maximum number of tiles processed per frame when building MovementMap
+	const int MAX_PATHNODES_PER_FRAME = 1;
 
 public:
 	ApplicationClass();
@@ -145,8 +124,10 @@ public:
 private:
 	// Initialization
 	bool ReadConfig();
+	void ResizeUIElements();
 
 	void FindCurrentUIElement();
+	void FindStandardMenuButton(int, int, int, int, int, int);
 
 	// Handle Input
 	bool HandleInput(float);
@@ -179,8 +160,42 @@ private:
 
 	// Render
 	bool RenderGraphics();
+	bool RenderStandardMenuButtons(int, int, int, int, int, int, D3DXMATRIX, D3DXMATRIX);
 
 private:
+	// UI Constants and Resolution based constants
+	// Main Menu
+	const int MAIN_MENU_BUTTON_COUNT = 3;
+	int MAIN_MENU_BUTTON_WIDTH = 350;
+	int MAIN_MENU_BUTTON_HEIGHT = 50;
+	int MAIN_MENU_BUTTON_SPACING = 25;
+	int MAIN_MENU_BUTTON_HORIZONTAL_OFFSET = 50;
+	int MAIN_MENU_BUTTON_VERTICAL_OFFSET = 125;
+
+	// Options Menu
+	// NOTE: Currently using Main Menu constants in place of constants specific to the Options Menu as they should look the same
+	const int OPTIONS_MENU_BUTTON_COUNT = 1;
+
+	// CombatMap Menu Bar
+	// Buttons/Options from the Menu Bar are in a double row from the right side of the menu bar
+	const int COMBAT_MENU_BAR_HEIGHT = 100;
+	const int COMBAT_MENU_BAR_BUTTON_WIDTH = 32;
+	const int COMBAT_MENU_BAR_BUTTON_HEIGHT = 32;
+	const int COMBAT_MENU_BAR_BUTTON_COUNT = 4; // Should try to keep this as a multiple of 2 for proper rectangular set of options on the menu bar.
+	const int COMBAT_MENU_BAR_BUTTON_HORIZONTAL_OFFSET = -20 - COMBAT_MENU_BAR_BUTTON_WIDTH * (COMBAT_MENU_BAR_BUTTON_COUNT / 2); // End the options at the right side of the menu bar
+	const int COMBAT_MENU_BAR_BUTTON_VERTICAL_OFFSET = (COMBAT_MENU_BAR_HEIGHT / 2) - COMBAT_MENU_BAR_BUTTON_HEIGHT;
+
+	// CombatMap Main Menu
+	// The Main Menu (and submenus) should be at the centre of the screen
+	int COMBAT_MAIN_MENU_WIDTH = 300;
+	int COMBAT_MAIN_MENU_HEIGHT = 450;
+	const int COMBAT_MAIN_MENU_BUTTON_COUNT = 3;
+	int COMBAT_MAIN_MENU_BUTTON_WIDTH = 250;
+	int COMBAT_MAIN_MENU_BUTTON_HEIGHT = 50;
+	int COMBAT_MAIN_MENU_BUTTON_SPACING = 25;
+	int COMBAT_MAIN_MENU_BUTTON_HORIZONTAL_OFFSET = 25;
+	int COMBAT_MAIN_MENU_BUTTON_VERTICAL_OFFSET = 25;
+
 	InputClass* m_Input;
 	D3DClass* m_D3D;
 	CameraClass* m_Camera;
