@@ -648,6 +648,9 @@ bool ApplicationClass::HandleInput(float frameTime){
 					m_MenuState = MENUSTATE_NOMENU;
 					m_stateChanged = true;
 
+					// Reset tooltips on a state change
+					ResetTooltip();
+
 					// Clear all error messages on state change
 					result = m_Text->ClearErrors(m_D3D->GetDeviceContext());
 					if (!result){
@@ -676,6 +679,9 @@ bool ApplicationClass::HandleInput(float frameTime){
 					// Change the MenuState to OptionsMenu
 					m_MenuState = MENUSTATE_OPTIONMENU;
 					m_stateChanged = true;
+
+					// Reset tooltips on a state change
+					ResetTooltip();
 
 					// Clear all error messages on state change
 					result = m_Text->ClearErrors(m_D3D->GetDeviceContext());
@@ -708,6 +714,9 @@ bool ApplicationClass::HandleInput(float frameTime){
 					// Change the MenuState to MainMenu
 					m_MenuState = MENUSTATE_MAINMENU;
 					m_stateChanged = true;
+
+					// Reset tooltips on a state change
+					ResetTooltip();
 
 					// Clear all error messages on state change
 					result = m_Text->ClearErrors(m_D3D->GetDeviceContext());
@@ -824,6 +833,9 @@ bool ApplicationClass::HandleInput(float frameTime){
 				case COMBATMAINMENUBUTTON_CLOSE:
 					m_MenuState = MENUSTATE_NOMENU;
 					m_stateChanged = true;
+
+					// Reset tooltips on a state change
+					ResetTooltip();
 					
 					// Clear the menu text
 					result = m_Text->ClearMenuText(m_D3D->GetDeviceContext());
@@ -840,6 +852,9 @@ bool ApplicationClass::HandleInput(float frameTime){
 					m_CommandSelected = false;
 					m_SelectedCommand = COMMAND_DEFAULT;
 					m_stateChanged = true;
+
+					// Reset tooltips on a state change
+					ResetTooltip();
 
 					// Clear all error messages on state change
 					result = m_Text->ClearErrors(m_D3D->GetDeviceContext());
@@ -900,6 +915,8 @@ bool ApplicationClass::HandleInput(float frameTime){
 
 				case COMBATMENUBARBUTTON_ENDTURN:
 					// End Turn
+					m_CommandSelected = false;
+					m_SelectedCommand = COMMAND_DEFAULT;
 					EndTurn();
 					break;
 
@@ -907,6 +924,9 @@ bool ApplicationClass::HandleInput(float frameTime){
 					// Open the CombatMap Main Menu
 					m_MenuState = MENUSTATE_MAINMENU;
 					m_stateChanged = true;
+
+					// Reset tooltips on a state change
+					ResetTooltip();
 
 					// Set appropriate menu text
 					result = m_Text->SetCombatMapMainMenuText((m_screenWidth - COMBAT_MAIN_MENU_WIDTH) / 2 + COMBAT_MAIN_MENU_BUTTON_HORIZONTAL_OFFSET, (m_screenHeight - COMBAT_MAIN_MENU_HEIGHT) / 2 + COMBAT_MAIN_MENU_BUTTON_VERTICAL_OFFSET, COMBAT_MAIN_MENU_BUTTON_HEIGHT, COMBAT_MAIN_MENU_BUTTON_SPACING, m_D3D->GetDeviceContext());
@@ -1718,8 +1738,7 @@ bool ApplicationClass::Update(float frameTime, bool cursorIdle){
 	// displayed
 	if (!cursorIdle){
 		// The cursor moved
-		m_cursorIdleTime = 0.0f;
-		m_displayTooltip = false;
+		ResetTooltip();
 	} else if (cursorIdle && m_cursorIdleTime < m_tooltipDelay){
 		m_cursorIdleTime += frameTime;
 	}
@@ -1965,6 +1984,13 @@ bool ApplicationClass::UpdateTooltip(){
 	}
 
 	return true;
+}
+
+void ApplicationClass::ResetTooltip(){
+	// Reset cursor idle time and set displayTooltip to false
+	m_cursorIdleTime = 0.0f;
+	m_displayTooltip = false;
+	return;
 }
 
 bool ApplicationClass::RenderGraphics(){

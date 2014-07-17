@@ -196,6 +196,7 @@ void InputClass::ProcessInput(){
 
 	// Update the rightMousePressed and rightMouseReleased flags
 	m_rightMouseReleased = false;
+
 	if (!m_mouseState.rgbButtons[1] && m_rightMousePressed){
 		m_rightMousePressed = false;
 		m_rightMouseReleased = true;

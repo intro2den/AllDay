@@ -157,6 +157,7 @@ private:
 	// Update
 	bool Update(float, bool);
 	bool UpdateTooltip();
+	void ResetTooltip();
 
 	// Render
 	bool RenderGraphics();
