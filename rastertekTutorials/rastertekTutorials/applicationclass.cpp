@@ -52,8 +52,7 @@ bool ApplicationClass::Initialize(HINSTANCE hinstance, HWND hwnd, int screenWidt
 	// Set initial MainState, MenuState and CommandState
 	m_MainState = MAINSTATE_MAINMENU;
 	m_MenuState = MENUSTATE_MAINMENU;
-	m_CommandSelected = false;
-	m_SelectedCommand = COMMAND_DEFAULT;
+	DeselectCommand();
 
 	// Initialize the mouse (cursor) position (this will be overwritten in the first frame)
 	m_mouseX = 0;
@@ -646,10 +645,7 @@ bool ApplicationClass::HandleInput(float frameTime){
 					// Change the MainState to CombatMap, create a new CombatMap and begin the first round
 					m_MainState = MAINSTATE_COMBATMAP;
 					m_MenuState = MENUSTATE_NOMENU;
-					m_stateChanged = true;
-
-					// Reset tooltips on a state change
-					ResetTooltip();
+					StateChanged();
 
 					// Clear all error messages on state change
 					result = m_Text->ClearErrors(m_D3D->GetDeviceContext());
@@ -678,10 +674,7 @@ bool ApplicationClass::HandleInput(float frameTime){
 				case MAINMENUBUTTON_OPTIONS:
 					// Change the MenuState to OptionsMenu
 					m_MenuState = MENUSTATE_OPTIONMENU;
-					m_stateChanged = true;
-
-					// Reset tooltips on a state change
-					ResetTooltip();
+					StateChanged();
 
 					// Clear all error messages on state change
 					result = m_Text->ClearErrors(m_D3D->GetDeviceContext());
@@ -713,10 +706,7 @@ bool ApplicationClass::HandleInput(float frameTime){
 				case OPTIONSMENUBUTTON_BACK:
 					// Change the MenuState to MainMenu
 					m_MenuState = MENUSTATE_MAINMENU;
-					m_stateChanged = true;
-
-					// Reset tooltips on a state change
-					ResetTooltip();
+					StateChanged();
 
 					// Clear all error messages on state change
 					result = m_Text->ClearErrors(m_D3D->GetDeviceContext());
@@ -745,30 +735,31 @@ bool ApplicationClass::HandleInput(float frameTime){
 
 	case MAINSTATE_COMBATMAP:
 		// Combat Map Processing
-		// Get the currect camera position
-		m_Position->GetPosition(posX, posY, posZ);
 
-		// Scroll the camera if the cursor is near the edge of the window
-		// or if the user is pressing the corresponding arrow keys
-		// Scroll Up/Forward
-		scrolling = (m_Input->IsUpPressed() || (cursorInBounds && m_mouseY < 20));
-		m_Position->MoveForward(scrolling);
+		// If no menu is open, check for camera movement
+		if (m_MenuState == MENUSTATE_NOMENU){
+			// Scroll the camera if the cursor is near the edge of the window
+			// or if the user is pressing the corresponding arrow keys
+			// Scroll Up/Forward
+			scrolling = (m_Input->IsUpPressed() || (cursorInBounds && m_mouseY < 20));
+			m_Position->MoveForward(scrolling);
 
-		// Scroll Down/Backward
-		scrolling = (m_Input->IsDownPressed() || (m_mouseY > m_screenHeight - 20 && cursorInBounds));
-		m_Position->MoveBackward(scrolling);
+			// Scroll Down/Backward
+			scrolling = (m_Input->IsDownPressed() || (m_mouseY > m_screenHeight - 20 && cursorInBounds));
+			m_Position->MoveBackward(scrolling);
 
-		// Scroll Left
-		scrolling = (m_Input->IsLeftPressed() || (cursorInBounds && m_mouseX < 20));
-		m_Position->MoveLeft(scrolling);
+			// Scroll Left
+			scrolling = (m_Input->IsLeftPressed() || (cursorInBounds && m_mouseX < 20));
+			m_Position->MoveLeft(scrolling);
 
-		// Scroll Right
-		scrolling = (m_Input->IsRightPressed() || (m_mouseX > m_screenWidth - 20 && cursorInBounds));
-		m_Position->MoveRight(scrolling);
+			// Scroll Right
+			scrolling = (m_Input->IsRightPressed() || (m_mouseX > m_screenWidth - 20 && cursorInBounds));
+			m_Position->MoveRight(scrolling);
 
-		// Update the position of the camera
-		m_Position->GetPosition(posX, posY, posZ);
-		m_Camera->SetPosition(posX, posY, posZ);
+			// Update the position of the camera
+			m_Position->GetPosition(posX, posY, posZ);
+			m_Camera->SetPosition(posX, posY, posZ);
+		}
 
 		// Find the coordinates of the hex that the cursor is overtop of this frame - if the cursor is over the map
 		m_currentTileX = -1;
@@ -776,7 +767,7 @@ bool ApplicationClass::HandleInput(float frameTime){
 		m_currentTileIndex = -1;
 		m_cursorOverTile = false;
 
-		if (cursorInBounds && m_currentUIMenu == UIMENU_NOMENU){
+		if (cursorInBounds && m_MenuState == MENUSTATE_NOMENU && m_currentUIMenu == UIMENU_NOMENU){
 			// Calculate the actual cursor position relative to the map
 			cursorX = (float)m_mouseX + posX - MAP_HORIZONTALOFFSET;
 			cursorY = (float)m_mouseY - posY - MAP_VERTICALOFFSET;
@@ -832,10 +823,7 @@ bool ApplicationClass::HandleInput(float frameTime){
 				switch (m_currentUIElement){
 				case COMBATMAINMENUBUTTON_CLOSE:
 					m_MenuState = MENUSTATE_NOMENU;
-					m_stateChanged = true;
-
-					// Reset tooltips on a state change
-					ResetTooltip();
+					StateChanged();
 					
 					// Clear the menu text
 					result = m_Text->ClearMenuText(m_D3D->GetDeviceContext());
@@ -849,12 +837,8 @@ bool ApplicationClass::HandleInput(float frameTime){
 					// Return to the Main Menu
 					m_MainState = MAINSTATE_MAINMENU;
 					m_MenuState = MENUSTATE_MAINMENU;
-					m_CommandSelected = false;
-					m_SelectedCommand = COMMAND_DEFAULT;
-					m_stateChanged = true;
-
-					// Reset tooltips on a state change
-					ResetTooltip();
+					DeselectCommand();
+					StateChanged();
 
 					// Clear all error messages on state change
 					result = m_Text->ClearErrors(m_D3D->GetDeviceContext());
@@ -915,18 +899,15 @@ bool ApplicationClass::HandleInput(float frameTime){
 
 				case COMBATMENUBARBUTTON_ENDTURN:
 					// End Turn
-					m_CommandSelected = false;
-					m_SelectedCommand = COMMAND_DEFAULT;
+					DeselectCommand();
 					EndTurn();
 					break;
 
 				case COMBATMENUBARBUTTON_MENU:
 					// Open the CombatMap Main Menu
 					m_MenuState = MENUSTATE_MAINMENU;
-					m_stateChanged = true;
-
-					// Reset tooltips on a state change
-					ResetTooltip();
+					DeselectCommand();
+					StateChanged();
 
 					// Set appropriate menu text
 					result = m_Text->SetCombatMapMainMenuText((m_screenWidth - COMBAT_MAIN_MENU_WIDTH) / 2 + COMBAT_MAIN_MENU_BUTTON_HORIZONTAL_OFFSET, (m_screenHeight - COMBAT_MAIN_MENU_HEIGHT) / 2 + COMBAT_MAIN_MENU_BUTTON_VERTICAL_OFFSET, COMBAT_MAIN_MENU_BUTTON_HEIGHT, COMBAT_MAIN_MENU_BUTTON_SPACING, m_D3D->GetDeviceContext());
@@ -973,8 +954,7 @@ bool ApplicationClass::HandleInput(float frameTime){
 					}
 
 					// Return to default behaviour, deselect the current command
-					m_CommandSelected = false;
-					m_SelectedCommand = COMMAND_DEFAULT;
+					DeselectCommand();
 
 					break;
 
@@ -996,8 +976,7 @@ bool ApplicationClass::HandleInput(float frameTime){
 					}
 
 					// Return to default behaviour, deselect the current command
-					m_CommandSelected = false;
-					m_SelectedCommand = COMMAND_DEFAULT;
+					DeselectCommand();
 
 					break;
 				}
@@ -1010,8 +989,7 @@ bool ApplicationClass::HandleInput(float frameTime){
 			// Right Click - Cancel Command Selection, Default mouse behaviour
 			if (m_CommandSelected){
 				// If a command is selected, deselect it
-				m_CommandSelected = false;
-				m_SelectedCommand = COMMAND_DEFAULT;
+				DeselectCommand();
 			} else if (m_cursorOverTile && m_SelectedAgent){
 				// Move the selected Agent to the currently highlighted tile
 				// NOTE: Will also need behaviour to Order an Attack if an Enemy Agent is
@@ -1029,6 +1007,20 @@ bool ApplicationClass::HandleInput(float frameTime){
 	}
 
 	return true;
+}
+
+void ApplicationClass::StateChanged(){
+	// Set stateChanged to true and reset tooltips
+	m_stateChanged = true;
+	ResetTooltip();
+	return;
+}
+
+void ApplicationClass::DeselectCommand(){
+	// Reset the selected command and associated flag
+	m_CommandSelected = false;
+	m_SelectedCommand = COMMAND_DEFAULT;
+	return;
 }
 
 bool ApplicationClass::SelectAgent(){

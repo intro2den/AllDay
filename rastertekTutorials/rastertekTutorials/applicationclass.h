@@ -131,6 +131,10 @@ private:
 
 	// Handle Input
 	bool HandleInput(float);
+
+	void StateChanged();
+	void DeselectCommand();
+
 	bool SelectAgent();
 	bool SetSelectedAgent(ActiveAgentClass*);
 	bool OrderMove();
