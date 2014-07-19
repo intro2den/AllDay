@@ -533,6 +533,15 @@ void ApplicationClass::FindCurrentUIElement(){
 			// Check for a button under the cursor
 			FindStandardMenuButton(cursorX, cursorY, OPTIONS_MENU_BUTTON_COUNT, MAIN_MENU_BUTTON_WIDTH, MAIN_MENU_BUTTON_HEIGHT, MAIN_MENU_BUTTON_SPACING);
 			break;
+
+		case MENUSTATE_GAMEOPTIONSMENU:
+			// The Game Options Menu is currently open
+			m_currentUIMenu = UIMENU_GAMEOPTIONSMENU;
+			cursorY = m_mouseY - GAME_OPTIONS_MENU_BUTTON_VERTICAL_OFFSET;
+
+			// Check for a button under the cursor
+			FindStandardMenuButton(cursorX, cursorY, GAME_OPTIONS_MENU_BUTTON_COUNT, MAIN_MENU_BUTTON_WIDTH, MAIN_MENU_BUTTON_HEIGHT, MAIN_MENU_BUTTON_SPACING);
+			break;
 		}
 
 		break;
@@ -645,10 +654,7 @@ bool ApplicationClass::HandleInput(float frameTime){
 					// Change the MainState to CombatMap, create a new CombatMap and begin the first round
 					m_MainState = MAINSTATE_COMBATMAP;
 					m_MenuState = MENUSTATE_NOMENU;
-					StateChanged();
-
-					// Clear all error messages on state change
-					result = m_Text->ClearErrors(m_D3D->GetDeviceContext());
+					result = StateChanged();
 					if (!result){
 						return false;
 					}
@@ -674,10 +680,7 @@ bool ApplicationClass::HandleInput(float frameTime){
 				case MAINMENUBUTTON_OPTIONS:
 					// Change the MenuState to OptionsMenu
 					m_MenuState = MENUSTATE_OPTIONMENU;
-					StateChanged();
-
-					// Clear all error messages on state change
-					result = m_Text->ClearErrors(m_D3D->GetDeviceContext());
+					result = StateChanged();
 					if (!result){
 						return false;
 					}
@@ -703,13 +706,26 @@ bool ApplicationClass::HandleInput(float frameTime){
 
 			case UIMENU_OPTIONSMENU:
 				switch (m_currentUIElement){
+				case OPTIONSMENUBUTTON_GAMEOPTIONS:
+					// Change the MenuState to GameOptions
+					m_MenuState = MENUSTATE_GAMEOPTIONSMENU;
+					result = StateChanged();
+					if (!result){
+						return false;
+					}
+
+					// Set appropriate Menu Text
+					result = m_Text->SetGameOptionsMenuText(MAIN_MENU_BUTTON_HORIZONTAL_OFFSET, GAME_OPTIONS_MENU_BUTTON_VERTICAL_OFFSET, MAIN_MENU_BUTTON_HEIGHT, MAIN_MENU_BUTTON_SPACING, m_D3D->GetDeviceContext());
+					if (!result){
+						return false;
+					}
+
+					break;
+
 				case OPTIONSMENUBUTTON_BACK:
 					// Change the MenuState to MainMenu
 					m_MenuState = MENUSTATE_MAINMENU;
-					StateChanged();
-
-					// Clear all error messages on state change
-					result = m_Text->ClearErrors(m_D3D->GetDeviceContext());
+					result = StateChanged();
 					if (!result){
 						return false;
 					}
@@ -727,6 +743,24 @@ bool ApplicationClass::HandleInput(float frameTime){
 					break;
 				}
 
+				break;
+
+			case UIMENU_GAMEOPTIONSMENU:
+				switch (m_currentUIElement){
+				case GAMEOPTIONSMENUBUTTON_BACK:
+					// Change the MenuState to OptionMenu
+					m_MenuState = MENUSTATE_OPTIONMENU;
+					result = StateChanged();
+					if (!result){
+						return false;
+					}
+
+					// Set appropriate Menu Text
+					result = m_Text->SetOptionsMenuText(MAIN_MENU_BUTTON_HORIZONTAL_OFFSET, MAIN_MENU_BUTTON_VERTICAL_OFFSET, MAIN_MENU_BUTTON_HEIGHT, MAIN_MENU_BUTTON_SPACING, m_D3D->GetDeviceContext());
+					if (!result){
+						return false;
+					}
+				}
 				break;
 			}
 		}
@@ -823,10 +857,7 @@ bool ApplicationClass::HandleInput(float frameTime){
 				switch (m_currentUIElement){
 				case COMBATMAINMENUBUTTON_CLOSE:
 					m_MenuState = MENUSTATE_NOMENU;
-					StateChanged();
-					
-					// Clear the menu text
-					result = m_Text->ClearMenuText(m_D3D->GetDeviceContext());
+					result = StateChanged();
 					if (!result){
 						return false;
 					}
@@ -838,10 +869,7 @@ bool ApplicationClass::HandleInput(float frameTime){
 					m_MainState = MAINSTATE_MAINMENU;
 					m_MenuState = MENUSTATE_MAINMENU;
 					DeselectCommand();
-					StateChanged();
-
-					// Clear all error messages on state change
-					result = m_Text->ClearErrors(m_D3D->GetDeviceContext());
+					result = StateChanged();
 					if (!result){
 						return false;
 					}
@@ -907,7 +935,10 @@ bool ApplicationClass::HandleInput(float frameTime){
 					// Open the CombatMap Main Menu
 					m_MenuState = MENUSTATE_MAINMENU;
 					DeselectCommand();
-					StateChanged();
+					result = StateChanged();
+					if (!result){
+						return false;
+					}
 
 					// Set appropriate menu text
 					result = m_Text->SetCombatMapMainMenuText((m_screenWidth - COMBAT_MAIN_MENU_WIDTH) / 2 + COMBAT_MAIN_MENU_BUTTON_HORIZONTAL_OFFSET, (m_screenHeight - COMBAT_MAIN_MENU_HEIGHT) / 2 + COMBAT_MAIN_MENU_BUTTON_VERTICAL_OFFSET, COMBAT_MAIN_MENU_BUTTON_HEIGHT, COMBAT_MAIN_MENU_BUTTON_SPACING, m_D3D->GetDeviceContext());
@@ -1009,11 +1040,20 @@ bool ApplicationClass::HandleInput(float frameTime){
 	return true;
 }
 
-void ApplicationClass::StateChanged(){
-	// Set stateChanged to true and reset tooltips
+bool ApplicationClass::StateChanged(){
+	// Set stateChanged to true, reset tooltips and clear error messages
+	bool result;
+
 	m_stateChanged = true;
 	ResetTooltip();
-	return;
+
+	// Clear all error messages on state change
+	result = m_Text->ClearErrors(m_D3D->GetDeviceContext());
+	if (!result){
+		return false;
+	}
+
+	return true;
 }
 
 void ApplicationClass::DeselectCommand(){
@@ -1826,8 +1866,37 @@ bool ApplicationClass::UpdateTooltip(){
 
 		case MENUSTATE_OPTIONMENU:
 			switch (m_currentUIElement){
+			case OPTIONSMENUBUTTON_GAMEOPTIONS:
+				result = m_Text->SetTooltipText(m_tooltipX, m_tooltipY, "Game Options", "Adjust game settings", m_tooltipWidth, m_D3D->GetDeviceContext());
+				if (!result){
+					return false;
+				}
+
+				break;
+
 			case OPTIONSMENUBUTTON_BACK:
+				// Shift the tooltip location down to the same height as the button
+				m_tooltipY += MAIN_MENU_BUTTON_HEIGHT + MAIN_MENU_BUTTON_SPACING;
+
 				result = m_Text->SetTooltipText(m_tooltipX, m_tooltipY, "Main Menu", "Return to the Main Menu", m_tooltipWidth, m_D3D->GetDeviceContext());
+				if (!result){
+					return false;
+				}
+				break;
+
+			default:
+				m_displayTooltip = false;
+			}
+
+			break;
+
+		case MENUSTATE_GAMEOPTIONSMENU:
+			switch (m_currentUIElement){
+			case GAMEOPTIONSMENUBUTTON_BACK:
+				// Shift the tooltip location down to the same height as the button
+				m_tooltipY = GAME_OPTIONS_MENU_BUTTON_VERTICAL_OFFSET;
+
+				result = m_Text->SetTooltipText(m_tooltipX, m_tooltipY, "Options Menu", "Return to the Options Menu", m_tooltipWidth, m_D3D->GetDeviceContext());
 				if (!result){
 					return false;
 				}
@@ -2053,6 +2122,15 @@ bool ApplicationClass::RenderGraphics(){
 				return false;
 			}
 			
+			break;
+
+		case MENUSTATE_GAMEOPTIONSMENU:
+			// Render all the buttons on the Game Options Menu
+			result = RenderStandardMenuButtons(MAIN_MENU_BUTTON_HORIZONTAL_OFFSET, GAME_OPTIONS_MENU_BUTTON_VERTICAL_OFFSET, GAME_OPTIONS_MENU_BUTTON_COUNT, MAIN_MENU_BUTTON_WIDTH, MAIN_MENU_BUTTON_HEIGHT, MAIN_MENU_BUTTON_SPACING, worldMatrix, orthoMatrix);
+			if (!result){
+				return false;
+			}
+
 			break;
 
 		default:

@@ -57,6 +57,7 @@ public:
 	bool ClearMenuText(ID3D11DeviceContext*);
 	bool SetMainMenuText(int, int, int, int, ID3D11DeviceContext*);
 	bool SetOptionsMenuText(int, int, int, int, ID3D11DeviceContext*);
+	bool SetGameOptionsMenuText(int, int, int, int, ID3D11DeviceContext*);
 	bool SetCombatMapMainMenuText(int, int, int, int, ID3D11DeviceContext*);
 
 	bool SetTooltipText(int, int, char*, char*, int, ID3D11DeviceContext*);

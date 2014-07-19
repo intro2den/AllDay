@@ -390,16 +390,12 @@ bool TextClass::SetOptionsMenuText(int horizontalOffset, int verticalOffset, int
 	// Update all menuText strings to display labels for each option on the Options Menu
 	bool result;
 
-	// NOTE: Positioning is currently fixed and does not change with other elements in the UI
-	//       such as the button the text is meant to be a part of. This will have to change,
-	//       particularly when we support multiple resolutions (Text size may also need to change)
-
-	result = UpdateSentence(m_menuText1, "Back", horizontalOffset + 15, verticalOffset + (buttonHeight / 2) - 4, 0.0f, 0.0f, 0.0f, NO_LENGTH_LIMIT, deviceContext);
+	result = UpdateSentence(m_menuText1, "Game Options", horizontalOffset + 15, verticalOffset + (buttonHeight / 2) - 4, 0.0f, 0.0f, 0.0f, NO_LENGTH_LIMIT, deviceContext);
 	if (!result){
 		return false;
 	}
 
-	result = UpdateSentence(m_menuText2, "", 0, 0, 0.0f, 0.0f, 0.0f, NO_LENGTH_LIMIT, deviceContext);
+	result = UpdateSentence(m_menuText2, "Back", horizontalOffset + 15, verticalOffset + (buttonHeight / 2) + (buttonHeight + buttonSpacing) - 4, 0.0f, 0.0f, 0.0f, NO_LENGTH_LIMIT, deviceContext);
 	if (!result){
 		return false;
 	}
@@ -417,13 +413,36 @@ bool TextClass::SetOptionsMenuText(int horizontalOffset, int verticalOffset, int
 	return true;
 }
 
+bool TextClass::SetGameOptionsMenuText(int horizontalOffset, int verticalOffset, int buttonHeight, int buttonSpacing, ID3D11DeviceContext* deviceContext){
+	// Update all menuText strings to display labeels for each option on the Game Options Menu
+	bool result;
+
+	result = UpdateSentence(m_menuText1, "Back", horizontalOffset + 15, verticalOffset + (buttonHeight / 2) - 4, 0.0f, 0.0f, 0.0f, NO_LENGTH_LIMIT, deviceContext);
+	if (!result){
+		return false;
+	}
+
+	result = UpdateSentence(m_menuText2, "", 0, 0, 0.0f, 0.0f, 0.0f, NO_LENGTH_LIMIT, deviceContext);
+	if (!result){
+		return false;
+	}
+
+	result = UpdateSentence(m_menuText3, "", 0, 0, 0.0f, 0.0f, 0.0f, NO_LENGTH_LIMIT, deviceContext);
+	if (!result){
+		return false;
+	}
+
+	result = UpdateSentence(m_menuText4, "", 0, 0, 0.0f, 0.0f, 0.0f, NO_LENGTH_LIMIT, deviceContext);
+	if (!result){
+		return false;
+	}
+
+	return true;
+}
+
 bool TextClass::SetCombatMapMainMenuText(int horizontalOffset, int verticalOffset, int buttonHeight, int buttonSpacing, ID3D11DeviceContext* deviceContext){
 	// Update all menuText strings to display labels for each option on the CombatMap Menu Bar
 	bool result;
-
-	// NOTE: Positioning is currently fixed and does not change with other elements in the UI
-	//       such as the button the text is meant to be a part of. This will have to change,
-	//       particularly when we support multiple resolutions (Text size may also need to change)
 
 	result = UpdateSentence(m_menuText1, "Close Menu", horizontalOffset + 15, verticalOffset + (buttonHeight / 2) - 4, 0.0f, 0.0f, 0.0f, NO_LENGTH_LIMIT, deviceContext);
 	if (!result){

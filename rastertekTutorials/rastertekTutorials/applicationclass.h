@@ -56,6 +56,7 @@ private:
 	enum MenuState{
 		MENUSTATE_MAINMENU,
 		MENUSTATE_OPTIONMENU,
+		MENUSTATE_GAMEOPTIONSMENU,
 		MENUSTATE_NOMENU
 	};
 
@@ -75,6 +76,7 @@ private:
 		UIMENU_NOMENU,
 		UIMENU_MAINMENU,
 		UIMENU_OPTIONSMENU,
+		UIMENU_GAMEOPTIONSMENU,
 		UIMENU_COMBATMENUBAR
 	};
 
@@ -93,7 +95,12 @@ private:
 	};
 
 	enum OptionsMenuButton{
-		OPTIONSMENUBUTTON_BACK = 0
+		OPTIONSMENUBUTTON_GAMEOPTIONS = 0,
+		OPTIONSMENUBUTTON_BACK
+	};
+
+	enum GameOptionsMenuButton{
+		GAMEOPTIONSMENUBUTTON_BACK = 0
 	};
 
 	enum CombatMenuBarButton{
@@ -132,7 +139,7 @@ private:
 	// Handle Input
 	bool HandleInput(float);
 
-	void StateChanged();
+	bool StateChanged();
 	void DeselectCommand();
 
 	bool SelectAgent();
@@ -179,7 +186,11 @@ private:
 
 	// Options Menu
 	// NOTE: Currently using Main Menu constants in place of constants specific to the Options Menu as they should look the same
-	const int OPTIONS_MENU_BUTTON_COUNT = 1;
+	const int OPTIONS_MENU_BUTTON_COUNT = 2;
+
+	// Game Options Menu
+	const int GAME_OPTIONS_MENU_BUTTON_COUNT = 1;
+	int GAME_OPTIONS_MENU_BUTTON_VERTICAL_OFFSET = 200;
 
 	// CombatMap Menu Bar
 	// Buttons/Options from the Menu Bar are in a double row from the right side of the menu bar
