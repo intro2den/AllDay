@@ -146,7 +146,7 @@ bool ApplicationClass::Initialize(HINSTANCE hinstance, HWND hwnd, int screenWidt
 		return false;
 	}
 
-	result = m_StandardButton->Initialize(m_D3D->GetDevice(), m_screenWidth, m_screenHeight, "../rastertekTutorials/data/ui_button.dds", MAIN_MENU_BUTTON_WIDTH, MAIN_MENU_BUTTON_HEIGHT);
+	result = m_StandardButton->Initialize(m_D3D->GetDevice(), m_screenWidth, m_screenHeight, "../rastertekTutorials/data/ui_button.png", MAIN_MENU_BUTTON_WIDTH, MAIN_MENU_BUTTON_HEIGHT);
 	if (!result){
 		MessageBox(hwnd, "Could not initialize the main menu bitmap object.", "Error", MB_OK);
 		return false;
@@ -158,7 +158,7 @@ bool ApplicationClass::Initialize(HINSTANCE hinstance, HWND hwnd, int screenWidt
 		return false;
 	}
 
-	result = m_MenuBackground->Initialize(m_D3D->GetDevice(), m_screenWidth, m_screenHeight, "../rastertekTutorials/data/ui_menubarbackground.dds", m_screenWidth, COMBAT_MENU_BAR_HEIGHT);
+	result = m_MenuBackground->Initialize(m_D3D->GetDevice(), m_screenWidth, m_screenHeight, "../rastertekTutorials/data/ui_menubarbackground.png", m_screenWidth, COMBAT_MENU_BAR_HEIGHT);
 	if (!result){
 		MessageBox(hwnd, "Could not initialize the menu background bitmap object.", "Error", MB_OK);
 		return false;
@@ -170,7 +170,7 @@ bool ApplicationClass::Initialize(HINSTANCE hinstance, HWND hwnd, int screenWidt
 		return false;
 	}
 
-	result = m_Mouse->Initialize(m_D3D->GetDevice(), m_screenWidth, m_screenHeight, "../rastertekTutorials/data/cursor.dds", 32, 32);
+	result = m_Mouse->Initialize(m_D3D->GetDevice(), m_screenWidth, m_screenHeight, "../rastertekTutorials/data/cursor.png", 32, 32);
 	if (!result){
 		MessageBox(hwnd, "Could not initialize the bitmap object.", "Error", MB_OK);
 		return false;
@@ -858,6 +858,11 @@ bool ApplicationClass::HandleInput(float frameTime){
 				case COMBATMAINMENUBUTTON_CLOSE:
 					m_MenuState = MENUSTATE_NOMENU;
 					result = StateChanged();
+					if (!result){
+						return false;
+					}
+
+					result = m_Text->ClearMenuText(m_D3D->GetDeviceContext());
 					if (!result){
 						return false;
 					}
@@ -1580,7 +1585,7 @@ bool ApplicationClass::InitializeCombatMap(MapType mapType, int mapWidth, int ma
 		return false;
 	}
 
-	result = m_TerrainMap->Initialize(m_D3D->GetDevice(), m_screenWidth, m_screenHeight, "../rastertekTutorials/data/combatmap_terrain.dds", m_combatMapWidth, m_combatMapHeight);
+	result = m_TerrainMap->Initialize(m_D3D->GetDevice(), m_screenWidth, m_screenHeight, "../rastertekTutorials/data/combatmap_terrain.png", m_combatMapWidth, m_combatMapHeight);
 	if (!result){
 		return false;
 	}
@@ -1591,7 +1596,7 @@ bool ApplicationClass::InitializeCombatMap(MapType mapType, int mapWidth, int ma
 		return false;
 	}
 
-	result = m_HexHighlight->Initialize(m_D3D->GetDevice(), m_screenWidth, m_screenHeight, "../rastertekTutorials/data/highlight_white.dds", 1, 1);
+	result = m_HexHighlight->Initialize(m_D3D->GetDevice(), m_screenWidth, m_screenHeight, "../rastertekTutorials/data/highlight_white.png", 1, 1);
 	if (!result){
 		return false;
 	}
@@ -1660,7 +1665,7 @@ bool ApplicationClass::InitializeCombatMap(MapType mapType, int mapWidth, int ma
 		return false;
 	}
 
-	result = m_AgentSprites->Initialize(m_D3D->GetDevice(), m_screenWidth, m_screenHeight, "../rastertekTutorials/data/agentsprites.dds", (int)HEX_SIZE, (int)HEX_HEIGHT);
+	result = m_AgentSprites->Initialize(m_D3D->GetDevice(), m_screenWidth, m_screenHeight, "../rastertekTutorials/data/agentsprites.png", (int)HEX_SIZE, (int)HEX_HEIGHT);
 	if (!result){
 		return false;
 	}

@@ -40,7 +40,7 @@ bool TextClass::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceCont
 	}
 
 	// Initialize the font object.
-	result = m_Font->Initialize(device, "../rastertekTutorials/data/fontdata.txt", "../rastertekTutorials/data/font.dds");
+	result = m_Font->Initialize(device, "../rastertekTutorials/data/fontdata.txt", "../rastertekTutorials/data/font.png");
 	if (!result){
 		MessageBox(hwnd, "Could not initialize the font object.", "Error", MB_OK);
 		return false;
