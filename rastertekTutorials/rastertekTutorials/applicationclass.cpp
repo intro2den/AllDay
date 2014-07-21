@@ -15,6 +15,8 @@ ApplicationClass::ApplicationClass(){
 	m_Camera = 0;
 	m_MainBackground = 0;
 	m_StandardButton = 0;
+	m_StandardSlider = 0;
+	m_StandardSliderBackground = 0;
 	m_Mouse = 0;
 	m_MenuBackground = 0;
 	m_CombatMap = 0;
@@ -140,7 +142,7 @@ bool ApplicationClass::Initialize(HINSTANCE hinstance, HWND hwnd, int screenWidt
 		return false;
 	}
 
-	// Initialize the Main Menu bitmap object
+	// Initialize the StandardButton bitmap object
 	m_StandardButton = new BitmapClass;
 	if (!m_StandardButton){
 		return false;
@@ -148,7 +150,31 @@ bool ApplicationClass::Initialize(HINSTANCE hinstance, HWND hwnd, int screenWidt
 
 	result = m_StandardButton->Initialize(m_D3D->GetDevice(), m_screenWidth, m_screenHeight, "../rastertekTutorials/data/ui_button.png", MAIN_MENU_BUTTON_WIDTH, MAIN_MENU_BUTTON_HEIGHT);
 	if (!result){
-		MessageBox(hwnd, "Could not initialize the main menu bitmap object.", "Error", MB_OK);
+		MessageBox(hwnd, "Could not initialize the standard button bitmap object.", "Error", MB_OK);
+		return false;
+	}
+
+	// Initialize the StandardSlider bitmap object
+	m_StandardSlider = new BitmapClass;
+	if (!m_StandardSlider){
+		return false;
+	}
+
+	result = m_StandardSlider->Initialize(m_D3D->GetDevice(), m_screenWidth, m_screenHeight, "../rastertekTutorials/data/ui_slider.png", SLIDER_WIDTH, SLIDER_HEIGHT);
+	if (!result){
+		MessageBox(hwnd, "Could not initialize the standard slider bitmap object.", "Error", MB_OK);
+		return false;
+	}
+
+	// Initialize the StandardSliderBackground bitmap object
+	m_StandardSliderBackground = new BitmapClass;
+	if (!m_StandardSliderBackground){
+		return false;
+	}
+
+	result = m_StandardSliderBackground->Initialize(m_D3D->GetDevice(), m_screenWidth, m_screenHeight, "../rastertekTutorials/data/highlight_black.png", SLIDER_BAR_WIDTH, SLIDER_BAR_HEIGHT);
+	if (!result){
+		MessageBox(hwnd, "Could not initialize the standard slider background bitmap object.", "Error", MB_OK);
 		return false;
 	}
 
@@ -238,10 +264,7 @@ bool ApplicationClass::Initialize(HINSTANCE hinstance, HWND hwnd, int screenWidt
 	m_Position->SetPosition(cameraX, cameraY, cameraZ);
 
 	// Proof of Concept, Read Configuration file
-	result = ReadConfig();
-	if (!result){
-		return false;
-	}
+	ReadConfig();
 
 	return true;
 }
@@ -291,14 +314,28 @@ void ApplicationClass::Shutdown(){
 		m_Mouse = 0;
 	}
 
-	// Release the MenuBarBackground Bitmap object
+	// Release the MenuBackground Bitmap object
 	if (m_MenuBackground){
 		m_MenuBackground->Shutdown();
 		delete m_MenuBackground;
 		m_MenuBackground = 0;
 	}
 
-	// Release the Main Menu bitmap object
+	// Release the StandardSliderBackground bitmap object
+	if (m_StandardSliderBackground){
+		m_StandardSliderBackground->Shutdown();
+		delete m_StandardSliderBackground;
+		m_StandardSliderBackground = 0;
+	}
+
+	// Release the StandardSlider bitmap object
+	if (m_StandardSlider){
+		m_StandardSlider->Shutdown();
+		delete m_StandardSlider;
+		m_StandardSlider = 0;
+	}
+
+	// Release the StandardButton bitmap object
 	if (m_StandardButton){
 		m_StandardButton->Shutdown();
 		delete m_StandardButton;
@@ -404,54 +441,29 @@ bool ApplicationClass::Frame(){
 //       parsed data is valid in this function. If possible, all configuration
 //       data should be parsed in the SystemClass and passed into the
 //       instantiation of the ApplicationClass.
-bool ApplicationClass::ReadConfig(){
-	bool result;
+void ApplicationClass::ReadConfig(){
 	ifstream fin;
 	char configString[20];
+
+	// Set default values for configurable variables
+	m_tooltipDelay = 500.0f;
 
 	// Proof of Concept for reading Configuration File
 	fin.open("../rastertekTutorials/data/configuration.txt");
 	if (fin.fail()){
 		// If the configuration file can't be opened return
-		return true;
+		return;
 	}
 
 	// Read through the Configuration File and set relevant variables accordingly
 	fin.getline(configString, 20, ' ');
 
 	while (!fin.eof()){
-		// This is probably not a good way to parse a text file
-		if (strncmp(configString, "mainstate", 8) == 0){
+		if (strncmp(configString, "tooltipdelay", 12) == 0){
 			fin.getline(configString, 20, '\n');
-
-			if (strncmp(configString, "combat", 6) == 0){
-				// Change the MainState to CombatMap, create a new CombatMap and begin the first round
-				m_MainState = MAINSTATE_COMBATMAP;
-				m_MenuState = MENUSTATE_NOMENU;
-
-				// Clear all error messages on state change
-				result = m_Text->ClearErrors(m_D3D->GetDeviceContext());
-				if (!result){
-					return false;
-				}
-
-				if (!m_CombatMap){
-					result = InitializeCombatMap((MapType)(rand() % 2), 32, 32);
-					if (!result){
-						return false;
-					}
-				}
-
-				// Clear the menu text
-				result = m_Text->ClearMenuText(m_D3D->GetDeviceContext());
-				if (!result){
-					return false;
-				}
-
-				// Begin the first round of Combat
-				NextTurn();
-			}
-
+			m_tooltipDelay = min(float(atoi(configString)), MAX_TOOLTIPDELAY);
+			fin.getline(configString, 20, ' ');
+			continue;
 		}
 
 		fin.getline(configString, 20, '\n');
@@ -460,7 +472,33 @@ bool ApplicationClass::ReadConfig(){
 
 	// Close the configuration file.
 	fin.close();
-	return true;
+	return;
+}
+
+void ApplicationClass::WriteConfig(){
+	// Write current configuration settings to a file to save them
+	ofstream fout;
+
+	fout.open("../rastertekTutorials/data/configuration.txt");
+	if (fout.fail()){
+		// If a configuration file can't be opened return
+		return;
+	}
+
+	// Store screen resolution
+	fout << "screenwidth " << m_screenWidth << '\n';
+	fout << "screenheight " << m_screenHeight << '\n';
+
+	// Store fullscreen setting
+	fout << "fullscreen ";
+	if (m_fullscreen) fout << "true";
+	else fout << "false";
+	fout << '\n';
+	fout << "tooltipdelay " << m_tooltipDelay << '\n';
+
+	// Close the configuration file.
+	fout.close();
+	return;
 }
 
 void ApplicationClass::ResizeUIElements(){
@@ -715,6 +753,11 @@ bool ApplicationClass::HandleInput(float frameTime){
 					}
 
 					// Set appropriate Menu Text
+					result = m_Text->SetTooltipDelayText(MAIN_MENU_BUTTON_HORIZONTAL_OFFSET + 15, GAME_OPTIONS_MENU_TOOLTIPDELAY_VERTICAL_OFFSET + SLIDER_BAR_HEIGHT / 2, m_tooltipDelay, m_D3D->GetDeviceContext());
+					if (!result){
+						return false;
+					}
+
 					result = m_Text->SetGameOptionsMenuText(MAIN_MENU_BUTTON_HORIZONTAL_OFFSET, GAME_OPTIONS_MENU_BUTTON_VERTICAL_OFFSET, MAIN_MENU_BUTTON_HEIGHT, MAIN_MENU_BUTTON_SPACING, m_D3D->GetDeviceContext());
 					if (!result){
 						return false;
@@ -723,6 +766,9 @@ bool ApplicationClass::HandleInput(float frameTime){
 					break;
 
 				case OPTIONSMENUBUTTON_BACK:
+					// Save any changed settings
+					WriteConfig();
+
 					// Change the MenuState to MainMenu
 					m_MenuState = MENUSTATE_MAINMENU;
 					result = StateChanged();
@@ -761,6 +807,31 @@ bool ApplicationClass::HandleInput(float frameTime){
 						return false;
 					}
 				}
+				break;
+			}
+		}
+
+		if (m_Input->IsLeftMousePressed()){
+			switch (m_currentUIMenu){
+			case UIMENU_GAMEOPTIONSMENU:
+				// Check if the tooltip delay is being changed
+				if (m_Input->IsLeftMousePressed() && (m_mouseX >= (GAME_OPTIONS_MENU_TOOLTIPDELAY_SLIDER_HORIZONTAL_OFFSET - SLIDER_WIDTH / 2) && m_mouseX < GAME_OPTIONS_MENU_TOOLTIPDELAY_SLIDER_HORIZONTAL_OFFSET + SLIDER_BAR_WIDTH) && (m_mouseY >= GAME_OPTIONS_MENU_TOOLTIPDELAY_VERTICAL_OFFSET && m_mouseY < (GAME_OPTIONS_MENU_TOOLTIPDELAY_VERTICAL_OFFSET + SLIDER_HEIGHT))){
+					m_tooltipDelay = 100.0f * float(TOOLTIPDELAY_SLIDER_STEPS * (m_mouseX - GAME_OPTIONS_MENU_TOOLTIPDELAY_SLIDER_HORIZONTAL_OFFSET + SLIDER_WIDTH / 2) / SLIDER_BAR_WIDTH);
+					m_tooltipDelay = min(m_tooltipDelay, MAX_TOOLTIPDELAY);
+					
+					// Adjust the label
+					result = m_Text->SetTooltipDelayText(MAIN_MENU_BUTTON_HORIZONTAL_OFFSET + 15, GAME_OPTIONS_MENU_TOOLTIPDELAY_VERTICAL_OFFSET + SLIDER_BAR_HEIGHT / 2, m_tooltipDelay, m_D3D->GetDeviceContext());
+					if (!result){
+						return false;
+					}
+
+					break;
+				}
+
+				break;
+
+			default:
+				// If sliders aren't being moved, do nothing when the left mouse button is pressed down
 				break;
 			}
 		}
@@ -2130,6 +2201,27 @@ bool ApplicationClass::RenderGraphics(){
 			break;
 
 		case MENUSTATE_GAMEOPTIONSMENU:
+			// Render the tooltip delay slider
+			result = m_StandardSliderBackground->Render(m_D3D->GetDeviceContext(), GAME_OPTIONS_MENU_TOOLTIPDELAY_SLIDER_HORIZONTAL_OFFSET, GAME_OPTIONS_MENU_TOOLTIPDELAY_VERTICAL_OFFSET + (SLIDER_HEIGHT - SLIDER_BAR_HEIGHT) / 2);
+			if (!result){
+				return false;
+			}
+
+			result = m_TextureShader->Render(m_D3D->GetDeviceContext(), m_StandardSliderBackground->GetIndexCount(), worldMatrix, m_UIViewMatrix, orthoMatrix, m_StandardSliderBackground->GetTexture(), PSTYPE_NORMAL);
+			if (!result){
+				return false;
+			}
+
+			result = m_StandardSlider->Render(m_D3D->GetDeviceContext(), GAME_OPTIONS_MENU_TOOLTIPDELAY_SLIDER_HORIZONTAL_OFFSET - (SLIDER_WIDTH / 2) + int(min((m_tooltipDelay / MAX_TOOLTIPDELAY), 1.0f) * SLIDER_BAR_WIDTH), GAME_OPTIONS_MENU_TOOLTIPDELAY_VERTICAL_OFFSET);
+			if (!result){
+				return false;
+			}
+
+			result = m_TextureShader->Render(m_D3D->GetDeviceContext(), m_StandardSlider->GetIndexCount(), worldMatrix, m_UIViewMatrix, orthoMatrix, m_StandardSlider->GetTexture(), PSTYPE_NORMAL);
+			if (!result){
+				return false;
+			}
+
 			// Render all the buttons on the Game Options Menu
 			result = RenderStandardMenuButtons(MAIN_MENU_BUTTON_HORIZONTAL_OFFSET, GAME_OPTIONS_MENU_BUTTON_VERTICAL_OFFSET, GAME_OPTIONS_MENU_BUTTON_COUNT, MAIN_MENU_BUTTON_WIDTH, MAIN_MENU_BUTTON_HEIGHT, MAIN_MENU_BUTTON_SPACING, worldMatrix, orthoMatrix);
 			if (!result){

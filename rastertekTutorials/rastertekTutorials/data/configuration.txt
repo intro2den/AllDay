@@ -1,4 +1,4 @@
 screenwidth 800
 screenheight 600
 fullscreen false
-mainstate mainstate
+tooltipdelay 500

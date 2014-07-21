@@ -130,7 +130,8 @@ public:
 
 private:
 	// Initialization
-	bool ReadConfig();
+	void ReadConfig();
+	void WriteConfig();
 	void ResizeUIElements();
 
 	void FindCurrentUIElement();
@@ -187,8 +188,16 @@ private:
 	// Options Menu
 	// NOTE: Currently using Main Menu constants in place of constants specific to the Options Menu as they should look the same
 	const int OPTIONS_MENU_BUTTON_COUNT = 2;
+	const int SLIDER_WIDTH = 16;
+	const int SLIDER_HEIGHT = 32;
+	const int SLIDER_BAR_WIDTH = 200;
+	const int SLIDER_BAR_HEIGHT = 20;
 
 	// Game Options Menu
+	int GAME_OPTIONS_MENU_TOOLTIPDELAY_VERTICAL_OFFSET = 125;
+	int GAME_OPTIONS_MENU_TOOLTIPDELAY_SLIDER_HORIZONTAL_OFFSET = 250;
+	const float MAX_TOOLTIPDELAY = 3000.0f;
+	const int TOOLTIPDELAY_SLIDER_STEPS = 30;
 	const int GAME_OPTIONS_MENU_BUTTON_COUNT = 1;
 	int GAME_OPTIONS_MENU_BUTTON_VERTICAL_OFFSET = 200;
 
@@ -217,6 +226,8 @@ private:
 	CameraClass* m_Camera;
 	BitmapClass* m_MainBackground;
 	BitmapClass* m_StandardButton;
+	BitmapClass* m_StandardSlider;
+	BitmapClass* m_StandardSliderBackground;
 	BitmapClass* m_Mouse;
 	BitmapClass* m_MenuBackground;
 	CombatMap* m_CombatMap;

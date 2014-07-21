@@ -60,7 +60,7 @@ bool TextClass::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceCont
 	}
 
 	// Initialize menu text for the Main Menu
-	result = InitializeSentence(&m_menuText1, 20, device);
+	result = InitializeSentence(&m_menuText1, 30, device);
 	if (!result){
 		return false;
 	}
@@ -414,15 +414,10 @@ bool TextClass::SetOptionsMenuText(int horizontalOffset, int verticalOffset, int
 }
 
 bool TextClass::SetGameOptionsMenuText(int horizontalOffset, int verticalOffset, int buttonHeight, int buttonSpacing, ID3D11DeviceContext* deviceContext){
-	// Update all menuText strings to display labeels for each option on the Game Options Menu
+	// Update all button specific menuText strings to display labels for each option on the Game Options Menu
 	bool result;
 
-	result = UpdateSentence(m_menuText1, "Back", horizontalOffset + 15, verticalOffset + (buttonHeight / 2) - 4, 0.0f, 0.0f, 0.0f, NO_LENGTH_LIMIT, deviceContext);
-	if (!result){
-		return false;
-	}
-
-	result = UpdateSentence(m_menuText2, "", 0, 0, 0.0f, 0.0f, 0.0f, NO_LENGTH_LIMIT, deviceContext);
+	result = UpdateSentence(m_menuText2, "Back", horizontalOffset + 15, verticalOffset + (buttonHeight / 2) - 4, 0.0f, 0.0f, 0.0f, NO_LENGTH_LIMIT, deviceContext);
 	if (!result){
 		return false;
 	}
@@ -433,6 +428,34 @@ bool TextClass::SetGameOptionsMenuText(int horizontalOffset, int verticalOffset,
 	}
 
 	result = UpdateSentence(m_menuText4, "", 0, 0, 0.0f, 0.0f, 0.0f, NO_LENGTH_LIMIT, deviceContext);
+	if (!result){
+		return false;
+	}
+
+	return true;
+}
+
+bool TextClass::SetTooltipDelayText(int horizontalOffset, int verticalOffset, float delay, ID3D11DeviceContext* deviceContext){
+	// Update the first menuText string to display the current tooltip delay
+	bool result;
+	char newString[30];
+	char tempString[2];
+	
+	// Create the new string
+	strcpy_s(newString, "Tooltip Delay = ");
+
+	// Extract the delay in seconds and tenths of a second from the provided floating point value
+	_itoa_s(int(delay / 1000.0f), tempString, 10);
+	strcat_s(newString, tempString);
+
+	strcat_s(newString, ".");
+
+	_itoa_s(int(delay / 100.0f) % 10, tempString, 10);
+	strcat_s(newString, tempString);
+
+	strcat_s(newString, " seconds");
+
+	result = UpdateSentence(m_menuText1, newString, horizontalOffset, verticalOffset, 0.0f, 0.0f, 0.0f, NO_LENGTH_LIMIT, deviceContext);
 	if (!result){
 		return false;
 	}
