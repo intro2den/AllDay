@@ -6,10 +6,6 @@
 TextClass::TextClass(){
 	m_Font = 0;
 	m_FontShader = 0;
-	m_menuText1 = 0;
-	m_menuText2 = 0;
-	m_menuText3 = 0;
-	m_menuText4 = 0;
 	m_errorText1 = 0;
 	m_errorText2 = 0;
 	m_selectedAgent = 0;
@@ -23,67 +19,10 @@ TextClass::TextClass(const TextClass& other){
 TextClass::~TextClass(){
 }
 
-bool TextClass::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext, HWND hwnd, int screenWidth, int screenHeight, D3DXMATRIX baseViewMatrix, int horizontalOffset, int verticalOffset, int buttonHeight, int buttonSpacing){
+bool TextClass::Initialize(FontClass* font, FontShaderClass* fontShader, ID3D11Device* device, ID3D11DeviceContext* deviceContext, int screenWidth, int screenHeight, D3DXMATRIX baseViewMatrix){
 	bool result;
-	
-	// Store the screen width and height.
-	m_screenWidth = screenWidth;
-	m_screenHeight = screenHeight;
 
-	// Store the base view matrix.
-	m_baseViewMatrix = baseViewMatrix;
-
-	// Create the font object.
-	m_Font = new FontClass;
-	if (!m_Font){
-		return false;
-	}
-
-	// Initialize the font object.
-	result = m_Font->Initialize(device, "../rastertekTutorials/data/fontdata.txt", "../rastertekTutorials/data/font.png");
-	if (!result){
-		MessageBox(hwnd, "Could not initialize the font object.", "Error", MB_OK);
-		return false;
-	}
-
-	// Create the font shader object.
-	m_FontShader = new FontShaderClass;
-	if (!m_FontShader){
-		return false;
-	}
-
-	// Initialize the font shader object.
-	result = m_FontShader->Initialize(device, hwnd);
-	if (!result){
-		MessageBox(hwnd, "Could not initialize the font shader object.", "Error", MB_OK);
-		return false;
-	}
-
-	// Initialize menu text for the Main Menu
-	result = InitializeSentence(&m_menuText1, 30, device);
-	if (!result){
-		return false;
-	}
-
-	result = InitializeSentence(&m_menuText2, 20, device);
-	if (!result){
-		return false;
-	}
-
-	result = InitializeSentence(&m_menuText3, 20, device);
-	if (!result){
-		return false;
-	}
-
-	result = InitializeSentence(&m_menuText4, 20, device);
-	if (!result){
-		return false;
-	}
-
-	result = SetMainMenuText(horizontalOffset, verticalOffset, buttonHeight, buttonSpacing, deviceContext);
-	if (!result){
-		return false;
-	}
+	StaticTextClass::Initialize(font, fontShader, screenWidth, screenHeight, baseViewMatrix);
 
 	// Initialize sentences for the displaying of tooltips
 	result = InitializeSentence(&m_tooltipLabel, 20, device);
@@ -161,11 +100,8 @@ bool TextClass::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceCont
 }
 
 void TextClass::Shutdown(){
-	// Release the menu sentences.
-	ReleaseSentence(&m_menuText1);
-	ReleaseSentence(&m_menuText2);
-	ReleaseSentence(&m_menuText3);
-	ReleaseSentence(&m_menuText4);
+	// Release the static sentences.
+	StaticTextClass::Shutdown();
 
 	// Release the tooltip sentences
 	ReleaseSentence(&m_tooltipLabel);
@@ -181,20 +117,6 @@ void TextClass::Shutdown(){
 	// Release the cursor coordinate sentences.
 	ReleaseSentence(&m_cursorXCoordinate);
 	ReleaseSentence(&m_cursorYCoordinate);
-
-	// Release the font shader object.
-	if (m_FontShader){
-		m_FontShader->Shutdown();
-		delete m_FontShader;
-		m_FontShader = 0;
-	}
-
-	// Release the font object.
-	if (m_Font){
-		m_Font->Shutdown();
-		delete m_Font;
-		m_Font = 0;
-	}
 
 	return;
 }
@@ -271,26 +193,11 @@ bool TextClass::Render(ID3D11DeviceContext* deviceContext, D3DXMATRIX worldMatri
 	return true;
 }
 
-bool TextClass::RenderMenuText(ID3D11DeviceContext* deviceContext, D3DXMATRIX worldMatrix, D3DXMATRIX orthoMatrix){
-	// Draw the text for menu buttons
+bool TextClass::RenderStaticText(ID3D11DeviceContext* deviceContext, D3DXMATRIX worldMatrix, D3DXMATRIX orthoMatrix){
+	// Draw all static text
 	bool result;
-
-	result = RenderSentence(deviceContext, m_menuText1, worldMatrix, orthoMatrix);
-	if (!result){
-		return false;
-	}
-
-	result = RenderSentence(deviceContext, m_menuText2, worldMatrix, orthoMatrix);
-	if (!result){
-		return false;
-	}
-
-	result = RenderSentence(deviceContext, m_menuText3, worldMatrix, orthoMatrix);
-	if (!result){
-		return false;
-	}
-
-	result = RenderSentence(deviceContext, m_menuText4, worldMatrix, orthoMatrix);
+	
+	result = StaticTextClass::Render(deviceContext, worldMatrix, orthoMatrix);
 	if (!result){
 		return false;
 	}
@@ -325,164 +232,6 @@ bool TextClass::RenderErrorText(ID3D11DeviceContext* deviceContext, D3DXMATRIX w
 	}
 
 	result = RenderSentence(deviceContext, m_errorText2, worldMatrix, orthoMatrix);
-	if (!result){
-		return false;
-	}
-
-	return true;
-}
-
-bool TextClass::ClearMenuText(ID3D11DeviceContext* deviceContext){
-	// Update all menuText strings to display nothing
-	bool result;
-
-	result = UpdateSentence(m_menuText1, "", 0, 0, 0.0f, 0.0f, 0.0f, NO_LENGTH_LIMIT, deviceContext);
-	if (!result){
-		return false;
-	}
-
-	result = UpdateSentence(m_menuText2, "", 0, 0, 0.0f, 0.0f, 0.0f, NO_LENGTH_LIMIT, deviceContext);
-	if (!result){
-		return false;
-	}
-
-	result = UpdateSentence(m_menuText3, "", 0, 0, 0.0f, 0.0f, 0.0f, NO_LENGTH_LIMIT, deviceContext);
-	if (!result){
-		return false;
-	}
-
-	result = UpdateSentence(m_menuText4, "", 0, 0, 0.0f, 0.0f, 0.0f, NO_LENGTH_LIMIT, deviceContext);
-	if (!result){
-		return false;
-	}
-
-	return true;
-}
-
-bool TextClass::SetMainMenuText(int horizontalOffset, int verticalOffset, int buttonHeight, int buttonSpacing, ID3D11DeviceContext* deviceContext){
-	// Update all menuText strings to display labels for each option on the Main Menu
-	bool result;
-
-	result = UpdateSentence(m_menuText1, "Enter CombatMap", horizontalOffset + 15, verticalOffset + (buttonHeight / 2) - 4, 0.0f, 0.0f, 0.0f, NO_LENGTH_LIMIT, deviceContext);
-	if (!result){
-		return false;
-	}
-
-	result = UpdateSentence(m_menuText2, "Options", horizontalOffset + 15, verticalOffset + (buttonHeight / 2) + (buttonHeight + buttonSpacing) - 4, 0.0f, 0.0f, 0.0f, NO_LENGTH_LIMIT, deviceContext);
-	if (!result){
-		return false;
-	}
-
-	result = UpdateSentence(m_menuText3, "Exit Application", horizontalOffset + 15, verticalOffset + (buttonHeight / 2) + 2 * (buttonHeight + buttonSpacing) - 4, 0.0f, 0.0f, 0.0f, NO_LENGTH_LIMIT, deviceContext);
-	if (!result){
-		return false;
-	}
-
-	result = UpdateSentence(m_menuText4, "", 0, 0, 0.0f, 0.0f, 0.0f, NO_LENGTH_LIMIT, deviceContext);
-	if (!result){
-		return false;
-	}
-
-	return true;
-}
-
-bool TextClass::SetOptionsMenuText(int horizontalOffset, int verticalOffset, int buttonHeight, int buttonSpacing, ID3D11DeviceContext* deviceContext){
-	// Update all menuText strings to display labels for each option on the Options Menu
-	bool result;
-
-	result = UpdateSentence(m_menuText1, "Game Options", horizontalOffset + 15, verticalOffset + (buttonHeight / 2) - 4, 0.0f, 0.0f, 0.0f, NO_LENGTH_LIMIT, deviceContext);
-	if (!result){
-		return false;
-	}
-
-	result = UpdateSentence(m_menuText2, "Back", horizontalOffset + 15, verticalOffset + (buttonHeight / 2) + (buttonHeight + buttonSpacing) - 4, 0.0f, 0.0f, 0.0f, NO_LENGTH_LIMIT, deviceContext);
-	if (!result){
-		return false;
-	}
-	
-	result = UpdateSentence(m_menuText3, "", 0, 0, 0.0f, 0.0f, 0.0f, NO_LENGTH_LIMIT, deviceContext);
-	if (!result){
-		return false;
-	}
-
-	result = UpdateSentence(m_menuText4, "", 0, 0, 0.0f, 0.0f, 0.0f, NO_LENGTH_LIMIT, deviceContext);
-	if (!result){
-		return false;
-	}
-
-	return true;
-}
-
-bool TextClass::SetGameOptionsMenuText(int horizontalOffset, int verticalOffset, int buttonHeight, int buttonSpacing, ID3D11DeviceContext* deviceContext){
-	// Update all button specific menuText strings to display labels for each option on the Game Options Menu
-	bool result;
-
-	result = UpdateSentence(m_menuText2, "Back", horizontalOffset + 15, verticalOffset + (buttonHeight / 2) - 4, 0.0f, 0.0f, 0.0f, NO_LENGTH_LIMIT, deviceContext);
-	if (!result){
-		return false;
-	}
-
-	result = UpdateSentence(m_menuText3, "", 0, 0, 0.0f, 0.0f, 0.0f, NO_LENGTH_LIMIT, deviceContext);
-	if (!result){
-		return false;
-	}
-
-	result = UpdateSentence(m_menuText4, "", 0, 0, 0.0f, 0.0f, 0.0f, NO_LENGTH_LIMIT, deviceContext);
-	if (!result){
-		return false;
-	}
-
-	return true;
-}
-
-bool TextClass::SetTooltipDelayText(int horizontalOffset, int verticalOffset, float delay, ID3D11DeviceContext* deviceContext){
-	// Update the first menuText string to display the current tooltip delay
-	bool result;
-	char newString[30];
-	char tempString[2];
-	
-	// Create the new string
-	strcpy_s(newString, "Tooltip Delay = ");
-
-	// Extract the delay in seconds and tenths of a second from the provided floating point value
-	_itoa_s(int(delay / 1000.0f), tempString, 10);
-	strcat_s(newString, tempString);
-
-	strcat_s(newString, ".");
-
-	_itoa_s(int(delay / 100.0f) % 10, tempString, 10);
-	strcat_s(newString, tempString);
-
-	strcat_s(newString, " seconds");
-
-	result = UpdateSentence(m_menuText1, newString, horizontalOffset, verticalOffset, 0.0f, 0.0f, 0.0f, NO_LENGTH_LIMIT, deviceContext);
-	if (!result){
-		return false;
-	}
-
-	return true;
-}
-
-bool TextClass::SetCombatMapMainMenuText(int horizontalOffset, int verticalOffset, int buttonHeight, int buttonSpacing, ID3D11DeviceContext* deviceContext){
-	// Update all menuText strings to display labels for each option on the CombatMap Menu Bar
-	bool result;
-
-	result = UpdateSentence(m_menuText1, "Close Menu", horizontalOffset + 15, verticalOffset + (buttonHeight / 2) - 4, 0.0f, 0.0f, 0.0f, NO_LENGTH_LIMIT, deviceContext);
-	if (!result){
-		return false;
-	}
-
-	result = UpdateSentence(m_menuText2, "Exit to Main Menu", horizontalOffset + 15, verticalOffset + (buttonHeight / 2) + (buttonHeight + buttonSpacing) - 4, 0.0f, 0.0f, 0.0f, NO_LENGTH_LIMIT, deviceContext);
-	if (!result){
-		return false;
-	}
-
-	result = UpdateSentence(m_menuText3, "Exit Application", horizontalOffset + 15, verticalOffset + (buttonHeight / 2) + 2 * (buttonHeight + buttonSpacing) - 4, 0.0f, 0.0f, 0.0f, NO_LENGTH_LIMIT, deviceContext);
-	if (!result){
-		return false;
-	}
-
-	result = UpdateSentence(m_menuText4, "", 0, 0, 0.0f, 0.0f, 0.0f, NO_LENGTH_LIMIT, deviceContext);
 	if (!result){
 		return false;
 	}
@@ -621,213 +370,6 @@ bool TextClass::SetSelectedAgent(char* agentName, ID3D11DeviceContext* deviceCon
 	result = UpdateSentence(m_selectedAgent, newString, 20, m_screenHeight - 80, 1.0f, 1.0f, 1.0f, NO_LENGTH_LIMIT, deviceContext);
 	if (!result){
 		return false;
-	}
-
-	return true;
-}
-
-bool TextClass::InitializeSentence(SentenceType** sentence, int maxLength, ID3D11Device* device){
-	VertexType* vertices;
-	unsigned long* indices;
-	D3D11_BUFFER_DESC vertexBufferDesc, indexBufferDesc;
-	D3D11_SUBRESOURCE_DATA vertexData, indexData;
-	HRESULT result;
-	int i;
-
-	// Create a new sentence object.
-	*sentence = new SentenceType;
-	if (!*sentence){
-		return false;
-	}
-
-	// Initialize the sentence buffers to null.
-	(*sentence)->vertexBuffer = 0;
-	(*sentence)->indexBuffer = 0;
-
-	// Set the maximum length of the sentence.
-	(*sentence)->maxLength = maxLength;
-
-	// Set the number of vertices in the vertex array.
-	(*sentence)->vertexCount = 6 * maxLength;
-
-	// Set the number of indexes in the index array.
-	(*sentence)->indexCount = (*sentence)->vertexCount;
-
-	// Create the vertex array.
-	vertices = new VertexType[(*sentence)->vertexCount];
-	if (!vertices){
-		return false;
-	}
-
-	// Create the index array.
-	indices = new unsigned long[(*sentence)->indexCount];
-	if (!indices){
-		return false;
-	}
-
-	// Initialize vertex array to zeros at first.
-	memset(vertices, 0, (sizeof(VertexType)* (*sentence)->vertexCount));
-
-	// Initialize the index array.
-	for (i = 0; i<(*sentence)->indexCount; i++){
-		indices[i] = i;
-	}
-
-	// Set up the description of the dynamic vertex buffer.
-	vertexBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
-	vertexBufferDesc.ByteWidth = sizeof(VertexType)* (*sentence)->vertexCount;
-	vertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-	vertexBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-	vertexBufferDesc.MiscFlags = 0;
-	vertexBufferDesc.StructureByteStride = 0;
-
-	// Give the subresource structure a pointer to the vertex data.
-	vertexData.pSysMem = vertices;
-	vertexData.SysMemPitch = 0;
-	vertexData.SysMemSlicePitch = 0;
-
-	// Create the vertex buffer.
-	result = device->CreateBuffer(&vertexBufferDesc, &vertexData, &(*sentence)->vertexBuffer);
-	if (FAILED(result)){
-		return false;
-	}
-
-	// Set up the description of the static index buffer.
-	indexBufferDesc.Usage = D3D11_USAGE_DEFAULT;
-	indexBufferDesc.ByteWidth = sizeof(unsigned long)* (*sentence)->indexCount;
-	indexBufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
-	indexBufferDesc.CPUAccessFlags = 0;
-	indexBufferDesc.MiscFlags = 0;
-	indexBufferDesc.StructureByteStride = 0;
-
-	// Give the subresource structure a pointer to the index data.
-	indexData.pSysMem = indices;
-	indexData.SysMemPitch = 0;
-	indexData.SysMemSlicePitch = 0;
-
-	// Create the index buffer.
-	result = device->CreateBuffer(&indexBufferDesc, &indexData, &(*sentence)->indexBuffer);
-	if (FAILED(result)){
-		return false;
-	}
-
-	// Release the vertex array as it is no longer needed.
-	delete[] vertices;
-	vertices = 0;
-
-	// Release the index array as it is no longer needed.
-	delete[] indices;
-	indices = 0;
-
-	return true;
-}
-
-bool TextClass::UpdateSentence(SentenceType* sentence, char* text, int positionX, int positionY, float red, float green, float blue, int maxWidth, ID3D11DeviceContext* deviceContext){
-	int numLetters;
-	VertexType* vertices;
-	float drawX, drawY;
-	HRESULT result;
-	D3D11_MAPPED_SUBRESOURCE mappedResource;
-	VertexType* verticesPtr;
-
-	// Store the color of the sentence.
-	sentence->red = red;
-	sentence->green = green;
-	sentence->blue = blue;
-
-	// Get the number of letters in the sentence.
-	numLetters = (int)strlen(text);
-
-	// Check for possible buffer overflow.
-	if (numLetters > sentence->maxLength){
-		return false;
-	}
-
-	// Create the vertex array.
-	vertices = new VertexType[sentence->vertexCount];
-	if (!vertices){
-		return false;
-	}
-
-	// Initialize vertex array to zeros at first.
-	memset(vertices, 0, (sizeof(VertexType)* sentence->vertexCount));
-
-	// Calculate the X and Y pixel position on the screen to start drawing to.
-	drawX = (float)(((m_screenWidth / 2) * -1) + positionX);
-	drawY = (float)((m_screenHeight / 2) - positionY);
-
-	// Use the font class to build the vertex array from the sentence text and sentence draw location.
-	m_Font->BuildVertexArray((void*)vertices, text, drawX, drawY, maxWidth);
-
-	// Lock the vertex buffer so it can be written to.
-	result = deviceContext->Map(sentence->vertexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
-	if (FAILED(result)){
-		return false;
-	}
-
-	// Get a pointer to the data in the vertex buffer.
-	verticesPtr = (VertexType*)mappedResource.pData;
-
-	// Copy the data into the vertex buffer.
-	memcpy(verticesPtr, (void*)vertices, (sizeof(VertexType)* sentence->vertexCount));
-
-	// Unlock the vertex buffer.
-	deviceContext->Unmap(sentence->vertexBuffer, 0);
-
-	// Release the vertex array as it is no longer needed.
-	delete[] vertices;
-	vertices = 0;
-
-	return true;
-}
-
-void TextClass::ReleaseSentence(SentenceType** sentence){
-	if (*sentence){
-		// Release the sentence vertex buffer.
-		if ((*sentence)->vertexBuffer){
-			(*sentence)->vertexBuffer->Release();
-			(*sentence)->vertexBuffer = 0;
-		}
-
-		// Release the sentence index buffer.
-		if ((*sentence)->indexBuffer){
-			(*sentence)->indexBuffer->Release();
-			(*sentence)->indexBuffer = 0;
-		}
-
-		// Release the sentence.
-		delete *sentence;
-		*sentence = 0;
-	}
-
-	return;
-}
-
-bool TextClass::RenderSentence(ID3D11DeviceContext* deviceContext, SentenceType* sentence, D3DXMATRIX worldMatrix, D3DXMATRIX orthoMatrix){
-	unsigned int stride, offset;
-	D3DXVECTOR4 pixelColor;
-	bool result;
-
-	// Set vertex buffer stride and offset.
-	stride = sizeof(VertexType);
-	offset = 0;
-
-	// Set the vertex buffer to active in the input assembler so it can be rendered.
-	deviceContext->IASetVertexBuffers(0, 1, &sentence->vertexBuffer, &stride, &offset);
-
-	// Set the index buffer to active in the input assembler so it can be rendered.
-	deviceContext->IASetIndexBuffer(sentence->indexBuffer, DXGI_FORMAT_R32_UINT, 0);
-
-	// Set the type of primitive that should be rendered from this vertex buffer, in this case triangles.
-	deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-	// Create a pixel color vector with the input sentence color.
-	pixelColor = D3DXVECTOR4(sentence->red, sentence->green, sentence->blue, 1.0f);
-
-	// Render the text using the font shader.
-	result = m_FontShader->Render(deviceContext, sentence->indexCount, worldMatrix, m_baseViewMatrix, orthoMatrix, m_Font->GetTexture(), pixelColor);
-	if (!result){
-		false;
 	}
 
 	return true;

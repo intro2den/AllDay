@@ -3,31 +3,59 @@
 ////////////////////////////////////////////////////////////////////////////////
 #include "applicationclass.h"
 
-
-bool compare2(Pathnode* x, Pathnode* y){
-	return x->cost < y->cost;
-}
-
 // Object pointers initialize to NULL (Important in event of initialization failure)
 ApplicationClass::ApplicationClass(){
 	m_Input = 0;
 	m_D3D = 0;
 	m_Camera = 0;
+
 	m_MainBackground = 0;
 	m_StandardButton = 0;
 	m_StandardSlider = 0;
 	m_StandardSliderBackground = 0;
-	m_Mouse = 0;
 	m_MenuBackground = 0;
+	m_Mouse = 0;
+	m_TextureShader = 0;
+
+	m_StandardFont = 0;
+	m_FontShader = 0;
+	m_Text = 0;
+
+	m_MainMenu = 0;
+	m_OptionsMenu = 0;
+	m_GameOptionsMenu = 0;
+	m_CombatMenubar = 0;
+	m_CombatMainMenu = 0;
+
+	m_Timer = 0;
+	m_Position = 0;
+
 	m_CombatMap = 0;
 	m_TerrainMap = 0;
 	m_HexHighlight = 0;
-	m_TextureShader = 0;
-	m_Text = 0;
-	m_FontShader = 0;
-	m_Timer = 0;
-	m_Position = 0;
 	m_AgentSprites = 0;
+
+	// Initialize variables that do not depend on input from the config file
+	m_MainState = MAINSTATE_MAINMENU;
+
+	m_mouseX = 0;
+	m_mouseY = 0;
+
+	m_currentTileX = -1;
+	m_currentTileY = -1;
+	m_currentTileIndex = -1;
+	m_cursorOverTile = false;
+
+	m_SelectedAgent = 0;
+	m_CommandSelected = false;
+	m_SelectedCommand = COMMAND_DEFAULT;
+
+	m_displayTooltip = false;
+	m_cursorIdleTime = 0.0f;
+	m_tooltipX = 0;
+	m_tooltipY = 0;
+	m_tooltipWidth = 200;
+	m_tooltipHeight = 48;
 }
 
 // Empty copy constructor and empty class deconstructor
@@ -42,48 +70,14 @@ bool ApplicationClass::Initialize(HINSTANCE hinstance, HWND hwnd, int screenWidt
 	bool result;
 	float cameraX, cameraY, cameraZ;
 	D3DXMATRIX baseViewMatrix;
-	
+
 	// Keep track of the screen width and height for bounding the camera, dynamic bitmap initialization and/or scaling(?)
 	m_screenWidth = screenWidth;
 	m_screenHeight = screenHeight;
 	m_fullscreen = fullscreen;
 
-	// (Re)size the UI to fit the 
-	ResizeUIElements();
-
-	// Set initial MainState, MenuState and CommandState
-	m_MainState = MAINSTATE_MAINMENU;
-	m_MenuState = MENUSTATE_MAINMENU;
-	DeselectCommand();
-
-	// Initialize the mouse (cursor) position (this will be overwritten in the first frame)
-	m_mouseX = 0;
-	m_mouseY = 0;
-
-	// Initialize the flag indicating a state change
-	m_stateChanged = true;
-
-	// Initialize the currently highlighted UI menu and element to none, no UI elements are highlighted on initialization
-	m_currentUIMenu = UIMENU_NOMENU;
-	m_currentUIElement = UIELEMENT_NOELEMENT;
-
-	// Initialize the coordinates and index for the currently highlighted tile (for the CombatMap - initially invalid coordinates)
-	m_currentTileX = -1;
-	m_currentTileY = -1;
-	m_currentTileIndex = -1;
-	m_cursorOverTile = false;
-
-	// Initialize the index of the currently selected Agent to null, no agent is initially selected
-	m_SelectedAgent = 0;
-
-	// Initialize tooltip specific variables
-	m_displayTooltip = false;
-	m_tooltipDelay = 500.0f;
-	m_cursorIdleTime = 0.0f;
-	m_tooltipX = 0;
-	m_tooltipY = 0;
-	m_tooltipWidth = 200;
-	m_tooltipHeight = 48;
+	// Read the config file to load any other saved settings
+	ReadConfig();
 
 	// Create the input object.  The input object will be used to handle reading the keyboard and mouse input from the user.
 	m_Input = new InputClass;
@@ -148,7 +142,7 @@ bool ApplicationClass::Initialize(HINSTANCE hinstance, HWND hwnd, int screenWidt
 		return false;
 	}
 
-	result = m_StandardButton->Initialize(m_D3D->GetDevice(), m_screenWidth, m_screenHeight, "../rastertekTutorials/data/ui_button.png", MAIN_MENU_BUTTON_WIDTH, MAIN_MENU_BUTTON_HEIGHT);
+	result = m_StandardButton->Initialize(m_D3D->GetDevice(), m_screenWidth, m_screenHeight, "../rastertekTutorials/data/ui_button.png", STANDARDBUTTON_WIDTH, STANDARDBUTTON_HEIGHT);
 	if (!result){
 		MessageBox(hwnd, "Could not initialize the standard button bitmap object.", "Error", MB_OK);
 		return false;
@@ -184,7 +178,7 @@ bool ApplicationClass::Initialize(HINSTANCE hinstance, HWND hwnd, int screenWidt
 		return false;
 	}
 
-	result = m_MenuBackground->Initialize(m_D3D->GetDevice(), m_screenWidth, m_screenHeight, "../rastertekTutorials/data/ui_menubarbackground.png", m_screenWidth, COMBAT_MENU_BAR_HEIGHT);
+	result = m_MenuBackground->Initialize(m_D3D->GetDevice(), m_screenWidth, m_screenHeight, "../rastertekTutorials/data/ui_menubarbackground.png", m_screenWidth, COMBAT_MENUBAR_HEIGHT);
 	if (!result){
 		MessageBox(hwnd, "Could not initialize the menu background bitmap object.", "Error", MB_OK);
 		return false;
@@ -215,29 +209,44 @@ bool ApplicationClass::Initialize(HINSTANCE hinstance, HWND hwnd, int screenWidt
 		return false;
 	}
 
-	// Create the text object.
-	m_Text = new TextClass;
-	if (!m_Text){
+	// Create and initialize the standard font and font shader objects
+	m_StandardFont = new FontClass;
+	if (!m_StandardFont){
 		return false;
 	}
 
-	// Initialize the text object.
-	result = m_Text->Initialize(m_D3D->GetDevice(), m_D3D->GetDeviceContext(), hwnd, m_screenWidth, m_screenHeight, baseViewMatrix, MAIN_MENU_BUTTON_HORIZONTAL_OFFSET, MAIN_MENU_BUTTON_VERTICAL_OFFSET, MAIN_MENU_BUTTON_HEIGHT, MAIN_MENU_BUTTON_SPACING);
+	result = m_StandardFont->Initialize(m_D3D->GetDevice(), "../rastertekTutorials/data/fontdata.txt", "../rastertekTutorials/data/font.png");
 	if (!result){
-		MessageBox(hwnd, "Could not initialize the text object.", "Error", MB_OK);
+		MessageBox(hwnd, "Could not initialize the standard font object.", "Error", MB_OK);
 		return false;
 	}
 
-	// Create the font shader object.
 	m_FontShader = new FontShaderClass;
 	if (!m_FontShader){
 		return false;
 	}
 
-	// Initialize the font shader object.
 	result = m_FontShader->Initialize(m_D3D->GetDevice(), hwnd);
 	if (!result){
 		MessageBox(hwnd, "Could not initialize the font shader object.", "Error", MB_OK);
+		return false;
+	}
+
+	// Create and Initialize the text object.
+	m_Text = new TextClass;
+	if (!m_Text){
+		return false;
+	}
+
+	result = m_Text->Initialize(m_StandardFont, m_FontShader, m_D3D->GetDevice(), m_D3D->GetDeviceContext(), m_screenWidth, m_screenHeight, baseViewMatrix);
+	if (!result){
+		MessageBox(hwnd, "Could not initialize the text object.", "Error", MB_OK);
+		return false;
+	}
+
+	// Create and initialize the menu objects
+	result = InitializeMenus();
+	if (!result){
 		return false;
 	}
 
@@ -263,9 +272,6 @@ bool ApplicationClass::Initialize(HINSTANCE hinstance, HWND hwnd, int screenWidt
 	// Set the initial position of the viewer to the same as the initial camera position.
 	m_Position->SetPosition(cameraX, cameraY, cameraZ);
 
-	// Proof of Concept, Read Configuration file
-	ReadConfig();
-
 	return true;
 }
 
@@ -286,11 +292,39 @@ void ApplicationClass::Shutdown(){
 		m_Timer = 0;
 	}
 
-	// Release the font shader object.
-	if (m_FontShader){
-		m_FontShader->Shutdown();
-		delete m_FontShader;
-		m_FontShader = 0;
+	// Release the Combat Main Menu object
+	if (m_CombatMainMenu){
+		m_CombatMainMenu->Shutdown();
+		delete m_CombatMainMenu;
+		m_CombatMainMenu = 0;
+	}
+
+	// Release the Combat Menubar object
+	if (m_CombatMenubar){
+		m_CombatMenubar->Shutdown();
+		delete m_CombatMenubar;
+		m_CombatMenubar = 0;
+	}
+
+	// Release the Game Options Menu object
+	if (m_GameOptionsMenu){
+		m_GameOptionsMenu->Shutdown();
+		delete m_GameOptionsMenu;
+		m_GameOptionsMenu = 0;
+	}
+
+	// Release the Options Menu object
+	if (m_OptionsMenu){
+		m_OptionsMenu->Shutdown();
+		delete m_OptionsMenu;
+		m_OptionsMenu = 0;
+	}
+
+	// Release the Main Menu object
+	if (m_MainMenu){
+		m_MainMenu->Shutdown();
+		delete m_MainMenu;
+		m_MainMenu = 0;
 	}
 
 	// Release the text object.
@@ -298,6 +332,20 @@ void ApplicationClass::Shutdown(){
 		m_Text->Shutdown();
 		delete m_Text;
 		m_Text = 0;
+	}
+
+	// Release the font shader object
+	if (m_FontShader){
+		m_FontShader->Shutdown();
+		delete m_FontShader;
+		m_FontShader = 0;
+	}
+
+	// Release the standard font object
+	if (m_StandardFont){
+		m_StandardFont->Shutdown();
+		delete m_StandardFont;
+		m_StandardFont = 0;
 	}
 
 	// Release the texture shader object
@@ -408,12 +456,6 @@ bool ApplicationClass::Frame(){
 		}
 	}
 
-	// If the cursor has moved, set stateChanged to true
-	m_stateChanged = (m_stateChanged || (m_mouseX != prevMouseX || m_mouseY != prevMouseY));
-	
-	// Find which UI element is under the cursor
-	FindCurrentUIElement();
-
 	frameTime = m_Timer->GetTime();
 
 	result = HandleInput(frameTime);
@@ -431,7 +473,7 @@ bool ApplicationClass::Frame(){
 	if (!result){
 		return false;
 	}
-	
+
 	return true;
 }
 
@@ -447,6 +489,7 @@ void ApplicationClass::ReadConfig(){
 
 	// Set default values for configurable variables
 	m_tooltipDelay = 500.0f;
+	m_tooltipSlider = m_tooltipDelay / MAX_TOOLTIPDELAY;
 
 	// Proof of Concept for reading Configuration File
 	fin.open("../rastertekTutorials/data/configuration.txt");
@@ -462,6 +505,7 @@ void ApplicationClass::ReadConfig(){
 		if (strncmp(configString, "tooltipdelay", 12) == 0){
 			fin.getline(configString, 20, '\n');
 			m_tooltipDelay = min(float(atoi(configString)), MAX_TOOLTIPDELAY);
+			m_tooltipSlider = m_tooltipDelay / MAX_TOOLTIPDELAY;
 			fin.getline(configString, 20, ' ');
 			continue;
 		}
@@ -501,162 +545,101 @@ void ApplicationClass::WriteConfig(){
 	return;
 }
 
-void ApplicationClass::ResizeUIElements(){
-	// Adjust UI Elements based on the current resolution
-	// NOTE: Need support for a wide range of resolutions however many midrange
-	//       resolutions should be able to share settings. Differing aspect
-	//       ratios may also need to be taken into account.
-	// NOTE2: Currently designing around 800x600, may want to cover 640x480 and
-	//        will need to scale properly up to at least 1920x1200, possibly
-	//        beyond.
+bool ApplicationClass::InitializeMenus(){
+	// Initialize all menu objects
+	bool result;
 
-	if (m_screenWidth == 800 && m_screenHeight == 600){
-		// Size elements for 800x600
-		MAIN_MENU_BUTTON_WIDTH = 350;
-		MAIN_MENU_BUTTON_HEIGHT = 50;
-		MAIN_MENU_BUTTON_SPACING = 25;
-		MAIN_MENU_BUTTON_HORIZONTAL_OFFSET = 50;
-		MAIN_MENU_BUTTON_VERTICAL_OFFSET = 125;
-
-		COMBAT_MAIN_MENU_WIDTH = 300;
-		COMBAT_MAIN_MENU_HEIGHT = 450;
-		COMBAT_MAIN_MENU_BUTTON_WIDTH = 250;
-		COMBAT_MAIN_MENU_BUTTON_HEIGHT = 50;
-		COMBAT_MAIN_MENU_BUTTON_SPACING = 25;
-		COMBAT_MAIN_MENU_BUTTON_HORIZONTAL_OFFSET = 25;
-		COMBAT_MAIN_MENU_BUTTON_VERTICAL_OFFSET = 25;
+	// Create the Main Menu and add it to the list of current menus
+	m_MainMenu = new MainMenuClass;
+	if (!m_MainMenu){
+		return false;
 	}
 
-	return;
+	result = m_MainMenu->Initialize(m_screenWidth, m_screenHeight, m_MenuBackground, m_StandardButton, m_TextureShader, m_StandardFont, m_FontShader, m_UIViewMatrix, m_D3D->GetDevice(), m_D3D->GetDeviceContext());
+	if (!result){
+		return false;
+	}
+
+	m_CurrentMenus.push_front(m_MainMenu);
+
+	// Create the Options Menu
+	m_OptionsMenu = new OptionsMenuClass;
+	if (!m_OptionsMenu){
+		return false;
+	}
+
+	result = m_OptionsMenu->Initialize(m_screenWidth, m_screenHeight, m_MenuBackground, m_StandardButton, m_TextureShader, m_StandardFont, m_FontShader, m_UIViewMatrix, m_D3D->GetDevice(), m_D3D->GetDeviceContext());
+	if (!result){
+		return false;
+	}
+
+	// Create the Game Options Menu
+	m_GameOptionsMenu = new GameOptionsMenuClass;
+	if (!m_GameOptionsMenu){
+		return false;
+	}
+
+	result = m_GameOptionsMenu->Initialize(m_screenWidth, m_screenHeight, m_MenuBackground, m_StandardButton, m_StandardSlider, m_StandardSliderBackground, m_TextureShader, m_StandardFont, m_FontShader, m_UIViewMatrix, m_D3D->GetDevice(), m_D3D->GetDeviceContext(), m_tooltipDelay, &m_tooltipSlider);
+	if (!result){
+		return false;
+	}
+
+	// Create the Combat Menubar
+	m_CombatMenubar = new CombatMenubarClass;
+	if (!m_CombatMenubar){
+		return false;
+	}
+
+	result = m_CombatMenubar->Initialize(m_screenWidth, m_screenHeight, m_MenuBackground, m_StandardButton, m_TextureShader, m_StandardFont, m_FontShader, m_UIViewMatrix, m_D3D->GetDevice(), m_D3D->GetDeviceContext());
+	if (!result){
+		return false;
+	}
+
+	// Create the Combat Main Menu
+	m_CombatMainMenu = new CombatMainMenuClass;
+	if (!m_CombatMainMenu){
+		return false;
+	}
+
+	result = m_CombatMainMenu->Initialize(m_screenWidth, m_screenHeight, m_MenuBackground, m_StandardButton, m_TextureShader, m_StandardFont, m_FontShader, m_UIViewMatrix, m_D3D->GetDevice(), m_D3D->GetDeviceContext());
+	if (!result){
+		return false;
+	}
+
+	return true;
 }
 
-void ApplicationClass::FindCurrentUIElement(){
-	// If the state has changed (state change or cursor movement), find the UI
-	// Element that the cursor is currently over.
-	int cursorX, cursorY;
+bool ApplicationClass::EnterMainMenu(){
+	// Shutdown the CombatMap if it is open, close all open menus and open the
+	// Main Menu
+	bool result;
 
-	// If the cursor is still over the same UI element, return
-	if (!m_stateChanged){
-		return;
+	// Deselect any selected Commands and Agents
+	DeselectCommand();
+	result = SetSelectedAgent(NULL);
+	if (!result){
+		return false;
 	}
 
-	// Reset the current menu and UI element to none, the previous element should not be remembered.
-	m_currentUIMenu = UIMENU_NOMENU;
-	m_currentUIElement = UIELEMENT_NOELEMENT;
+	// Set the cursor over tile flag to false
+	m_cursorOverTile = false;
 
-	// The current MainState determines the placement of open menus and other UI Elements
-	switch (m_MainState){
-	case MAINSTATE_MAINMENU:
-		// Main Menu - caluclate the cursor position relative to the menu
-		// buttons
-		cursorX = m_mouseX - MAIN_MENU_BUTTON_HORIZONTAL_OFFSET;
-		cursorY = m_mouseY - MAIN_MENU_BUTTON_VERTICAL_OFFSET;
+	// Set the position of the camera back to the origin
+	m_Position->SetPosition(0.0f, 0.0f, -10.0f);
+	m_Camera->SetPosition(0.0f, 0.0f, -10.0f);
 
-		// Determine which menu is currently active and which UI element in that menu is under the cursor (if any)
-		// NOTE: Currently assuming that the Main Menu MainState has at most a
-		//       single UI Menu with no additional menus on top.
-		switch (m_MenuState){
-		case MENUSTATE_MAINMENU:
-			// The Main Menu is currently open
-			m_currentUIMenu = UIMENU_MAINMENU;
-
-			// Check for a button under the cursor
-			FindStandardMenuButton(cursorX, cursorY, MAIN_MENU_BUTTON_COUNT, MAIN_MENU_BUTTON_WIDTH, MAIN_MENU_BUTTON_HEIGHT, MAIN_MENU_BUTTON_SPACING);
-			break;
-
-		case MENUSTATE_OPTIONMENU:
-			// The Option Menu is currently open
-			m_currentUIMenu = UIMENU_OPTIONSMENU;
-
-			// Check for a button under the cursor
-			FindStandardMenuButton(cursorX, cursorY, OPTIONS_MENU_BUTTON_COUNT, MAIN_MENU_BUTTON_WIDTH, MAIN_MENU_BUTTON_HEIGHT, MAIN_MENU_BUTTON_SPACING);
-			break;
-
-		case MENUSTATE_GAMEOPTIONSMENU:
-			// The Game Options Menu is currently open
-			m_currentUIMenu = UIMENU_GAMEOPTIONSMENU;
-			cursorY = m_mouseY - GAME_OPTIONS_MENU_BUTTON_VERTICAL_OFFSET;
-
-			// Check for a button under the cursor
-			FindStandardMenuButton(cursorX, cursorY, GAME_OPTIONS_MENU_BUTTON_COUNT, MAIN_MENU_BUTTON_WIDTH, MAIN_MENU_BUTTON_HEIGHT, MAIN_MENU_BUTTON_SPACING);
-			break;
-		}
-
-		break;
-
-	case MAINSTATE_COMBATMAP:
-		// Combat Map - check for open Menus, otherwise default to the menu bar
-		// NOTE: Some MenuStates allow the user to interact with the menu bar, other MenuStates such
-		//       as the MAINMENU and related submenus do not allow interaction with the menu bar.
-		switch (m_MenuState){
-		case MENUSTATE_MAINMENU:
-			// The Combat Map Main Menu is open - calculate the cursor position relative to the menu
-			cursorX = m_mouseX - (m_screenWidth - COMBAT_MAIN_MENU_WIDTH) / 2;
-			cursorY = m_mouseY - (m_screenHeight - COMBAT_MAIN_MENU_HEIGHT) / 2;
-
-			// If the cursor is over the menu set the current UI menu and check for buttons
-			if (cursorX >= 0 && cursorX < COMBAT_MAIN_MENU_WIDTH && cursorY >= 0 && cursorY < COMBAT_MAIN_MENU_HEIGHT){
-				m_currentUIMenu = UIMENU_MAINMENU;
-
-				// Calculate the cursor position relative to the menu buttons
-				cursorX -= COMBAT_MAIN_MENU_BUTTON_HORIZONTAL_OFFSET;
-				cursorY -= COMBAT_MAIN_MENU_BUTTON_VERTICAL_OFFSET;
-
-				// Check for a button under the cursor
-				FindStandardMenuButton(cursorX, cursorY, COMBAT_MAIN_MENU_BUTTON_COUNT, COMBAT_MAIN_MENU_BUTTON_WIDTH, COMBAT_MAIN_MENU_BUTTON_HEIGHT, COMBAT_MAIN_MENU_BUTTON_SPACING);
-			}
-
-			break;
-
-		case MENUSTATE_OPTIONMENU:
-			// The Combat Map Options Menu is open
-			break;
-
-		default:
-			// Calculate the cursor position relative to the menu bar
-			cursorX = m_mouseX;
-			cursorY = m_mouseY - (m_screenHeight - COMBAT_MENU_BAR_HEIGHT);
-
-			// If the cursor is over the menu bar set the current UI menu and check for buttons
-			if (cursorX >= 0 && cursorX < m_screenWidth && cursorY >= 0 && cursorY < COMBAT_MENU_BAR_HEIGHT){
-				m_currentUIMenu = UIMENU_COMBATMENUBAR;
-
-				// Calculate the cursor position relative to the menu bar buttons
-				cursorX = m_mouseX - (m_screenWidth + COMBAT_MENU_BAR_BUTTON_HORIZONTAL_OFFSET);
-				cursorY = m_mouseY - (m_screenHeight - COMBAT_MENU_BAR_HEIGHT) - COMBAT_MENU_BAR_BUTTON_VERTICAL_OFFSET;
-
-				if (cursorX > 0 && cursorX < COMBAT_MENU_BAR_BUTTON_WIDTH * (COMBAT_MENU_BAR_BUTTON_COUNT / 2) && cursorY > 0 && cursorY < COMBAT_MENU_BAR_BUTTON_HEIGHT * 2){
-					m_currentUIElement = 2 * (cursorX / COMBAT_MENU_BAR_BUTTON_WIDTH) + (cursorY / COMBAT_MENU_BAR_BUTTON_HEIGHT);
-				}
-			}
-
-			break;
-		}
-
-		break;
+	// Exit the CombatMap and Enter the Main Menu
+	ShutdownCombatMap();
+	m_MainState = MAINSTATE_MAINMENU;
+	m_CurrentMenus.clear();
+	m_CurrentMenus.push_front(m_MainMenu);
+	result = StateChanged();
+	if (!result){
+		return false;
 	}
 
-	// Set stateChanged to false so these checks don't occur unless necessary
-	m_stateChanged = false;
 
-	return;
-}
-
-void ApplicationClass::FindStandardMenuButton(int cursorX, int cursorY, int buttonCount, int buttonWidth, int buttonHeight, int buttonSpacing){
-	// Set the currentUIElement to an integer value corresponding to the index
-	// of the button under the cursor, provided the buttons are in a single
-	// column list.
-	if (cursorX > 0 && cursorX < buttonWidth && cursorY > 0 && cursorY < buttonCount * (buttonHeight + buttonSpacing) - buttonSpacing){
-		// Cursor if within the bounds of the menu buttons, determine which button (if any) was clicked
-		if (cursorY % (buttonHeight + buttonSpacing) < buttonHeight){
-			m_currentUIElement = cursorY / (buttonHeight + buttonSpacing);
-			return;
-		}
-	}
-
-	// If the cursor is not over a button, set the currentUIElement to none.
-	m_currentUIElement = UIELEMENT_NOELEMENT;
-	return;
+	return true;
 }
 
 // Handle all user input
@@ -665,6 +648,9 @@ bool ApplicationClass::HandleInput(float frameTime){
 	bool cursorInBounds, scrolling;
 	float posX, posY, posZ;
 	float cursorX, cursorY, normalizedCursorX, normalizedCursorY;
+	std::list<MenuClass*>::iterator menu;
+	ButtonAction buttonAction;
+	bool cursorOverMenu;
 
 	// Set the frame time for calculating the updated position.
 	m_Position->SetFrameTime(frameTime);
@@ -676,163 +662,143 @@ bool ApplicationClass::HandleInput(float frameTime){
 		return false;
 	}
 
-	// Determine weather the cursor is within window bounds or not
+	// Determine whether the cursor is within window bounds or not
 	cursorInBounds = (m_mouseX >= 0 && m_mouseX < m_screenWidth && m_mouseY >= 0 && m_mouseY < m_screenHeight);
+
+	// Determine whether the cursor is over (or locked to an exclusive) a menu
+	cursorOverMenu = false;
+	menu = m_CurrentMenus.begin();
+	while (menu != m_CurrentMenus.end()){
+		if ((*menu)->HitCheck(m_mouseX, m_mouseY) || (*menu)->GetExclusive()){
+			cursorOverMenu = true;
+			break;
+		}
+
+		++menu;
+	}
+
+	// By default, buttonAction is set to NOBUTTON
+	buttonAction = BUTTON_NOBUTTON;
 
 	switch (m_MainState){
 	case MAINSTATE_MAINMENU:
 		// Main Menu Processing
 		// Process mouse input, left mouse button
 		if (m_Input->WasLeftMouseClicked() == true){
-			// Which button was pressed, if any, depends on the current menu
-			switch (m_currentUIMenu){
-			case UIMENU_MAINMENU:
-				switch (m_currentUIElement){
-				case MAINMENUBUTTON_ENTERCOMBATMAP:
-					// Change the MainState to CombatMap, create a new CombatMap and begin the first round
-					m_MainState = MAINSTATE_COMBATMAP;
-					m_MenuState = MENUSTATE_NOMENU;
-					result = StateChanged();
-					if (!result){
-						return false;
-					}
-
-					if (!m_CombatMap){
-						result = InitializeCombatMap((MapType)(rand() % 2), 32, 32);
-						if (!result){
-							return false;
-						}
-					}
-
-					// Clear the menu text
-					result = m_Text->ClearMenuText(m_D3D->GetDeviceContext());
-					if (!result){
-						return false;
-					}
-
-					// Begin the first round of Combat
-					NextTurn();
-
-					break;
-
-				case MAINMENUBUTTON_OPTIONS:
-					// Change the MenuState to OptionsMenu
-					m_MenuState = MENUSTATE_OPTIONMENU;
-					result = StateChanged();
-					if (!result){
-						return false;
-					}
-
-					// Set appropriate Menu Text
-					result = m_Text->SetOptionsMenuText(MAIN_MENU_BUTTON_HORIZONTAL_OFFSET, MAIN_MENU_BUTTON_VERTICAL_OFFSET, MAIN_MENU_BUTTON_HEIGHT, MAIN_MENU_BUTTON_SPACING, m_D3D->GetDeviceContext());
-					if (!result){
-						return false;
-					}
-
-					break;
-
-				case MAINMENUBUTTON_EXIT:
-					// Exit the application
-					return false;
-
-				default:
-					// Do nothing if no button was pressed
+			// Check if a button was clicked on one of the current menus
+			menu = m_CurrentMenus.begin();
+			while (menu != m_CurrentMenus.end()){
+				if ((*menu)->HitCheck(m_mouseX, m_mouseY)){
+					buttonAction = (*menu)->LeftMouseClick(m_mouseX, m_mouseY);
 					break;
 				}
 
-				break;
+				// If this menu is exclusive don't check any menus below it
+				if ((*menu)->GetExclusive()) break;
 
-			case UIMENU_OPTIONSMENU:
-				switch (m_currentUIElement){
-				case OPTIONSMENUBUTTON_GAMEOPTIONS:
-					// Change the MenuState to GameOptions
-					m_MenuState = MENUSTATE_GAMEOPTIONSMENU;
+				// If this menu closes when the mouse is clicked somewhere else
+				// close the menu and check the next menu below
+				if ((*menu)->GetCloseOnMiss()){
+					menu = m_CurrentMenus.erase(menu);
 					result = StateChanged();
 					if (!result){
 						return false;
 					}
 
-					// Set appropriate Menu Text
-					result = m_Text->SetTooltipDelayText(MAIN_MENU_BUTTON_HORIZONTAL_OFFSET + 15, GAME_OPTIONS_MENU_TOOLTIPDELAY_VERTICAL_OFFSET + SLIDER_BAR_HEIGHT / 2, m_tooltipDelay, m_D3D->GetDeviceContext());
-					if (!result){
-						return false;
-					}
-
-					result = m_Text->SetGameOptionsMenuText(MAIN_MENU_BUTTON_HORIZONTAL_OFFSET, GAME_OPTIONS_MENU_BUTTON_VERTICAL_OFFSET, MAIN_MENU_BUTTON_HEIGHT, MAIN_MENU_BUTTON_SPACING, m_D3D->GetDeviceContext());
-					if (!result){
-						return false;
-					}
-
-					break;
-
-				case OPTIONSMENUBUTTON_BACK:
-					// Save any changed settings
-					WriteConfig();
-
-					// Change the MenuState to MainMenu
-					m_MenuState = MENUSTATE_MAINMENU;
-					result = StateChanged();
-					if (!result){
-						return false;
-					}
-
-					// Set appropriate Menu Text
-					result = m_Text->SetMainMenuText(MAIN_MENU_BUTTON_HORIZONTAL_OFFSET, MAIN_MENU_BUTTON_VERTICAL_OFFSET, MAIN_MENU_BUTTON_HEIGHT, MAIN_MENU_BUTTON_SPACING, m_D3D->GetDeviceContext());
-					if (!result){
-						return false;
-					}
-
-					break;
-
-				default:
-					// Do nothing if no button was pressed
-					break;
+					continue;
 				}
 
-				break;
-
-			case UIMENU_GAMEOPTIONSMENU:
-				switch (m_currentUIElement){
-				case GAMEOPTIONSMENUBUTTON_BACK:
-					// Change the MenuState to OptionMenu
-					m_MenuState = MENUSTATE_OPTIONMENU;
-					result = StateChanged();
-					if (!result){
-						return false;
-					}
-
-					// Set appropriate Menu Text
-					result = m_Text->SetOptionsMenuText(MAIN_MENU_BUTTON_HORIZONTAL_OFFSET, MAIN_MENU_BUTTON_VERTICAL_OFFSET, MAIN_MENU_BUTTON_HEIGHT, MAIN_MENU_BUTTON_SPACING, m_D3D->GetDeviceContext());
-					if (!result){
-						return false;
-					}
-				}
-				break;
+				// Check the next open menu
+				++menu;
 			}
-		}
 
-		if (m_Input->IsLeftMousePressed()){
-			switch (m_currentUIMenu){
-			case UIMENU_GAMEOPTIONSMENU:
-				// Check if the tooltip delay is being changed
-				if (m_Input->IsLeftMousePressed() && (m_mouseX >= (GAME_OPTIONS_MENU_TOOLTIPDELAY_SLIDER_HORIZONTAL_OFFSET - SLIDER_WIDTH / 2) && m_mouseX < GAME_OPTIONS_MENU_TOOLTIPDELAY_SLIDER_HORIZONTAL_OFFSET + SLIDER_BAR_WIDTH) && (m_mouseY >= GAME_OPTIONS_MENU_TOOLTIPDELAY_VERTICAL_OFFSET && m_mouseY < (GAME_OPTIONS_MENU_TOOLTIPDELAY_VERTICAL_OFFSET + SLIDER_HEIGHT))){
-					m_tooltipDelay = 100.0f * float(TOOLTIPDELAY_SLIDER_STEPS * (m_mouseX - GAME_OPTIONS_MENU_TOOLTIPDELAY_SLIDER_HORIZONTAL_OFFSET + SLIDER_WIDTH / 2) / SLIDER_BAR_WIDTH);
-					m_tooltipDelay = min(m_tooltipDelay, MAX_TOOLTIPDELAY);
-					
-					// Adjust the label
-					result = m_Text->SetTooltipDelayText(MAIN_MENU_BUTTON_HORIZONTAL_OFFSET + 15, GAME_OPTIONS_MENU_TOOLTIPDELAY_VERTICAL_OFFSET + SLIDER_BAR_HEIGHT / 2, m_tooltipDelay, m_D3D->GetDeviceContext());
-					if (!result){
-						return false;
-					}
+			switch (buttonAction){
+			case BUTTON_NOBUTTON:
+				// No button was clicked, do nothing
+				break;
 
-					break;
+			case BUTTON_CLOSEMENU:
+				// Close the menu the close button was clicked from
+				m_CurrentMenus.erase(menu);
+				result = StateChanged();
+				if (!result){
+					return false;
+				}
+
+				break;
+
+			case BUTTON_EXITAPPLICATION:
+				return false;
+
+			case BUTTON_ENTERCOMBAT:
+				result = EnterCombatMap();
+				if (!result){
+					return false;
+				}
+
+				break;
+
+			case BUTTON_OPENOPTIONSMENU:
+				m_CurrentMenus.push_front(m_OptionsMenu);
+				result = StateChanged();
+				if (!result){
+					return false;
+				}
+
+				break;
+
+			case BUTTON_OPENGAMEOPTIONS:
+				m_CurrentMenus.push_front(m_GameOptionsMenu);
+				result = StateChanged();
+				if (!result){
+					return false;
+				}
+
+				break;
+
+			case BUTTON_SAVESETTINGS:
+				// Save current settings to a configuration file and close the menu
+				WriteConfig();
+
+				m_CurrentMenus.erase(menu);
+				result = StateChanged();
+				if (!result){
+					return false;
 				}
 
 				break;
 
 			default:
-				// If sliders aren't being moved, do nothing when the left mouse button is pressed down
+				// Do nothing if an unexpected action is specified
 				break;
+			}
+		}
+
+		if (m_Input->IsLeftMousePressed()){
+			// If the cursor is over one of the current, interactive menus
+			// while the left mouse button is pressed down, adjust any sliders
+			// under the cursor that are part of that menu
+			menu = m_CurrentMenus.begin();
+			while (menu != m_CurrentMenus.end()){
+				if ((*menu)->HitCheck(m_mouseX, m_mouseY)){
+					result = (*menu)->LeftMousePressed(m_mouseX, m_mouseY);
+
+					// If a slider was adjusted, update slider variables
+					if (result){
+						result = UpdateSliderVariables();
+						if (!result){
+							return false;
+						}
+					}
+
+					break;
+				}
+
+				// If this menu is exclusive don't check any menus below it
+				if ((*menu)->GetExclusive()) break;
+
+				// Check the next open menu
+				++menu;
 			}
 		}
 
@@ -842,7 +808,7 @@ bool ApplicationClass::HandleInput(float frameTime){
 		// Combat Map Processing
 
 		// If no menu is open, check for camera movement
-		if (m_MenuState == MENUSTATE_NOMENU){
+		if (m_CurrentMenus.size() == 1){
 			// Scroll the camera if the cursor is near the edge of the window
 			// or if the user is pressing the corresponding arrow keys
 			// Scroll Up/Forward
@@ -872,7 +838,7 @@ bool ApplicationClass::HandleInput(float frameTime){
 		m_currentTileIndex = -1;
 		m_cursorOverTile = false;
 
-		if (cursorInBounds && m_MenuState == MENUSTATE_NOMENU && m_currentUIMenu == UIMENU_NOMENU){
+		if (cursorInBounds && !cursorOverMenu){
 			// Calculate the actual cursor position relative to the map
 			cursorX = (float)m_mouseX + posX - MAP_HORIZONTALOFFSET;
 			cursorY = (float)m_mouseY - posY - MAP_VERTICALOFFSET;
@@ -922,113 +888,89 @@ bool ApplicationClass::HandleInput(float frameTime){
 		if (m_Input->WasLeftMouseClicked() == true){
 			// Left Click - Check for clicking on Menu Buttons, map tiles
 
-			// If the cursor is over a menu and a button was clicked respond accordingly
-			switch (m_currentUIMenu){
-			case UIMENU_MAINMENU:
-				switch (m_currentUIElement){
-				case COMBATMAINMENUBUTTON_CLOSE:
-					m_MenuState = MENUSTATE_NOMENU;
+			// Check if a button was clicked on one of the current menus
+			menu = m_CurrentMenus.begin();
+			while (menu != m_CurrentMenus.end()){
+				if ((*menu)->HitCheck(m_mouseX, m_mouseY)){
+					buttonAction = (*menu)->LeftMouseClick(m_mouseX, m_mouseY);
+					break;
+				}
+
+				// If this menu is exclusive don't check any menus below it
+				if ((*menu)->GetExclusive()) break;
+
+				// If this menu closes when the mouse is clicked somewhere else
+				// close the menu and check the next menu below
+				if ((*menu)->GetCloseOnMiss()){
+					menu = m_CurrentMenus.erase(menu);
 					result = StateChanged();
 					if (!result){
 						return false;
 					}
 
-					result = m_Text->ClearMenuText(m_D3D->GetDeviceContext());
-					if (!result){
-						return false;
-					}
+					continue;
+				}
 
-					break;
+				// Check the next open menu
+				++menu;
+			}
 
-				case COMBATMAINMENUBUTTON_EXITCOMBAT:
-					// Return to the Main Menu
-					m_MainState = MAINSTATE_MAINMENU;
-					m_MenuState = MENUSTATE_MAINMENU;
-					DeselectCommand();
-					result = StateChanged();
-					if (!result){
-						return false;
-					}
+			switch (buttonAction){
+			case BUTTON_NOBUTTON:
+				// No button was clicked, do nothing
+				break;
 
-					// Set appropriate Menu Text
-					result = m_Text->SetMainMenuText(MAIN_MENU_BUTTON_HORIZONTAL_OFFSET, MAIN_MENU_BUTTON_VERTICAL_OFFSET, MAIN_MENU_BUTTON_HEIGHT, MAIN_MENU_BUTTON_SPACING, m_D3D->GetDeviceContext());
-					if (!result){
-						return false;
-					}
-
-					// Set the cursorOverTile flag to false
-					m_cursorOverTile = false;
-
-					// Deselect any selected Agent and update the associated sentence
-					result = SetSelectedAgent(NULL);
-					if (!result){
-						return false;
-					}
-
-					// Shutdown the Combat Map and all associated data structures
-					ShutdownCombatMap();
-
-					// Set the position of the camera back to the origin
-					m_Position->SetPosition(0.0f, 0.0f, -10.0f);
-					m_Camera->SetPosition(0.0f, 0.0f, -10.0f);
-					break;
-
-				case COMBATMAINMENUBUTTON_EXITAPPLICATION:
-					// Exit the Application
+			case BUTTON_CLOSEMENU:
+				// Close the menu the close button was clicked from
+				m_CurrentMenus.erase(menu);
+				result = StateChanged();
+				if (!result){
 					return false;
-
-				default:
-					//Do nothing if no button was pressed (this should only happen with an odd number of buttons)
-					break;
 				}
 
 				break;
 
-			case UIMENU_OPTIONSMENU:
+			case BUTTON_EXITAPPLICATION:
+				return false;
+
+			case BUTTON_ORDERMOVE:
+				// Select the Move Command
+				m_CommandSelected = true;
+				m_SelectedCommand = COMMAND_MOVE;
 				break;
 
-			case UIMENU_COMBATMENUBAR:
-				switch (m_currentUIElement){
-				case COMBATMENUBARBUTTON_MOVE:
-					// Select the Move Command
-					m_CommandSelected = true;
-					m_SelectedCommand = COMMAND_MOVE;
-					break;
+			case BUTTON_ORDERATTACK:
+				m_CommandSelected = true;
+				m_SelectedCommand = COMMAND_ATTACK;
+				break;
 
-				case COMBATMENUBARBUTTON_ATTACK:
-					// Select the (Basic) Attack Command
-					m_CommandSelected = true;
-					m_SelectedCommand = COMMAND_ATTACK;
-					break;
+			case BUTTON_ENDTURN:
+				// End Turn
+				DeselectCommand();
+				EndTurn();
+				break;
 
-				case COMBATMENUBARBUTTON_ENDTURN:
-					// End Turn
-					DeselectCommand();
-					EndTurn();
-					break;
-
-				case COMBATMENUBARBUTTON_MENU:
-					// Open the CombatMap Main Menu
-					m_MenuState = MENUSTATE_MAINMENU;
-					DeselectCommand();
-					result = StateChanged();
-					if (!result){
-						return false;
-					}
-
-					// Set appropriate menu text
-					result = m_Text->SetCombatMapMainMenuText((m_screenWidth - COMBAT_MAIN_MENU_WIDTH) / 2 + COMBAT_MAIN_MENU_BUTTON_HORIZONTAL_OFFSET, (m_screenHeight - COMBAT_MAIN_MENU_HEIGHT) / 2 + COMBAT_MAIN_MENU_BUTTON_VERTICAL_OFFSET, COMBAT_MAIN_MENU_BUTTON_HEIGHT, COMBAT_MAIN_MENU_BUTTON_SPACING, m_D3D->GetDeviceContext());
-					if (!result){
-						return false;
-					}
-
-					break;
-
-				default: 
-					// Do nothing if no button was pressed (this should only happen with an odd number of buttons)
-					break;
+			case BUTTON_OPENCOMBATMENU:
+				DeselectCommand();
+				m_CurrentMenus.push_front(m_CombatMainMenu);
+				result = StateChanged();
+				if (!result){
+					return false;
 				}
 
+				break;
+
+			case BUTTON_EXITCOMBAT:
+				// Shutdown the CombatMap and return to the Main Menu
+				result = EnterMainMenu();
+				if (!result){
+					return false;
+				}
+
+				break;
+
+			default:
+				// Do nothing if an unexpected action is specified
 				break;
 			}
 
@@ -1068,7 +1010,7 @@ bool ApplicationClass::HandleInput(float frameTime){
 				case COMMAND_ATTACK:
 					// Command the selected Agent to use their Basic Attack against
 					// the highlighted tile
-					
+
 					// Ensure that an Agent is selected
 					if (m_SelectedAgent){
 						result = OrderAttack();
@@ -1116,11 +1058,29 @@ bool ApplicationClass::HandleInput(float frameTime){
 	return true;
 }
 
+bool ApplicationClass::UpdateSliderVariables(){
+	// Round all slider variables to the nearest step for their corresponding
+	// controlled variable and update the controlled variable to the appropriate
+	// value
+	// NOTE: In some cases we may want to wait until the user confirms their
+	//       changes before adjusting the actual variable
+	bool result;
+
+	// Update the tooltip delay slider variable and the tooltip delay
+	m_tooltipSlider = round(m_tooltipSlider * TOOLTIPDELAY_SLIDER_STEPS) / TOOLTIPDELAY_SLIDER_STEPS;
+	m_tooltipDelay = m_tooltipSlider * MAX_TOOLTIPDELAY;
+	result = m_GameOptionsMenu->UpdateTooltipDelayLabel(m_tooltipDelay, m_D3D->GetDevice(), m_D3D->GetDeviceContext());
+	if (!result){
+		return false;
+	}
+
+	return true;
+}
+
 bool ApplicationClass::StateChanged(){
 	// Set stateChanged to true, reset tooltips and clear error messages
 	bool result;
 
-	m_stateChanged = true;
 	ResetTooltip();
 
 	// Clear all error messages on state change
@@ -1279,7 +1239,7 @@ void ApplicationClass::BuildMovementMap(){
 	// Get the currently selected Agent's position as an index location on the map
 	m_SelectedAgent->GetPosition(startX, startY);
 	startIndex = startX * m_combatMapHeight + startY;
-	
+
 	// Add the first node in the queue - the selected Agent's current location and
 	// set the cost to 0 (not moving) and 'visit' the node so that it is not added
 	// to the queue again.
@@ -1292,7 +1252,7 @@ void ApplicationClass::BuildMovementMap(){
 
 	// Process a few nodes in the Queue, the remainder of the MovementMap will
 	// be generated over time or upon demand for a specific path
-	ProcessPathnodes(7);	
+	ProcessPathnodes(7);
 
 	return;
 }
@@ -1631,6 +1591,33 @@ void ApplicationClass::EndTurn(){
 	return;
 }
 
+bool ApplicationClass::EnterCombatMap(){
+	// Set the Mainstate to CombatMap, close all open menus and open the Combat Menubar
+	bool result;
+
+	m_MainState = MAINSTATE_COMBATMAP;
+	m_CurrentMenus.clear();
+	m_CurrentMenus.push_front(m_CombatMenubar);
+	result = StateChanged();
+	if (!result){
+		return false;
+	}
+
+	// Initialize a new CombatMap and scenario and start combat
+	// NOTE: This should be done separately from Entering the CombatMap
+	if (!m_CombatMap){
+		result = InitializeCombatMap((MapType)(rand() % 2), 32, 32);
+		if (!result){
+			return false;
+		}
+	}
+
+	// Begin the first round of Combat
+	NextTurn();
+
+	return true;
+}
+
 // Initialize a new Combat Map - this should happen when entering the CombatMap MainState (entering the Combat Map)
 bool ApplicationClass::InitializeCombatMap(MapType mapType, int mapWidth, int mapHeight){
 	bool result;
@@ -1683,7 +1670,7 @@ bool ApplicationClass::InitializeCombatMap(MapType mapType, int mapWidth, int ma
 
 	// Adjust the bounds on the camera position to allow for proper scrolling
 	boundX = max(0, HEX_SIZE*(1.5f + 1.5f*(float)mapWidth) - (float)m_screenWidth);
-	boundY = min(0, -1.0f * HEX_HEIGHT*(1.5f + (float)mapHeight) + (float)m_screenHeight - float(COMBAT_MENU_BAR_HEIGHT));
+	boundY = min(0, -1.0f * HEX_HEIGHT*(1.5f + (float)mapHeight) + (float)m_screenHeight - float(COMBAT_MENUBAR_HEIGHT));
 	boundZ = -10.0f;
 
 	m_Position->SetBounds(boundX, boundY, boundZ);
@@ -1755,7 +1742,7 @@ void ApplicationClass::ShutdownCombatMap(){
 
 	// Release the Agents
 	ClearAgents();
-	
+
 	// Clear the MovementQueue
 	ClearMovementMap();
 	if (m_MovementMap){
@@ -1776,7 +1763,7 @@ void ApplicationClass::ShutdownCombatMap(){
 		delete m_TerrainMap;
 		m_TerrainMap = 0;
 	}
-	
+
 	// Shutdown the CombatMap
 	if (m_CombatMap){
 		m_CombatMap->Shutdown();
@@ -1845,20 +1832,16 @@ bool ApplicationClass::Update(float frameTime, bool cursorIdle){
 	// update cursorIdleTime and check if any appropriate tooltip should be
 	// displayed
 	if (!cursorIdle){
-		// The cursor moved
+		// The cursor moved, reset
 		ResetTooltip();
 	} else if (cursorIdle && m_cursorIdleTime < m_tooltipDelay){
 		m_cursorIdleTime += frameTime;
 	}
 
-	// If a tooltip should be displayed and is not currently displayed (either
-	// because the cursor moved or wasn't idle for long enough) determine which
-	// tooltip should be displayed and set the appropriate variables and text
-	// to display the tooltip.
-	if (m_cursorIdleTime >= m_tooltipDelay && !m_displayTooltip && m_currentUIElement != UIELEMENT_NOELEMENT){
-		// If the UI element under the cursor has a tooltip, it should be
-		// displayed
-		m_displayTooltip = true;
+	// If the cursor has been idle for long enough and a tooltip hasn't been
+	// checked for, check if there is a tooltip to display
+	if (m_cursorIdleTime >= m_tooltipDelay && !m_checkedForTooltip){
+		m_checkedForTooltip = true;
 
 		// Update the tooltip to be displayed
 		result = UpdateTooltip();
@@ -1882,6 +1865,8 @@ bool ApplicationClass::UpdateTooltip(){
 	// Set the tooltip position and dimensions and set the text based on the
 	// UI element that is currently under the cursor.
 	bool result;
+	std::list<MenuClass*>::iterator menu;
+	ButtonAction action;
 
 	// NOTE: Tooltips should appear close to the UI element that they apply to
 	//       without obscuring it or any related elements.
@@ -1895,251 +1880,154 @@ bool ApplicationClass::UpdateTooltip(){
 	// NOTE3: This code should be cleaned up, split into helper functions to
 	//        reduce duplicate code (same tooltips with different positions).
 
-	// The display of certain Tooltips varies with the MainState and MenuState
-	switch (m_MainState){
-	case MAINSTATE_MAINMENU:
-		// Main Menu tooltips
+	// If the cursor is over a menu element with a tooltip, display that tooltip
+	// at the location returned by the menu
+	action = BUTTON_NOBUTTON;
 
-		// Initial tooltip location for the Main Menu is to the right of the buttons, at the same height
-		m_tooltipX = MAIN_MENU_BUTTON_HORIZONTAL_OFFSET + MAIN_MENU_BUTTON_WIDTH;
-		m_tooltipY = MAIN_MENU_BUTTON_VERTICAL_OFFSET;
+	menu = m_CurrentMenus.begin();
+	while (menu != m_CurrentMenus.end()){
+		if ((*menu)->HitCheck(m_mouseX, m_mouseY)){
+			result = (*menu)->GetTooltip(m_mouseX, m_mouseY, m_tooltipX, m_tooltipY, m_tooltipWidth, m_tooltipHeight, action);
 
-		switch (m_MenuState){
-		case MENUSTATE_MAINMENU:
-			switch (m_currentUIElement){
-			case MAINMENUBUTTON_ENTERCOMBATMAP:
-				result = m_Text->SetTooltipText(m_tooltipX, m_tooltipY, "Enter Combat", "Generates and starts a combat scenario", m_tooltipWidth, m_D3D->GetDeviceContext());
-				if (!result){
-					return false;
-				}
-				break;
-
-			case MAINMENUBUTTON_OPTIONS:
-				// Shift the tooltip location down to the same height as the button
-				m_tooltipY += MAIN_MENU_BUTTON_HEIGHT + MAIN_MENU_BUTTON_SPACING;
-
-				result = m_Text->SetTooltipText(m_tooltipX, m_tooltipY, "Options Menu", "Adjust audio and graphics setttings", m_tooltipWidth, m_D3D->GetDeviceContext());
-				if (!result){
-					return false;
-				}
-				break;
-
-			case MAINMENUBUTTON_EXIT:
-				// Shift the tooltip location down to the same height as the button
-				m_tooltipY += 2 * (MAIN_MENU_BUTTON_HEIGHT + MAIN_MENU_BUTTON_SPACING);
-
-				result = m_Text->SetTooltipText(m_tooltipX, m_tooltipY, "Exit Application", "Shutdown the game and return to desktop", m_tooltipWidth, m_D3D->GetDeviceContext());
-				if (!result){
-					return false;
-				}
-				break;
-
-			default:
-				m_displayTooltip = false;
+			// If a tooltip should be displayed set displayTooltip to true
+			if (result){
+				m_displayTooltip = true;
 			}
 
 			break;
+		}
 
-		case MENUSTATE_OPTIONMENU:
-			switch (m_currentUIElement){
-			case OPTIONSMENUBUTTON_GAMEOPTIONS:
-				result = m_Text->SetTooltipText(m_tooltipX, m_tooltipY, "Game Options", "Adjust game settings", m_tooltipWidth, m_D3D->GetDeviceContext());
-				if (!result){
-					return false;
-				}
+		// If this menu is exclusive don't check any menus below it
+		if ((*menu)->GetExclusive()) break;
 
-				break;
+		// Check the next open menu
+		++menu;
+	}
 
-			case OPTIONSMENUBUTTON_BACK:
-				// Shift the tooltip location down to the same height as the button
-				m_tooltipY += MAIN_MENU_BUTTON_HEIGHT + MAIN_MENU_BUTTON_SPACING;
+	switch (action){
+	case BUTTON_NOBUTTON:
+		// False positive, set displayTooltip to false
+		m_displayTooltip = false;
+		break;
 
-				result = m_Text->SetTooltipText(m_tooltipX, m_tooltipY, "Main Menu", "Return to the Main Menu", m_tooltipWidth, m_D3D->GetDeviceContext());
-				if (!result){
-					return false;
-				}
-				break;
-
-			default:
-				m_displayTooltip = false;
-			}
-
-			break;
-
-		case MENUSTATE_GAMEOPTIONSMENU:
-			switch (m_currentUIElement){
-			case GAMEOPTIONSMENUBUTTON_BACK:
-				// Shift the tooltip location down to the same height as the button
-				m_tooltipY = GAME_OPTIONS_MENU_BUTTON_VERTICAL_OFFSET;
-
-				result = m_Text->SetTooltipText(m_tooltipX, m_tooltipY, "Options Menu", "Return to the Options Menu", m_tooltipWidth, m_D3D->GetDeviceContext());
-				if (!result){
-					return false;
-				}
-				break;
-
-			default:
-				m_displayTooltip = false;
-			}
-
-			break;
-
-		default:
-			m_displayTooltip = false;
+	case BUTTON_CLOSEMENU:
+		result = m_Text->SetTooltipText(m_tooltipX, m_tooltipY, "Close Menu", "Close this menu", m_tooltipWidth, m_D3D->GetDeviceContext());
+		if (!result){
+			return false;
 		}
 
 		break;
 
-	case MAINSTATE_COMBATMAP:
-		switch (m_MenuState){
-		// TODO: Create Main Menu Interface for the Combat Map and position tooltips accordingly
+	case BUTTON_EXITAPPLICATION:
+		result = m_Text->SetTooltipText(m_tooltipX, m_tooltipY, "Exit Application", "Shutdown the game and return to desktop", m_tooltipWidth, m_D3D->GetDeviceContext());
+		if (!result){
+			return false;
+		}
 
-		case MENUSTATE_MAINMENU:
-			// Initial tooltip location for the CombatMap Main Menu is to the right of the buttons, at the same height
-			m_tooltipX = (m_screenWidth + COMBAT_MAIN_MENU_BUTTON_WIDTH) / 2;
-			m_tooltipY = (m_screenHeight - COMBAT_MAIN_MENU_HEIGHT) / 2 + COMBAT_MAIN_MENU_BUTTON_VERTICAL_OFFSET;
+		break;
 
-			switch (m_currentUIMenu){
-			case UIMENU_MAINMENU:
-				switch (m_currentUIElement){
-				case COMBATMAINMENUBUTTON_CLOSE:
-					result = m_Text->SetTooltipText(m_tooltipX, m_tooltipY, "Return to Combat", "Close this menu and return to combat", m_tooltipWidth, m_D3D->GetDeviceContext());
-					if (!result){
-						return false;
-					}
-					break;
+	case BUTTON_ENTERCOMBAT:
+		result = m_Text->SetTooltipText(m_tooltipX, m_tooltipY, "Enter Combat", "Generates and starts a combat scenario", m_tooltipWidth, m_D3D->GetDeviceContext());
+		if (!result){
+			return false;
+		}
 
-				case COMBATMAINMENUBUTTON_EXITCOMBAT:
-					// Shift the tooltip location down to the same height as the button
-					m_tooltipY += COMBAT_MAIN_MENU_BUTTON_HEIGHT + COMBAT_MAIN_MENU_BUTTON_SPACING;
+		break;
 
-					result = m_Text->SetTooltipText(m_tooltipX, m_tooltipY, "Exit to Main Menu", "Exit from combat and return to the Main Menu", m_tooltipWidth, m_D3D->GetDeviceContext());
-					if (!result){
-						return false;
-					}
-					break;
+	case BUTTON_OPENOPTIONSMENU:
+		result = m_Text->SetTooltipText(m_tooltipX, m_tooltipY, "Options Menu", "Configure audio, game and graphics settings", m_tooltipWidth, m_D3D->GetDeviceContext());
+		if (!result){
+			return false;
+		}
 
-				case COMBATMAINMENUBUTTON_EXITAPPLICATION:
-					// Shift the tooltip location down to the same height as the button
-					m_tooltipY += 2 * (COMBAT_MAIN_MENU_BUTTON_HEIGHT + COMBAT_MAIN_MENU_BUTTON_SPACING);
+		break;
 
-					result = m_Text->SetTooltipText(m_tooltipX, m_tooltipY, "Exit Application", "Shutdown the game and return to desktop", m_tooltipWidth, m_D3D->GetDeviceContext());
-					if (!result){
-						return false;
-					}
-					break;
+	case BUTTON_OPENGAMEOPTIONS:
+		result = m_Text->SetTooltipText(m_tooltipX, m_tooltipY, "Game Options", "Configure game settings", m_tooltipWidth, m_D3D->GetDeviceContext());
+		if (!result){
+			return false;
+		}
 
-				default:
-					m_displayTooltip = false;
-				}
+		break;
 
-				break;
+	case BUTTON_SAVESETTINGS:
+		result = m_Text->SetTooltipText(m_tooltipX, m_tooltipY, "Save and Close", "Save changes to the settings and close this menu", m_tooltipWidth, m_D3D->GetDeviceContext());
+		if (!result){
+			return false;
+		}
 
-			default:
-				m_displayTooltip = false;
-			}
-			break;
+		break;
 
-		case MENUSTATE_OPTIONMENU:
-			switch (m_currentUIMenu){
-			case UIMENU_OPTIONSMENU:
-				switch (m_currentUIElement){
-				case OPTIONSMENUBUTTON_BACK:
-					result = m_Text->SetTooltipText(m_tooltipX, m_tooltipY, "Back", "Return to the Main Menu", m_tooltipWidth, m_D3D->GetDeviceContext());
-					if (!result){
-						return false;
-					}
-					break;
+	case BUTTON_ORDERMOVE:
+		result = m_Text->SetTooltipText(m_tooltipX, m_tooltipY, "Move", "Command the selected Agent to move to a specific location", m_tooltipWidth, m_D3D->GetDeviceContext());
+		if (!result){
+			return false;
+		}
 
-				default:
-					m_displayTooltip = false;
-				}
+		break;
 
-				break;
+	case BUTTON_ORDERATTACK:
+		result = m_Text->SetTooltipText(m_tooltipX, m_tooltipY, "Attack", "Command the selected Agent to attack a specific target", m_tooltipWidth, m_D3D->GetDeviceContext());
+		if (!result){
+			return false;
+		}
 
-			default:
-				m_displayTooltip = false;
-			}
-			break;
+		break;
 
-		case MENUSTATE_NOMENU:
-			switch (m_currentUIMenu){
-			case UIMENU_COMBATMENUBAR:
-				// Set the tooltip position to directly above the command buttons on the menu bar
-				m_tooltipX = m_screenWidth - m_tooltipWidth;
-				m_tooltipY = m_screenHeight - COMBAT_MENU_BAR_HEIGHT - m_tooltipHeight;
+	case BUTTON_ENDTURN:
+		result = m_Text->SetTooltipText(m_tooltipX, m_tooltipY, "End Turn", "End the turn of all currently active Agents", m_tooltipWidth, m_D3D->GetDeviceContext());
+		if (!result){
+			return false;
+		}
 
-				switch (m_currentUIElement){
-				case COMBATMENUBARBUTTON_MOVE:
-					result = m_Text->SetTooltipText(m_tooltipX, m_tooltipY, "Move", "Command the selected Agent to move to a specific location", m_tooltipWidth, m_D3D->GetDeviceContext());
-					if (!result){
-						return false;
-					}
-					break;
+		break;
 
-				case COMBATMENUBARBUTTON_ATTACK:
-					result = m_Text->SetTooltipText(m_tooltipX, m_tooltipY, "Attack", "Command the selected Agent to attack a specific target", m_tooltipWidth, m_D3D->GetDeviceContext());
-					if (!result){
-						return false;
-					}
-					break;
+	case BUTTON_OPENCOMBATMENU:
+		result = m_Text->SetTooltipText(m_tooltipX, m_tooltipY, "Menu", "Open the Main Menu", m_tooltipWidth, m_D3D->GetDeviceContext());
+		if (!result){
+			return false;
+		}
 
-				case COMBATMENUBARBUTTON_ENDTURN:
-					result = m_Text->SetTooltipText(m_tooltipX, m_tooltipY, "End Turn", "End the turn of all currently active Agents", m_tooltipWidth, m_D3D->GetDeviceContext());
-					if (!result){
-						return false;
-					}
-					break;
+		break;
 
-				case COMBATMENUBARBUTTON_MENU:
-					result = m_Text->SetTooltipText(m_tooltipX, m_tooltipY, "Menu", "Open the Main Menu", m_tooltipWidth, m_D3D->GetDeviceContext());
-					if (!result){
-						return false;
-					}
-					break;
-
-				default:
-					m_displayTooltip = false;
-				}
-
-				break;
-
-			default:
-				m_displayTooltip = false;
-			}
-
-			break;
-
-		default:
-			m_displayTooltip = false;
+	case BUTTON_EXITCOMBAT:
+		result = m_Text->SetTooltipText(m_tooltipX, m_tooltipY, "Exit to Main Menu", "Exit from combat and return to the Main Menu", m_tooltipWidth, m_D3D->GetDeviceContext());
+		if (!result){
+			return false;
 		}
 
 		break;
 
 	default:
-		m_displayTooltip = false;
+		// If a tooltip has not yet been implemented display a tooltip saying so
+		result = m_Text->SetTooltipText(m_tooltipX, m_tooltipY, "Tooltip Missing", "Tooltip not yet implemented for this button", m_tooltipWidth, m_D3D->GetDeviceContext());
+		if (!result){
+			return false;
+		}
+
+		break;
 	}
 
 	return true;
 }
 
 void ApplicationClass::ResetTooltip(){
-	// Reset cursor idle time and set displayTooltip to false
+	// Reset cursor idle time and set displayTooltip and checkedForTooltip to false
 	m_cursorIdleTime = 0.0f;
 	m_displayTooltip = false;
+	m_checkedForTooltip = false;
 	return;
 }
 
 bool ApplicationClass::RenderGraphics(){
 	D3DXMATRIX worldMatrix, viewMatrix, orthoMatrix;
 	bool result;
-	int i;
 	int* terrain;
-	float cameraX, cameraY, cameraZ;
 	int highlightX, highlightY;
 	int tileIndex;
 	std::list<AgentClass*>::iterator inactiveAgent;
 	std::list<ActiveAgentClass*>::iterator activeAgent;
+	std::list<MenuClass*>::reverse_iterator menu;
 	int agentX, agentY;
 
 	// Clear the buffers to begin the scene.
@@ -2152,9 +2040,6 @@ bool ApplicationClass::RenderGraphics(){
 	m_Camera->GetViewMatrix(viewMatrix);
 	m_D3D->GetWorldMatrix(worldMatrix);
 	m_D3D->GetOrthoMatrix(orthoMatrix);
-
-	// Get the offset for any static UI elements
-	m_Position->GetPosition(cameraX, cameraY, cameraZ);
 
 	// Turn off the Z buffer to begin all 2D rendering.
 	m_D3D->TurnZBufferOff();
@@ -2178,63 +2063,7 @@ bool ApplicationClass::RenderGraphics(){
 	// NOTE: Will probably nest additional switch/if statements for substates (submenus/different display modes etc) later on
 	switch (m_MainState){
 	case MAINSTATE_MAINMENU:
-		// Render the Main Menu buttons
-
-		// Render buttons based on the MenuState
-		switch (m_MenuState){
-		case MENUSTATE_MAINMENU:
-			// Render all the buttons on the Main Menu
-			result = RenderStandardMenuButtons(MAIN_MENU_BUTTON_HORIZONTAL_OFFSET, MAIN_MENU_BUTTON_VERTICAL_OFFSET, MAIN_MENU_BUTTON_COUNT, MAIN_MENU_BUTTON_WIDTH, MAIN_MENU_BUTTON_HEIGHT, MAIN_MENU_BUTTON_SPACING, worldMatrix, orthoMatrix);
-			if (!result){
-				return false;
-			}
-
-			break;
-
-		case MENUSTATE_OPTIONMENU:
-			// Render all the buttons on the Options Menu
-			result = RenderStandardMenuButtons(MAIN_MENU_BUTTON_HORIZONTAL_OFFSET, MAIN_MENU_BUTTON_VERTICAL_OFFSET, OPTIONS_MENU_BUTTON_COUNT, MAIN_MENU_BUTTON_WIDTH, MAIN_MENU_BUTTON_HEIGHT, MAIN_MENU_BUTTON_SPACING, worldMatrix, orthoMatrix);
-			if (!result){
-				return false;
-			}
-			
-			break;
-
-		case MENUSTATE_GAMEOPTIONSMENU:
-			// Render the tooltip delay slider
-			result = m_StandardSliderBackground->Render(m_D3D->GetDeviceContext(), GAME_OPTIONS_MENU_TOOLTIPDELAY_SLIDER_HORIZONTAL_OFFSET, GAME_OPTIONS_MENU_TOOLTIPDELAY_VERTICAL_OFFSET + (SLIDER_HEIGHT - SLIDER_BAR_HEIGHT) / 2);
-			if (!result){
-				return false;
-			}
-
-			result = m_TextureShader->Render(m_D3D->GetDeviceContext(), m_StandardSliderBackground->GetIndexCount(), worldMatrix, m_UIViewMatrix, orthoMatrix, m_StandardSliderBackground->GetTexture(), PSTYPE_NORMAL);
-			if (!result){
-				return false;
-			}
-
-			result = m_StandardSlider->Render(m_D3D->GetDeviceContext(), GAME_OPTIONS_MENU_TOOLTIPDELAY_SLIDER_HORIZONTAL_OFFSET - (SLIDER_WIDTH / 2) + int(min((m_tooltipDelay / MAX_TOOLTIPDELAY), 1.0f) * SLIDER_BAR_WIDTH), GAME_OPTIONS_MENU_TOOLTIPDELAY_VERTICAL_OFFSET);
-			if (!result){
-				return false;
-			}
-
-			result = m_TextureShader->Render(m_D3D->GetDeviceContext(), m_StandardSlider->GetIndexCount(), worldMatrix, m_UIViewMatrix, orthoMatrix, m_StandardSlider->GetTexture(), PSTYPE_NORMAL);
-			if (!result){
-				return false;
-			}
-
-			// Render all the buttons on the Game Options Menu
-			result = RenderStandardMenuButtons(MAIN_MENU_BUTTON_HORIZONTAL_OFFSET, GAME_OPTIONS_MENU_BUTTON_VERTICAL_OFFSET, GAME_OPTIONS_MENU_BUTTON_COUNT, MAIN_MENU_BUTTON_WIDTH, MAIN_MENU_BUTTON_HEIGHT, MAIN_MENU_BUTTON_SPACING, worldMatrix, orthoMatrix);
-			if (!result){
-				return false;
-			}
-
-			break;
-
-		default:
-			// No Menu, don't render any buttons
-			break;
-		}
-
+		// All MainMenu rendering is now handled by the currently open menus
 		break;
 
 	case MAINSTATE_COMBATMAP:
@@ -2276,7 +2105,7 @@ bool ApplicationClass::RenderGraphics(){
 				// TODO: Display the cost of moving the Agent to the highlighted tile
 				// TODO2: If the Agent can not move to the highlighted tile, highlight the tile
 				//        with a different colour and do not display a cost.
-				
+
 				while (m_MovementMap[tileIndex].prev){
 					// From the grid coordinates, calculate the absolute pixel coordinates to render the highlight to
 					highlightX = (int)(1.5f * HEX_SIZE * m_MovementMap[tileIndex].tileX);
@@ -2349,7 +2178,7 @@ bool ApplicationClass::RenderGraphics(){
 		for (activeAgent = m_ActiveAgents.begin(); activeAgent != m_ActiveAgents.end(); ++activeAgent){
 			// Get the position of the agent
 			(*activeAgent)->GetPosition(agentX, agentY);
-			
+
 			// Calculate the pixel coordinates to render the agent to
 			agentY = (int)(MAP_VERTICALOFFSET + HEX_HEIGHT*((float)agentY + 0.5f * fmod((float)agentX, 2.0f)));
 			agentX = (int)(MAP_HORIZONTALOFFSET + (HEX_SIZE / 2.0f) + (1.5f * HEX_SIZE * agentX));
@@ -2366,93 +2195,32 @@ bool ApplicationClass::RenderGraphics(){
 			}
 		}
 
-		// Turn off alpha blending after rendering the sprites.
-		m_D3D->TurnOffAlphaBlending();
-
-		// Render relevant UI elements (overlays, menus, etc.) that should currently be visible.
-		// NOTE: The elements involved are subject to change in the future
-
-		// Render the CombatMap menubar
-		// First ensure the menuBackground has the proper dimensions
-		m_MenuBackground->SetDimensions(m_screenWidth, COMBAT_MENU_BAR_HEIGHT);
-
-		result = m_MenuBackground->Render(m_D3D->GetDeviceContext(), 0, m_screenHeight - COMBAT_MENU_BAR_HEIGHT);
-		if (!result){
-			return false;
-		}
-
-		result = m_TextureShader->Render(m_D3D->GetDeviceContext(), m_MenuBackground->GetIndexCount(), worldMatrix, m_UIViewMatrix, orthoMatrix, m_MenuBackground->GetTexture(), PSTYPE_NORMAL);
-		if (!result){
-			return false;
-		}
-
-		// Render the buttons on the menubar
-		
-		// First ensure the buttons have the proper dimensions
-		m_StandardButton->SetDimensions(COMBAT_MENU_BAR_BUTTON_WIDTH, COMBAT_MENU_BAR_BUTTON_HEIGHT);
-
-		for (i = 0; i < COMBAT_MENU_BAR_BUTTON_COUNT; i++){
-			result = m_StandardButton->Render(m_D3D->GetDeviceContext(), m_screenWidth + COMBAT_MENU_BAR_BUTTON_HORIZONTAL_OFFSET + COMBAT_MENU_BAR_BUTTON_WIDTH * (i / 2), m_screenHeight - COMBAT_MENU_BAR_HEIGHT + COMBAT_MENU_BAR_BUTTON_VERTICAL_OFFSET + COMBAT_MENU_BAR_BUTTON_HEIGHT * (i % 2));
-			if (!result){
-				return false;
-			}
-
-			result = m_TextureShader->Render(m_D3D->GetDeviceContext(), m_StandardButton->GetIndexCount(), worldMatrix, m_UIViewMatrix, orthoMatrix, m_StandardButton->GetTexture(), PSTYPE_NORMAL);
-			if (!result){
-				return false;
-			}
-		}
-
-		// Render any text on the menu bar and CombatMap
-		m_D3D->TurnOnAlphaBlending();
-		result = m_Text->Render(m_D3D->GetDeviceContext(), worldMatrix, orthoMatrix);
-		if (!result){
-			return false;
-		}
-
-		m_D3D->TurnOffAlphaBlending();
-
-		// Render any additional open menus
-		switch (m_MenuState){
-		case MENUSTATE_MAINMENU:
-			// The CombatMap Main Menu is open - render the menu and menu buttons
-
-			// Render the Menu
-			m_MenuBackground->SetDimensions(COMBAT_MAIN_MENU_WIDTH, COMBAT_MAIN_MENU_HEIGHT);
-
-			result = m_MenuBackground->Render(m_D3D->GetDeviceContext(), (m_screenWidth - COMBAT_MAIN_MENU_WIDTH) / 2, (m_screenHeight - COMBAT_MAIN_MENU_HEIGHT) / 2);
-			if (!result){
-				return false;
-			}
-
-			result = m_TextureShader->Render(m_D3D->GetDeviceContext(), m_MenuBackground->GetIndexCount(), worldMatrix, m_UIViewMatrix, orthoMatrix, m_MenuBackground->GetTexture(), PSTYPE_NORMAL);
-			if (!result){
-				return false;
-			}
-
-			// Render the Menu Buttons
-			result = RenderStandardMenuButtons((m_screenWidth - COMBAT_MAIN_MENU_WIDTH) / 2 + COMBAT_MAIN_MENU_BUTTON_HORIZONTAL_OFFSET, (m_screenHeight - COMBAT_MAIN_MENU_HEIGHT) / 2 + COMBAT_MAIN_MENU_BUTTON_VERTICAL_OFFSET, COMBAT_MAIN_MENU_BUTTON_COUNT, COMBAT_MAIN_MENU_BUTTON_WIDTH, COMBAT_MAIN_MENU_BUTTON_HEIGHT, COMBAT_MAIN_MENU_BUTTON_SPACING, worldMatrix, orthoMatrix);
-			if (!result){
-				return false;
-			}
-
-			break;
-
-		default:
-			// Don't render any additional menus
-			break;
-		}
-
 		break;
+	}
+
+	// Render any text that is above the background/CombatMap but below any open
+	// menus
+	// Ex. Floating Text on the map
+	m_D3D->TurnOnAlphaBlending();
+
+	// Render all open menus
+	for (menu = m_CurrentMenus.rbegin(); menu != m_CurrentMenus.rend(); ++menu){
+		result = (*menu)->Render(m_D3D->GetDeviceContext(), worldMatrix, m_UIViewMatrix, orthoMatrix);
+		if (!result){
+			return false;
+		}
 	}
 
 	// The Font Engine also renders in 2D
 
-	// Turn on the alpha blending before rendering the text and cursor.
-	m_D3D->TurnOnAlphaBlending();
+	// Render Any text that isn't part of a menu
+	// NOTE: There shouldn't be any more text until after the tooltip background is rendered
+	result = m_Text->Render(m_D3D->GetDeviceContext(), worldMatrix, orthoMatrix);
+	if (!result){
+		return false;
+	}
 
-	// Render Menu text
-	result = m_Text->RenderMenuText(m_D3D->GetDeviceContext(), worldMatrix, orthoMatrix);
+	result = m_Text->RenderStaticText(m_D3D->GetDeviceContext(), worldMatrix, orthoMatrix);
 	if (!result){
 		return false;
 	}
@@ -2503,35 +2271,12 @@ bool ApplicationClass::RenderGraphics(){
 
 	// Turn off alpha blending after rendering the text and cursor
 	m_D3D->TurnOffAlphaBlending();
-	
+
 	// Turn the Z buffer back on now that all 2D rendering has completed.
 	m_D3D->TurnZBufferOn();
 
 	// Present the rendered scene to the screen.
 	m_D3D->EndScene();
-
-	return true;
-}
-
-bool ApplicationClass::RenderStandardMenuButtons(int startX, int startY, int buttonCount, int buttonWidth, int buttonHeight, int buttonSpacing, D3DXMATRIX worldMatrix, D3DXMATRIX orthoMatrix){
-	// Render a single column of buttons starting at the provided coordinates
-	bool result;
-	int i;
-
-	// Set the dimensions of the standard button
-	m_StandardButton->SetDimensions(buttonWidth, buttonHeight);
-
-	for (i = 0; i < buttonCount; i++){
-		result = m_StandardButton->Render(m_D3D->GetDeviceContext(), startX, startY + i * (buttonHeight + buttonSpacing));
-		if (!result){
-			return false;
-		}
-
-		result = m_TextureShader->Render(m_D3D->GetDeviceContext(), m_StandardButton->GetIndexCount(), worldMatrix, m_UIViewMatrix, orthoMatrix, m_StandardButton->GetTexture(), PSTYPE_NORMAL);
-		if (!result){
-			return false;
-		}
-	}
 
 	return true;
 }
