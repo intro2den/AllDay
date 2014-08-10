@@ -58,17 +58,17 @@ bool MainMenuClass::Initialize(int screenWidth, int screenHeight, BitmapClass* t
 	textXOffset = buttonXOffset + 15;
 	textYOffset = buttonYOffset + (buttonHeight / 2) - 4;
 
-	result = m_Text->AddStaticText(m_menuX + textXOffset, m_menuY + textYOffset, "Enter CombatMap", 0.0f, 0.0f, 0.0f, buttonWidth - 30, device, deviceContext);
+	result = m_Text->AddText(m_menuX + textXOffset, m_menuY + textYOffset, "Enter CombatMap", 0.0f, 0.0f, 0.0f, buttonWidth - 30, device, deviceContext);
 	if (!result){
 		return false;
 	}
 
-	result = m_Text->AddStaticText(m_menuX + textXOffset, m_menuY + textYOffset + buttonSpacing, "Options", 0.0f, 0.0f, 0.0f, buttonWidth - 30, device, deviceContext);
+	result = m_Text->AddText(m_menuX + textXOffset, m_menuY + textYOffset + buttonSpacing, "Options", 0.0f, 0.0f, 0.0f, buttonWidth - 30, device, deviceContext);
 	if (!result){
 		return false;
 	}
 
-	result = m_Text->AddStaticText(m_menuX + textXOffset, m_menuY + textYOffset + 2 * buttonSpacing, "Exit Application", 0.0f, 0.0f, 0.0f, buttonWidth - 30, device, deviceContext);
+	result = m_Text->AddText(m_menuX + textXOffset, m_menuY + textYOffset + 2 * buttonSpacing, "Exit Application", 0.0f, 0.0f, 0.0f, buttonWidth - 30, device, deviceContext);
 	if (!result){
 		return false;
 	}

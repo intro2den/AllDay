@@ -29,6 +29,6 @@ public:
 	bool UpdateTooltipDelayLabel(float, ID3D11Device*, ID3D11DeviceContext*);
 
 private:
-	StaticTextClass* m_TooltipDelayText;
+	TextClass* m_TooltipDelayText;
 
 };

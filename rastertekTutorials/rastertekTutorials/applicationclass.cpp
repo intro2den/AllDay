@@ -19,7 +19,8 @@ ApplicationClass::ApplicationClass(){
 
 	m_StandardFont = 0;
 	m_FontShader = 0;
-	m_Text = 0;
+	m_ErrorText = 0;
+	m_TooltipText = 0;
 
 	m_MainMenu = 0;
 	m_OptionsMenu = 0;
@@ -232,17 +233,21 @@ bool ApplicationClass::Initialize(HINSTANCE hinstance, HWND hwnd, int screenWidt
 		return false;
 	}
 
-	// Create and Initialize the text object.
-	m_Text = new TextClass;
-	if (!m_Text){
+	// Create and initialize a timed text object
+	m_ErrorText = new ErrorTextClass;
+	if (!m_ErrorText){
 		return false;
 	}
 
-	result = m_Text->Initialize(m_StandardFont, m_FontShader, m_D3D->GetDevice(), m_D3D->GetDeviceContext(), m_screenWidth, m_screenHeight, baseViewMatrix);
-	if (!result){
-		MessageBox(hwnd, "Could not initialize the text object.", "Error", MB_OK);
+	m_ErrorText->Initialize(m_StandardFont, m_FontShader, m_screenWidth, m_screenHeight, baseViewMatrix);
+
+	// Create and initialize the tooltip text object
+	m_TooltipText = new TextClass;
+	if (!m_TooltipText){
 		return false;
 	}
+
+	m_TooltipText->Initialize(m_StandardFont, m_FontShader, m_screenWidth, m_screenHeight, baseViewMatrix);
 
 	// Create and initialize the menu objects
 	result = InitializeMenus();
@@ -327,11 +332,18 @@ void ApplicationClass::Shutdown(){
 		m_MainMenu = 0;
 	}
 
-	// Release the text object.
-	if (m_Text){
-		m_Text->Shutdown();
-		delete m_Text;
-		m_Text = 0;
+	// Release the tooltip text object
+	if (m_TooltipText){
+		m_TooltipText->Shutdown();
+		delete m_TooltipText;
+		m_TooltipText = 0;
+	}
+
+	// Release the error text object
+	if (m_ErrorText){
+		m_ErrorText->Shutdown();
+		delete m_ErrorText;
+		m_ErrorText = 0;
 	}
 
 	// Release the font shader object
@@ -449,8 +461,9 @@ bool ApplicationClass::Frame(){
 	m_Input->GetMouseLocation(m_mouseX, m_mouseY);
 
 	// If the mouse is over the window, update the text strings displaying the cursor coordinates
+	// NOTE: This will be replaced with displaying the tile coordinates of the currently highlighted tile on the combatmap
 	if (m_mouseX >= 0 && m_mouseX < m_screenWidth && m_mouseY >= 0 && m_mouseY < m_screenHeight){
-		result = m_Text->SetMousePosition(m_mouseX, m_mouseY, m_D3D->GetDeviceContext());
+		result = m_CombatMenubar->SetHighlightedTile(m_mouseX, m_mouseY, 0, m_D3D->GetDevice(), m_D3D->GetDeviceContext());
 		if (!result){
 			return false;
 		}
@@ -633,11 +646,7 @@ bool ApplicationClass::EnterMainMenu(){
 	m_MainState = MAINSTATE_MAINMENU;
 	m_CurrentMenus.clear();
 	m_CurrentMenus.push_front(m_MainMenu);
-	result = StateChanged();
-	if (!result){
-		return false;
-	}
-
+	StateChanged();
 
 	return true;
 }
@@ -657,7 +666,7 @@ bool ApplicationClass::HandleInput(float frameTime){
 
 	// Update the frame time for any existing error messages
 	// NOTE: This must happen before new errors are created in this frame - not in the Update function.
-	result = m_Text->Frame(frameTime, m_D3D->GetDeviceContext());
+	result = m_ErrorText->Frame(frameTime, m_D3D->GetDeviceContext());
 	if (!result){
 		return false;
 	}
@@ -700,11 +709,7 @@ bool ApplicationClass::HandleInput(float frameTime){
 				// close the menu and check the next menu below
 				if ((*menu)->GetCloseOnMiss()){
 					menu = m_CurrentMenus.erase(menu);
-					result = StateChanged();
-					if (!result){
-						return false;
-					}
-
+					StateChanged();
 					continue;
 				}
 
@@ -720,11 +725,7 @@ bool ApplicationClass::HandleInput(float frameTime){
 			case BUTTON_CLOSEMENU:
 				// Close the menu the close button was clicked from
 				m_CurrentMenus.erase(menu);
-				result = StateChanged();
-				if (!result){
-					return false;
-				}
-
+				StateChanged();
 				break;
 
 			case BUTTON_EXITAPPLICATION:
@@ -740,32 +741,19 @@ bool ApplicationClass::HandleInput(float frameTime){
 
 			case BUTTON_OPENOPTIONSMENU:
 				m_CurrentMenus.push_front(m_OptionsMenu);
-				result = StateChanged();
-				if (!result){
-					return false;
-				}
-
+				StateChanged();
 				break;
 
 			case BUTTON_OPENGAMEOPTIONS:
 				m_CurrentMenus.push_front(m_GameOptionsMenu);
-				result = StateChanged();
-				if (!result){
-					return false;
-				}
-
+				StateChanged();
 				break;
 
 			case BUTTON_SAVESETTINGS:
 				// Save current settings to a configuration file and close the menu
 				WriteConfig();
-
 				m_CurrentMenus.erase(menu);
-				result = StateChanged();
-				if (!result){
-					return false;
-				}
-
+				StateChanged();
 				break;
 
 			default:
@@ -903,11 +891,7 @@ bool ApplicationClass::HandleInput(float frameTime){
 				// close the menu and check the next menu below
 				if ((*menu)->GetCloseOnMiss()){
 					menu = m_CurrentMenus.erase(menu);
-					result = StateChanged();
-					if (!result){
-						return false;
-					}
-
+					StateChanged();
 					continue;
 				}
 
@@ -923,11 +907,7 @@ bool ApplicationClass::HandleInput(float frameTime){
 			case BUTTON_CLOSEMENU:
 				// Close the menu the close button was clicked from
 				m_CurrentMenus.erase(menu);
-				result = StateChanged();
-				if (!result){
-					return false;
-				}
-
+				StateChanged();
 				break;
 
 			case BUTTON_EXITAPPLICATION:
@@ -953,11 +933,7 @@ bool ApplicationClass::HandleInput(float frameTime){
 			case BUTTON_OPENCOMBATMENU:
 				DeselectCommand();
 				m_CurrentMenus.push_front(m_CombatMainMenu);
-				result = StateChanged();
-				if (!result){
-					return false;
-				}
-
+				StateChanged();
 				break;
 
 			case BUTTON_EXITCOMBAT:
@@ -996,7 +972,7 @@ bool ApplicationClass::HandleInput(float frameTime){
 							return false;
 						}
 					} else{
-						result = m_Text->NewErrorMessage("No Agent Selected", m_D3D->GetDeviceContext());
+						result = NewError("No Agent Selected");
 						if (!result){
 							return false;
 						}
@@ -1018,7 +994,7 @@ bool ApplicationClass::HandleInput(float frameTime){
 							return false;
 						}
 					} else{
-						result = m_Text->NewErrorMessage("No Agent Selected", m_D3D->GetDeviceContext());
+						result = NewError("No Agent Selected");
 						if (!result){
 							return false;
 						}
@@ -1077,19 +1053,11 @@ bool ApplicationClass::UpdateSliderVariables(){
 	return true;
 }
 
-bool ApplicationClass::StateChanged(){
-	// Set stateChanged to true, reset tooltips and clear error messages
-	bool result;
-
+void ApplicationClass::StateChanged(){
+	// Reset tooltips and clear errors
 	ResetTooltip();
-
-	// Clear all error messages on state change
-	result = m_Text->ClearErrors(m_D3D->GetDeviceContext());
-	if (!result){
-		return false;
-	}
-
-	return true;
+	ClearErrors();
+	return;
 }
 
 void ApplicationClass::DeselectCommand(){
@@ -1156,12 +1124,12 @@ bool ApplicationClass::SetSelectedAgent(ActiveAgentClass* agent){
 	m_SelectedAgent = agent;
 
 	if (m_SelectedAgent){
-		result = m_Text->SetSelectedAgent(m_SelectedAgent->GetName(), m_D3D->GetDeviceContext());
+		result = m_CombatMenubar->SetSelectedAgent(m_SelectedAgent->GetName(), m_D3D->GetDevice(), m_D3D->GetDeviceContext());
 		if (!result){
 			return false;
 		}
 	} else{
-		result = m_Text->SetSelectedAgent(NULL, m_D3D->GetDeviceContext());
+		result = m_CombatMenubar->SetSelectedAgent(0, m_D3D->GetDevice(), m_D3D->GetDeviceContext());
 		if (!result){
 			return false;
 		}
@@ -1191,7 +1159,7 @@ bool ApplicationClass::OrderMove(){
 		m_SelectedAgent->Move(m_currentTileX, m_currentTileY, m_MovementMap[m_currentTileIndex].cost);
 		BuildMovementMap();
 	} else{
-		result = m_Text->NewErrorMessage("The selected Agent isn't active.", m_D3D->GetDeviceContext());
+		result = NewError("The selected Agent isn't active.");
 		if (!result){
 			return false;
 		}
@@ -1218,7 +1186,7 @@ bool ApplicationClass::OrderAttack(){
 		//       range before attacking.
 
 	} else{
-		result = m_Text->NewErrorMessage("The selected Agent isn't active.", m_D3D->GetDeviceContext());
+		result = NewError("The selected Agent isn't active.");
 		if (!result){
 			return false;
 		}
@@ -1598,10 +1566,7 @@ bool ApplicationClass::EnterCombatMap(){
 	m_MainState = MAINSTATE_COMBATMAP;
 	m_CurrentMenus.clear();
 	m_CurrentMenus.push_front(m_CombatMenubar);
-	result = StateChanged();
-	if (!result){
-		return false;
-	}
+	StateChanged();
 
 	// Initialize a new CombatMap and scenario and start combat
 	// NOTE: This should be done separately from Entering the CombatMap
@@ -1911,7 +1876,7 @@ bool ApplicationClass::UpdateTooltip(){
 		break;
 
 	case BUTTON_CLOSEMENU:
-		result = m_Text->SetTooltipText(m_tooltipX, m_tooltipY, "Close Menu", "Close this menu", m_tooltipWidth, m_D3D->GetDeviceContext());
+		result = SetTooltip("Close Menu", "Close this menu");
 		if (!result){
 			return false;
 		}
@@ -1919,7 +1884,7 @@ bool ApplicationClass::UpdateTooltip(){
 		break;
 
 	case BUTTON_EXITAPPLICATION:
-		result = m_Text->SetTooltipText(m_tooltipX, m_tooltipY, "Exit Application", "Shutdown the game and return to desktop", m_tooltipWidth, m_D3D->GetDeviceContext());
+		result = SetTooltip("Exit Application", "Shutdown the game and return to desktop");
 		if (!result){
 			return false;
 		}
@@ -1927,7 +1892,7 @@ bool ApplicationClass::UpdateTooltip(){
 		break;
 
 	case BUTTON_ENTERCOMBAT:
-		result = m_Text->SetTooltipText(m_tooltipX, m_tooltipY, "Enter Combat", "Generates and starts a combat scenario", m_tooltipWidth, m_D3D->GetDeviceContext());
+		result = SetTooltip("Enter Combat", "Generates and starts a combat scenario");
 		if (!result){
 			return false;
 		}
@@ -1935,7 +1900,7 @@ bool ApplicationClass::UpdateTooltip(){
 		break;
 
 	case BUTTON_OPENOPTIONSMENU:
-		result = m_Text->SetTooltipText(m_tooltipX, m_tooltipY, "Options Menu", "Configure audio, game and graphics settings", m_tooltipWidth, m_D3D->GetDeviceContext());
+		result = SetTooltip("Options Menu", "Configure audio, game and graphics settings");
 		if (!result){
 			return false;
 		}
@@ -1943,7 +1908,7 @@ bool ApplicationClass::UpdateTooltip(){
 		break;
 
 	case BUTTON_OPENGAMEOPTIONS:
-		result = m_Text->SetTooltipText(m_tooltipX, m_tooltipY, "Game Options", "Configure game settings", m_tooltipWidth, m_D3D->GetDeviceContext());
+		result = SetTooltip("Game Options", "Configure game settings");
 		if (!result){
 			return false;
 		}
@@ -1951,7 +1916,7 @@ bool ApplicationClass::UpdateTooltip(){
 		break;
 
 	case BUTTON_SAVESETTINGS:
-		result = m_Text->SetTooltipText(m_tooltipX, m_tooltipY, "Save and Close", "Save changes to the settings and close this menu", m_tooltipWidth, m_D3D->GetDeviceContext());
+		result = SetTooltip("Save and Close", "Save changes to the settings and close this menu");
 		if (!result){
 			return false;
 		}
@@ -1959,7 +1924,7 @@ bool ApplicationClass::UpdateTooltip(){
 		break;
 
 	case BUTTON_ORDERMOVE:
-		result = m_Text->SetTooltipText(m_tooltipX, m_tooltipY, "Move", "Command the selected Agent to move to a specific location", m_tooltipWidth, m_D3D->GetDeviceContext());
+		result = SetTooltip("Move", "Command the selected Agent to move to a specific location");
 		if (!result){
 			return false;
 		}
@@ -1967,7 +1932,7 @@ bool ApplicationClass::UpdateTooltip(){
 		break;
 
 	case BUTTON_ORDERATTACK:
-		result = m_Text->SetTooltipText(m_tooltipX, m_tooltipY, "Attack", "Command the selected Agent to attack a specific target", m_tooltipWidth, m_D3D->GetDeviceContext());
+		result = SetTooltip("Attack", "Command the selected Agent to attack a specific target");
 		if (!result){
 			return false;
 		}
@@ -1975,7 +1940,7 @@ bool ApplicationClass::UpdateTooltip(){
 		break;
 
 	case BUTTON_ENDTURN:
-		result = m_Text->SetTooltipText(m_tooltipX, m_tooltipY, "End Turn", "End the turn of all currently active Agents", m_tooltipWidth, m_D3D->GetDeviceContext());
+		result = SetTooltip("End Turn", "End the turn of all currently active Agents");
 		if (!result){
 			return false;
 		}
@@ -1983,7 +1948,7 @@ bool ApplicationClass::UpdateTooltip(){
 		break;
 
 	case BUTTON_OPENCOMBATMENU:
-		result = m_Text->SetTooltipText(m_tooltipX, m_tooltipY, "Menu", "Open the Main Menu", m_tooltipWidth, m_D3D->GetDeviceContext());
+		result = SetTooltip("Menu", "Open the Main Menu");
 		if (!result){
 			return false;
 		}
@@ -1991,7 +1956,7 @@ bool ApplicationClass::UpdateTooltip(){
 		break;
 
 	case BUTTON_EXITCOMBAT:
-		result = m_Text->SetTooltipText(m_tooltipX, m_tooltipY, "Exit to Main Menu", "Exit from combat and return to the Main Menu", m_tooltipWidth, m_D3D->GetDeviceContext());
+		result = SetTooltip("Exit to Main Menu", "Exit from combat and return to the Main Menu");
 		if (!result){
 			return false;
 		}
@@ -2000,7 +1965,7 @@ bool ApplicationClass::UpdateTooltip(){
 
 	default:
 		// If a tooltip has not yet been implemented display a tooltip saying so
-		result = m_Text->SetTooltipText(m_tooltipX, m_tooltipY, "Tooltip Missing", "Tooltip not yet implemented for this button", m_tooltipWidth, m_D3D->GetDeviceContext());
+		result = SetTooltip("Tooltip Missing", "Tooltip not yet implemented for this button");
 		if (!result){
 			return false;
 		}
@@ -2011,11 +1976,49 @@ bool ApplicationClass::UpdateTooltip(){
 	return true;
 }
 
+bool ApplicationClass::SetTooltip(char* label, char* description){
+	// Replace any existing tooltip text with the provided tooltip
+	bool result;
+
+	m_TooltipText->ClearText();
+
+	result = m_TooltipText->AddText(m_tooltipX + 3, m_tooltipY + 3, label, 1.0f, 1.0f, 1.0f, m_tooltipWidth - 6, m_D3D->GetDevice(), m_D3D->GetDeviceContext());
+	if (!result){
+		return false;
+	}
+
+	result = m_TooltipText->AddText(m_tooltipX + 3, m_tooltipY + 16, description, 1.0f, 1.0f, 1.0f, m_tooltipWidth - 6, m_D3D->GetDevice(), m_D3D->GetDeviceContext());
+	if (!result){
+		return false;
+	}
+
+	return true;
+}
+
 void ApplicationClass::ResetTooltip(){
 	// Reset cursor idle time and set displayTooltip and checkedForTooltip to false
 	m_cursorIdleTime = 0.0f;
 	m_displayTooltip = false;
 	m_checkedForTooltip = false;
+	return;
+}
+
+bool ApplicationClass::NewError(char* errorText){
+	// Create a new error message
+	bool result;
+
+	result = m_ErrorText->NewError(errorText, m_D3D->GetDevice(), m_D3D->GetDeviceContext());
+	if (!result){
+		return false;
+	}
+
+	return true;
+}
+
+void ApplicationClass::ClearErrors(){
+	// Clear all error messages
+	m_ErrorText->ClearText();
+
 	return;
 }
 
@@ -2214,16 +2217,6 @@ bool ApplicationClass::RenderGraphics(){
 	// The Font Engine also renders in 2D
 
 	// Render Any text that isn't part of a menu
-	// NOTE: There shouldn't be any more text until after the tooltip background is rendered
-	result = m_Text->Render(m_D3D->GetDeviceContext(), worldMatrix, orthoMatrix);
-	if (!result){
-		return false;
-	}
-
-	result = m_Text->RenderStaticText(m_D3D->GetDeviceContext(), worldMatrix, orthoMatrix);
-	if (!result){
-		return false;
-	}
 
 	// If a tooltip should be displayed, render it
 	if (m_displayTooltip){
@@ -2246,14 +2239,14 @@ bool ApplicationClass::RenderGraphics(){
 
 		// Render the tooltip text
 		m_D3D->TurnOnAlphaBlending();
-		result = m_Text->RenderTooltip(m_D3D->GetDeviceContext(), worldMatrix, orthoMatrix);
+		result = m_TooltipText->Render(m_D3D->GetDeviceContext(), worldMatrix, orthoMatrix);
 		if (!result){
 			return false;
 		}
 	}
 
 	// Render error text
-	result = m_Text->RenderErrorText(m_D3D->GetDeviceContext(), worldMatrix, orthoMatrix);
+	result = m_ErrorText->Render(m_D3D->GetDeviceContext(), worldMatrix, orthoMatrix);
 	if (!result){
 		return false;
 	}
