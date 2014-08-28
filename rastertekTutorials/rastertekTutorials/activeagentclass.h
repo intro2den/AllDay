@@ -1,6 +1,7 @@
 #pragma once
 
 #include "agentclass.h"
+#include "basicattackclass.h"
 #include <list>
 
 class ActiveAgentClass : public AgentClass{
@@ -24,6 +25,8 @@ public:
 	int GetInitiative();
 	bool StartedTurn();
 	bool EndedTurn();
+	
+	std::list<abilityclass*> m_abilities;
 
 private:
 	int m_Owner;

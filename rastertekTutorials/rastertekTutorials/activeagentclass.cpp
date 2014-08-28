@@ -19,6 +19,9 @@ bool ActiveAgentClass::Initialize(AgentType agentType, int playerID, int agentX,
 		return false;
 	}
 
+	//for now everyone has basicattack
+	m_abilities.push_back(new basicattackclass());
+
 	m_Owner = playerID;
 	m_Initiative = initiative;
 	m_beganTurn = false;

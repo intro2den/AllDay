@@ -9,6 +9,11 @@ AgentClass::~AgentClass(){
 bool AgentClass::Initialize(AgentType agentType, int posX, int posY){
 	m_agentType = agentType;
 
+	//we will need to set these as parameters later, just leaving it like this to not break the code in the application class
+	m_health = 100;
+	m_defense = 1;
+	m_strength = 10;
+
 	// Set the spriteID based on the agentType
 	// NOTE: We may at some point want to have Agents with the same type use different sprites
 	//       however for now this allows us to have Agents with different types use the same
@@ -90,4 +95,35 @@ void AgentClass::GetHeading(int &heading){
 	heading = m_heading;
 
 	return;
+}
+
+void AgentClass::getHealth(int &health){
+	health = m_health;
+}
+void AgentClass::GetDefense(int &defense){
+	defense = m_defense;
+}
+
+void AgentClass::setHealth(int health){
+	m_health = health;
+}
+void AgentClass::setDefense(int defense){
+	m_defense = defense;
+}
+
+void AgentClass::takeDamage(int damage){
+	if (m_health > damage){
+		m_health = m_health - damage;
+	}
+	else {
+		m_health = 0;
+	}
+}
+
+void AgentClass::getStrength(int &strength){
+	strength = m_strength;
+}
+
+void AgentClass::setStrength(int strength){
+	m_strength = strength;
 }
