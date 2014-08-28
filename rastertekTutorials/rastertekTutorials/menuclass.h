@@ -15,7 +15,7 @@
 #include "textureshaderclass.h"
 #include "buttonclass.h"
 #include "sliderbarclass.h"
-#include "statictextclass.h"
+#include "textclass.h"
 #include <list>
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -58,7 +58,7 @@ private:
 	TextureShaderClass* m_TextureShader;
 
 protected:
-	StaticTextClass* m_Text;
+	TextClass* m_Text;
 
 	int m_menuX, m_menuY;
 	int m_menuWidth, m_menuHeight;

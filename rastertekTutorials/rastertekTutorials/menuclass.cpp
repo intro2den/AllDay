@@ -130,18 +130,21 @@ bool MenuClass::Render(ID3D11DeviceContext* deviceContext, D3DXMATRIX worldmatri
 	std::list<ButtonClass*>::iterator button;
 	std::list<SliderbarClass*>::iterator sliderbar;
 
-	// Ensure the texture bitmap is scaled to the right dimensions
-	m_Texture->SetDimensions(m_menuWidth, m_menuHeight);
+	// If the menu has a background texture, render it first
+	if (m_Texture){
+		// Ensure the texture bitmap is scaled to the right dimensions
+		m_Texture->SetDimensions(m_menuWidth, m_menuHeight);
 
-	// Render the menu
-	result = m_Texture->Render(deviceContext, m_menuX, m_menuY);
-	if (!result){
-		return false;
-	}
+		// Render the menu's background
+		result = m_Texture->Render(deviceContext, m_menuX, m_menuY);
+		if (!result){
+			return false;
+		}
 
-	result = m_TextureShader->Render(deviceContext, m_Texture->GetIndexCount(), worldmatrix, viewmatrix, orthomatrix, m_Texture->GetTexture(), PSTYPE_NORMAL);
-	if (!result){
-		return false;
+		result = m_TextureShader->Render(deviceContext, m_Texture->GetIndexCount(), worldmatrix, viewmatrix, orthomatrix, m_Texture->GetTexture(), PSTYPE_NORMAL);
+		if (!result){
+			return false;
+		}
 	}
 
 	// Render the menu's buttons
@@ -316,7 +319,7 @@ bool MenuClass::NewSliderbar(float* variable, int sliderbarX, int sliderbarY, in
 
 bool MenuClass::InitializeText(FontClass* font, FontShaderClass* fontShader, int screenWidth, int screenHeight, D3DXMATRIX viewMatrix){
 	// Initialize the Static Text object to display text on this menu
-	m_Text = new StaticTextClass;
+	m_Text = new TextClass;
 	if (!m_Text){
 		return false;
 	}

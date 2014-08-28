@@ -28,6 +28,7 @@ const float SCREEN_NEAR = 0.1f;
 #include "combatmapclass.h"
 #include "hexmapclass.h"
 #include "textclass.h"
+#include "errortextclass.h"
 #include "timerclass.h"
 #include "positionclass.h"
 #include "activeagentclass.h"
@@ -90,7 +91,7 @@ private:
 	bool HandleInput(float);
 
 	bool UpdateSliderVariables();
-	bool StateChanged();
+	void StateChanged();
 	void DeselectCommand();
 
 	bool SelectAgent();
@@ -120,7 +121,11 @@ private:
 	// Update
 	bool Update(float, bool);
 	bool UpdateTooltip();
+	bool SetTooltip(char*, char*);
 	void ResetTooltip();
+
+	bool NewError(char*);
+	void ClearErrors();
 
 	// Render
 	bool RenderGraphics();
@@ -159,7 +164,8 @@ private:
 
 	FontClass* m_StandardFont;
 	FontShaderClass* m_FontShader;
-	TextClass* m_Text;
+	ErrorTextClass* m_ErrorText;
+	TextClass* m_TooltipText;
 
 	MainMenuClass* m_MainMenu;
 	OptionsMenuClass* m_OptionsMenu;

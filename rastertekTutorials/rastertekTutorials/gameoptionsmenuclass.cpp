@@ -27,7 +27,7 @@ bool GameOptionsMenuClass::Initialize(int screenWidth, int screenHeight, BitmapC
 	}
 
 	// Initialize a text object for the tooltip delay text
-	m_TooltipDelayText = new StaticTextClass;
+	m_TooltipDelayText = new TextClass;
 	if (!m_TooltipDelayText){
 		return false;
 	}
@@ -63,7 +63,7 @@ bool GameOptionsMenuClass::Initialize(int screenWidth, int screenHeight, BitmapC
 	textXOffset = buttonXOffset + 15;
 	textYOffset = buttonYOffset + (buttonHeight / 2) - 4;
 
-	result = m_Text->AddStaticText(m_menuX + textXOffset, m_menuY + textYOffset, "Back", 0.0f, 0.0f, 0.0f, buttonWidth - 30, device, deviceContext);
+	result = m_Text->AddText(m_menuX + textXOffset, m_menuY + textYOffset, "Back", 0.0f, 0.0f, 0.0f, buttonWidth - 30, device, deviceContext);
 	if (!result){
 		return false;
 	}
@@ -117,7 +117,7 @@ bool GameOptionsMenuClass::UpdateTooltipDelayLabel(float delay, ID3D11Device* de
 	char tempString[2];
 
 	// Remove previous text
-	m_TooltipDelayText->ClearStaticText();
+	m_TooltipDelayText->ClearText();
 
 	// Calculate the offset for the text
 	// NOTE: Currently hardcoded, this will need to change
@@ -139,7 +139,7 @@ bool GameOptionsMenuClass::UpdateTooltipDelayLabel(float delay, ID3D11Device* de
 	strcat_s(newString, " seconds");
 
 	// Add the new text
-	result = m_TooltipDelayText->AddStaticText(m_menuX + textXOffset, m_menuY + textYOffset, newString, 0.0f, 0.0f, 0.0f, m_menuWidth - textXOffset, device, deviceContext);
+	result = m_TooltipDelayText->AddText(m_menuX + textXOffset, m_menuY + textYOffset, newString, 0.0f, 0.0f, 0.0f, m_menuWidth - textXOffset, device, deviceContext);
 	if (!result){
 		return false;
 	}

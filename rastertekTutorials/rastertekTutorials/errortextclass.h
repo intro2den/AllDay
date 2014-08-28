@@ -1,0 +1,30 @@
+////////////////////////////////////////////////////////////////////////////////
+// Filename: errortextclass.h
+////////////////////////////////////////////////////////////////////////////////
+#pragma once
+
+////////////////////
+// CLASS INCLUDES //
+////////////////////
+#include "timedtextclass.h"
+
+////////////////////////////////////////////////////////////////////////////////
+// Class name: ErrorTextClass
+////////////////////////////////////////////////////////////////////////////////
+class ErrorTextClass : public TimedTextClass{
+private:
+	const int MAX_ERRORS = 2;
+
+public:
+	ErrorTextClass();
+	ErrorTextClass(const ErrorTextClass&);
+	~ErrorTextClass();
+
+	void Initialize(FontClass*, FontShaderClass*, int, int, D3DXMATRIX);
+	bool Frame(float, ID3D11DeviceContext*);
+
+	bool NewError(char*, ID3D11Device*, ID3D11DeviceContext*);
+
+private:
+	bool PositionErrorText(ID3D11DeviceContext*);
+};

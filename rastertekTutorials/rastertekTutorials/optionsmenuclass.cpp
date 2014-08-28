@@ -53,12 +53,12 @@ bool OptionsMenuClass::Initialize(int screenWidth, int screenHeight, BitmapClass
 	textXOffset = buttonXOffset + 15;
 	textYOffset = buttonYOffset + (buttonHeight / 2) - 4;
 
-	result = m_Text->AddStaticText(m_menuX + textXOffset, m_menuY + textYOffset, "Game Options", 0.0f, 0.0f, 0.0f, buttonWidth - 30, device, deviceContext);
+	result = m_Text->AddText(m_menuX + textXOffset, m_menuY + textYOffset, "Game Options", 0.0f, 0.0f, 0.0f, buttonWidth - 30, device, deviceContext);
 	if (!result){
 		return false;
 	}
 
-	result = m_Text->AddStaticText(m_menuX + textXOffset, m_menuY + textYOffset + buttonSpacing, "Back", 0.0f, 0.0f, 0.0f, buttonWidth - 30, device, deviceContext);
+	result = m_Text->AddText(m_menuX + textXOffset, m_menuY + textYOffset + buttonSpacing, "Back", 0.0f, 0.0f, 0.0f, buttonWidth - 30, device, deviceContext);
 	if (!result){
 		return false;
 	}

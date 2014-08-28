@@ -85,9 +85,6 @@
     <ClCompile Include="menuclass.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="statictextclass.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="sliderbarclass.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -104,6 +101,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="combatmainmenuclass.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="timedtextclass.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="errortextclass.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -177,9 +180,6 @@
     <ClInclude Include="menuclass.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="statictextclass.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="sliderbarclass.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -196,6 +196,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="combatmainmenuclass.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="timedtextclass.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="errortextclass.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -78,6 +78,7 @@
     <ClCompile Include="combatmapclass.cpp" />
     <ClCompile Include="combatmenubarclass.cpp" />
     <ClCompile Include="d3dclass.cpp" />
+    <ClCompile Include="errortextclass.cpp" />
     <ClCompile Include="fontclass.cpp" />
     <ClCompile Include="fontshaderclass.cpp" />
     <ClCompile Include="gameoptionsmenuclass.cpp" />
@@ -91,12 +92,12 @@
     <ClCompile Include="positionclass.cpp" />
     <ClCompile Include="sliderbarclass.cpp" />
     <ClCompile Include="spriteclass.cpp" />
-    <ClCompile Include="statictextclass.cpp" />
     <ClCompile Include="systemclass.cpp" />
     <ClCompile Include="terrainclass.cpp" />
     <ClCompile Include="textclass.cpp" />
     <ClCompile Include="textureclass.cpp" />
     <ClCompile Include="textureshaderclass.cpp" />
+    <ClCompile Include="timedtextclass.cpp" />
     <ClCompile Include="timerclass.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -111,6 +112,7 @@
     <ClInclude Include="combatmapclass.h" />
     <ClInclude Include="combatmenubarclass.h" />
     <ClInclude Include="d3dclass.h" />
+    <ClInclude Include="errortextclass.h" />
     <ClInclude Include="fontclass.h" />
     <ClInclude Include="fontshaderclass.h" />
     <ClInclude Include="gameoptionsmenuclass.h" />
@@ -123,12 +125,12 @@
     <ClInclude Include="positionclass.h" />
     <ClInclude Include="sliderbarclass.h" />
     <ClInclude Include="spriteclass.h" />
-    <ClInclude Include="statictextclass.h" />
     <ClInclude Include="systemclass.h" />
     <ClInclude Include="terrainclass.h" />
     <ClInclude Include="textclass.h" />
     <ClInclude Include="textureclass.h" />
     <ClInclude Include="textureshaderclass.h" />
+    <ClInclude Include="timedtextclass.h" />
     <ClInclude Include="timerclass.h" />
   </ItemGroup>
   <ItemGroup>
