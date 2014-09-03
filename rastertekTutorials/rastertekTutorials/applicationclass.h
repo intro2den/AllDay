@@ -16,23 +16,32 @@ const float SCREEN_NEAR = 0.1f;
 #include "inputclass.h"
 #include "d3dclass.h"
 #include "cameraclass.h"
+
 #include "bitmapclass.h"
 #include "textureshaderclass.h"
+
 #include "fontclass.h"
 #include "fontshaderclass.h"
+
 #include "mainmenuclass.h"
 #include "optionsmenuclass.h"
 #include "gameoptionsmenuclass.h"
 #include "combatmenubarclass.h"
 #include "combatmainmenuclass.h"
+
 #include "combatmapclass.h"
 #include "hexmapclass.h"
+
 #include "textclass.h"
 #include "errortextclass.h"
+
 #include "timerclass.h"
 #include "positionclass.h"
+
 #include "activeagentclass.h"
 #include "spriteclass.h"
+#include "abilityclass.h"
+
 #include <list>
 
 /////////////
@@ -66,7 +75,7 @@ private:
 	enum Command{
 		COMMAND_DEFAULT,
 		COMMAND_MOVE,
-		COMMAND_ATTACK
+		COMMAND_ABILITY
 	};
 
 	// Maximum number of tiles processed per frame when building MovementMap
@@ -98,7 +107,7 @@ private:
 	bool SelectAgent();
 	bool SetSelectedAgent(ActiveAgentClass*);
 	bool OrderMove();
-	bool OrderAttack();
+	bool OrderAbility();
 
 	// Pathfinding
 	void BuildMovementMap();
@@ -216,6 +225,7 @@ private:
 	std::list <AgentClass*> m_InactiveAgents;
 	ActiveAgentClass* m_SelectedAgent;
 	ActiveAgentClass* m_HighlightedAgent;
+	AbilityClass* m_SelectedAbility;
 
 	D3DXMATRIX m_UIViewMatrix;
 };

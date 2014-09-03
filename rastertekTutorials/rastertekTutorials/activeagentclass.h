@@ -11,6 +11,13 @@ public:
 	~ActiveAgentClass();
 
 	bool Initialize(AgentType, int, int, int, int);
+
+	// NOTE: Shutdown currently to eliminate memory leak caused by instantiation
+	//       of AbilityClasses on a per-agent basis.
+	void Shutdown();
+
+	// Addition and Initialization of Abilities
+	// NOTE: Not yet implemented
 	void AddAbility(AbilityClass*);
 	void SetStandardAttack(AbilityClass*);
 
@@ -30,6 +37,7 @@ public:
 	int GetStrength();
 	bool StartedTurn();
 	bool EndedTurn();
+	AbilityClass* GetStandardAttack();
 
 	void TakeDamage(int);
 

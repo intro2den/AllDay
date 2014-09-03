@@ -41,6 +41,20 @@ bool ActiveAgentClass::Initialize(AgentType agentType, int playerID, int agentX,
 	return true;
 }
 
+void ActiveAgentClass::Shutdown(){
+	// Delete any abilities that this Agent has
+	// NOTE: This must only delete abilities that this instance of ActiveAgent
+	//       has instantiated. ie. The initial implementation of the BasicAttack
+	//       This function should be removed when abilities are assigned to
+	//       all Active Agents from a single set of instanced abilities.
+	while (!m_abilities.empty()){
+		delete m_abilities.front();
+		m_abilities.pop_front();
+	}
+
+	m_standardAttack = 0;
+}
+
 void ActiveAgentClass::BeginTurn(){
 	// Begin the Agent's turn
 	m_beganTurn = true;
@@ -95,6 +109,11 @@ bool ActiveAgentClass::StartedTurn(){
 
 bool ActiveAgentClass::EndedTurn(){
 	return m_endedTurn;
+}
+
+AbilityClass* ActiveAgentClass::GetStandardAttack(){
+	// Return the Agent's standard attack
+	return m_standardAttack;
 }
 
 void ActiveAgentClass::TakeDamage(int baseDamage){

@@ -50,6 +50,8 @@ ApplicationClass::ApplicationClass(){
 	m_cursorOverTile = false;
 
 	m_SelectedAgent = 0;
+	m_HighlightedAgent = 0;
+	m_SelectedAbility = 0;
 	m_CommandSelected = false;
 	m_SelectedCommand = COMMAND_DEFAULT;
 
@@ -943,8 +945,12 @@ bool ApplicationClass::HandleInput(float frameTime){
 				break;
 
 			case BUTTON_ORDERATTACK:
-				m_CommandSelected = true;
-				m_SelectedCommand = COMMAND_ATTACK;
+				// Select the currently selected Agent's standard attack
+				if (m_SelectedAgent){
+					m_SelectedAbility = m_SelectedAgent->GetStandardAttack();
+					m_CommandSelected = true;
+					m_SelectedCommand = COMMAND_ABILITY;
+				}
 				break;
 
 			case BUTTON_ENDTURN:
@@ -1006,13 +1012,15 @@ bool ApplicationClass::HandleInput(float frameTime){
 
 					break;
 
-				case COMMAND_ATTACK:
-					// Command the selected Agent to use their Basic Attack against
-					// the highlighted tile
+				case COMMAND_ABILITY:
+					// Command the selected Agent to use the currently selected
+					// Ability against the highlighted tile
+					// NOTE: Currently Proof of Concept, but not much should
+					//       need to be changed here
 
 					// Ensure that an Agent is selected
 					if (m_SelectedAgent){
-						result = OrderAttack();
+						result = OrderAbility();
 						if (!result){
 							return false;
 						}
@@ -1084,7 +1092,8 @@ void ApplicationClass::StateChanged(){
 }
 
 void ApplicationClass::DeselectCommand(){
-	// Reset the selected command and associated flag
+	// Reset the selected, ability, command and associated flag
+	m_SelectedAbility = 0;
 	m_CommandSelected = false;
 	m_SelectedCommand = COMMAND_DEFAULT;
 	return;
@@ -1183,22 +1192,39 @@ bool ApplicationClass::OrderMove(){
 	return true;
 }
 
-bool ApplicationClass::OrderAttack(){
-	// Command the currently selected Agent to move within range of the currently highlighted tile
-	// and use their Basic Attack ability against any Agents in the highlighted tile.
+bool ApplicationClass::OrderAbility(){
+	// Command the currently selected Agent to move within range of the
+	// currently highlighted tile and use the selected ability, targeted at the
+	// highlighted tile.
 	bool result;
+	std::list<AgentClass*> potentialTargets;
+	std::list<ActiveAgentClass*>::iterator agent;
 
-	// NOTE: When the Ability Class and an OrderAbility or equivalent function are implemented,
-	//       this behaviour of this function should be executed by that function. In effect this
-	//       function is purely for proof of concept.
-
-	// Only order the selected Agent to attack if it is that Agent's turn, otherwise display an
-	// approproate error message
+	// Only order the selected Agent to do anything if it is that Agent's turn,
+	// otherwise display an approproate error message
 	if (m_SelectedAgent->StartedTurn() && !m_SelectedAgent->EndedTurn()){
-		// TODO: Implement functionality for a Basic Attack
-		//       If the target is not within range of the currently selected Agent's attack
-		//       the Agent should move only as far as necessary (minimum cost) to get within
-		//       range before attacking.
+		// TODO: If the target is not within range of the currently selected
+		//       Agent using the selected ability then the Agent should move
+		//       only as far as necessary (minimum cost) to get within range
+		//       before using the ability.
+		// NOTE: Until the above TODO is completed, either here or before this
+		//       function is called (probably some place better), Abilities will
+		//       not have range limitations.
+
+		// NOTE2: Currently Proof of Concept
+		// Issue: Need to convert list of Active Agents into a list of Agents
+		//        Proceed to create ugly implementation
+
+		// Get a list of all potential targets of the currently selected Ability
+		// targeted at the currently highlighted tile
+		// NOTE: This will be done earlier, used for highlighting tiles, targets
+		//       while the player is considering where to use the ability
+		for (agent = m_ActiveAgents.begin(); agent != m_ActiveAgents.end(); ++agent){
+			potentialTargets.push_back((*agent));
+		}
+
+		// Execute the selected ability
+		m_SelectedAbility->Execute(m_SelectedAgent, potentialTargets, m_currentTileX, m_currentTileY);
 
 	} else{
 		result = NewError("The selected Agent isn't active.");
@@ -1829,6 +1855,7 @@ bool ApplicationClass::CreateInactiveAgent(AgentType agentType, int agentX, int 
 void ApplicationClass::ClearAgents(){
 	// Delete all existing agents
 	while (!m_ActiveAgents.empty()){
+		m_ActiveAgents.front()->Shutdown();
 		delete m_ActiveAgents.front();
 		m_ActiveAgents.pop_front();
 	}
