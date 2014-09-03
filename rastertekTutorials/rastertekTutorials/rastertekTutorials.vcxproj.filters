@@ -109,6 +109,12 @@
     <ClCompile Include="errortextclass.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="abilityclass.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="basicattackclass.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="systemclass.h">
@@ -202,6 +208,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="errortextclass.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="abilityclass.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="basicattackclass.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -1,13 +1,15 @@
 #pragma once
+
 #include "abilityclass.h"
-class basicattackclass :
-	public abilityclass
-{
+
+class BasicAttackClass : public AbilityClass{
 public:
-	basicattackclass();
-	~basicattackclass();
+	BasicAttackClass();
+	BasicAttackClass(const BasicAttackClass&);
+	~BasicAttackClass();
 
-	virtual int execute(AgentClass*, std::list <AgentClass*>, int, int);
-	virtual std::list <AgentClass*> findTargets(int, int, std::list <AgentClass*>);
+	virtual void Execute(AgentClass*, std::list <AgentClass*>, int, int);
+
+private:
+	virtual std::list <AgentClass*> FindTargets(int, int, std::list <AgentClass*>);
 };
-

@@ -1,50 +1,50 @@
 #include "basicattackclass.h"
 
-
-basicattackclass::basicattackclass()
-{
+BasicAttackClass::BasicAttackClass(){
 }
 
-
-basicattackclass::~basicattackclass()
-{
+BasicAttackClass::BasicAttackClass(const BasicAttackClass& other){
 }
 
-int basicattackclass::execute(AgentClass* source, std::list <AgentClass*> enemies, int targetx, int targety){
+BasicAttackClass::~BasicAttackClass(){
+}
+
+void BasicAttackClass::Execute(AgentClass* source, std::list <AgentClass*> enemies, int targetx, int targety){
+	// Execute this ability from the source/executing Agent, affecting all
+	// legitimate targets of those provided when targeting the provided
+	// coordinates
+	// NOTE: Proof of Concept
 	//first calcuate attack strength based on source stats
-	int attack;
-	int defense;
-	source->getStrength(attack);
+	std::list<AgentClass*> targets;
+	std::list<AgentClass*>::iterator target;
+	int baseDamage;
+
+	// Proof of Concept, Base Damage is Attacking Agent's 'Strength'
+	baseDamage = source->GetStrength();
 
 	//second find all targets in range of attack
-	std::list <AgentClass*> target = findTargets(targetx, targety, enemies);
+	targets = FindTargets(targetx, targety, enemies);
 
-	//calcuate defense strength of each target
-	for (std::list<AgentClass*>::iterator it = target.begin(); it != target.end(); it++){
-		(*it)->GetDefense(defense);
-		//call targets takeDamage(attack-defense) method
-		if (defense < attack){
-			(*it)->takeDamage(attack - defense);
-		}
-		else {
-			(*it)->takeDamage(1);
-		}
+	// Attack all valid targets
+	for (target = targets.begin(); target != targets.end(); ++target){
+		(*target)->TakeDamage(baseDamage);
 	}
-	
-	
-	return attack;
 }
 
-std::list <AgentClass*> basicattackclass::findTargets(int targetx, int targety, std::list <AgentClass*> targets){
+std::list <AgentClass*> BasicAttackClass::FindTargets(int targetx, int targety, std::list <AgentClass*> potentialTargets){
+	// Return a list of Active Agents that may be affected by this ability
+	// NOTE: Proof of Concept - need to handle cases other than single target,
+	//       terrain/Line of Sight etc.
 	//only need to check if there is a target at that X and Y
-	std::list <AgentClass*> target;
-	int x;
-	int y;
-	for (std::list<AgentClass*>::iterator it = targets.begin(); it != targets.end(); it++){
-		(*it)->GetPosition(x, y);
+	std::list<AgentClass*> targets;
+	std::list<AgentClass*>::iterator target;
+	int x, y;
+
+	for (target = potentialTargets.begin(); target != potentialTargets.end(); ++target){
+		(*target)->GetPosition(x, y);
 		if (targetx == x && targety == y){
-			target.push_front(*it);
+			targets.push_front(*target);
 		}
 	}
-	return target;
+	return targets;
 }

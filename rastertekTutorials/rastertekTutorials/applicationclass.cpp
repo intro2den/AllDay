@@ -35,6 +35,8 @@ ApplicationClass::ApplicationClass(){
 	m_TerrainMap = 0;
 	m_HexHighlight = 0;
 	m_AgentSprites = 0;
+	m_AgentHealthbarBackground = 0;
+	m_AgentHealthbar = 0;
 
 	// Initialize variables that do not depend on input from the config file
 	m_MainState = MAINSTATE_MAINMENU;
@@ -660,6 +662,7 @@ bool ApplicationClass::HandleInput(float frameTime){
 	std::list<MenuClass*>::iterator menu;
 	ButtonAction buttonAction;
 	bool cursorOverMenu;
+	int prevTileX, prevTileY;
 
 	// Set the frame time for calculating the updated position.
 	m_Position->SetFrameTime(frameTime);
@@ -820,6 +823,10 @@ bool ApplicationClass::HandleInput(float frameTime){
 			m_Camera->SetPosition(posX, posY, posZ);
 		}
 
+		// Save the previous highlighted hex coordinates
+		prevTileX = m_currentTileX;
+		prevTileY = m_currentTileY;
+
 		// Find the coordinates of the hex that the cursor is overtop of this frame - if the cursor is over the map
 		m_currentTileX = -1;
 		m_currentTileY = -1;
@@ -865,10 +872,26 @@ bool ApplicationClass::HandleInput(float frameTime){
 				m_currentTileY = -1;
 			}
 
-			// Set the currentTileIndex and the cursorOverTile flag to true if the cursor is over a hex on the map
+			// If the cursor is over a hex on the map set the currentTileIndex,
+			// the cursorOverTile flag and the most visible Active Agent in the
+			// tile (if any) and set it as the highlightedAgent. Also update the
+			// Combat Menubar
 			if (m_currentTileX >= 0 && m_currentTileX < m_combatMapWidth && m_currentTileY >= 0 && m_currentTileY < m_combatMapHeight){
-				m_currentTileIndex = m_currentTileX * m_combatMapHeight + m_currentTileY;
+				m_currentTileIndex = (m_currentTileX * m_combatMapHeight) + m_currentTileY;
 				m_cursorOverTile = true;
+				SetHighlightedAgent();
+
+				// If no Agent is highlighted, provide a null argument for the
+				// highlighted Agent's name
+				if (m_HighlightedAgent){
+					result = m_CombatMenubar->SetHighlightedTile(m_currentTileX, m_currentTileY, m_HighlightedAgent->GetName(), m_D3D->GetDevice(), m_D3D->GetDeviceContext());
+				} else{
+					result = m_CombatMenubar->SetHighlightedTile(m_currentTileX, m_currentTileY, 0, m_D3D->GetDevice(), m_D3D->GetDeviceContext());
+				}
+
+				if (!result){
+					return false;
+				}
 			}
 		}
 
@@ -1067,44 +1090,36 @@ void ApplicationClass::DeselectCommand(){
 	return;
 }
 
-bool ApplicationClass::SelectAgent(){
-	// Find and select an Active Agent in the currently highlighted tile. If
-	// there are no Active Agents in the currently highlighted tile, deslect
-	// any currently selected Agent.
-	bool result;
+void ApplicationClass::SetHighlightedAgent(){
+	// Find and set the highlightedAgent to the most visible Active Agent in the
+	// currently highlighted tile. If there are no Active Agents in the
+	// currently highlighted tile, set highlightedAgent to null.
 	std::list<ActiveAgentClass*>::iterator agent;
-	bool agentFound;
 	int agentX, agentY;
 
-	// NOTE: This is primarily proof of concept, additional work will need to be done if multiple
-	//       agents are present in the hex, and for any other necessary checks related to Agent
-	//       selection.
-	agentFound = false;
+	m_HighlightedAgent = 0;
 
-	// Check if an agent is in the tile that was just selected
+	// NOTE: This still does not catch Inactive Agents, multiple Agents in the
+	//       same tile.
 	for (agent = m_ActiveAgents.begin(); agent != m_ActiveAgents.end(); ++agent){
 		(*agent)->GetPosition(agentX, agentY);
 		if (agentX == m_currentTileX && agentY == m_currentTileY){
-			// An agent is in the highlighted tile
-			agentFound = true;
-
-			// Update the ID of the selected Agent
-			result = SetSelectedAgent(*agent);
-			if (!result){
-				return false;
-			}
-
-			// For now we only care about the first Agent found, break
-			break;
+			m_HighlightedAgent = (*agent);
 		}
 	}
+}
 
-	// If no agent was found in the tile, unselect any selected Agent
-	if (!agentFound){
-		result = SetSelectedAgent(NULL);
-		if (!result){
-			return false;
-		}
+bool ApplicationClass::SelectAgent(){
+	// Select the currently HighlightedAgent. If no agent is currently
+	// highlighted this will deselect any SelectedAgent.
+	bool result;
+
+	// NOTE: This still does not select Inactive Agents nor does it allow the
+	//       selection of specific Agents should multiple Agents share the same
+	//       tile
+	result = SetSelectedAgent(m_HighlightedAgent);
+	if (!result){
+		return false;
 	}
 
 	return true;
@@ -1693,11 +1708,45 @@ bool ApplicationClass::InitializeCombatMap(MapType mapType, int mapWidth, int ma
 		return false;
 	}
 
+	// Initialize bitmaps for the healthbar and healthbar background
+	m_AgentHealthbarBackground = new BitmapClass();
+	if (!m_AgentHealthbarBackground){
+		return false;
+	}
+
+	result = m_AgentHealthbarBackground->Initialize(m_D3D->GetDevice(), m_screenWidth, m_screenHeight, "../rastertekTutorials/data/highlight_black.png", 28, 3);
+	if (!result){
+		return false;
+	}
+
+	m_AgentHealthbar = new BitmapClass();
+	if (!m_AgentHealthbar){
+		return false;
+	}
+
+	result = m_AgentHealthbar->Initialize(m_D3D->GetDevice(), m_screenWidth, m_screenHeight, "../rastertekTutorials/data/agent_healthbar_small.png", 28, 3);
+	if (!result){
+		return false;
+	}
+
 	return true;
 }
 
 // Shutdown the Combat Map specifically - this should happen when exiting from the CombatMap but not the application
 void ApplicationClass::ShutdownCombatMap(){
+	// Release the Healthbar bitmaps
+	if (m_AgentHealthbar){
+		m_AgentHealthbar->Shutdown();
+		delete m_AgentHealthbar;
+		m_AgentHealthbar = 0;
+	}
+
+	if (m_AgentHealthbarBackground){
+		m_AgentHealthbarBackground->Shutdown();
+		delete m_AgentHealthbarBackground;
+		m_AgentHealthbarBackground = 0;
+	}
+
 	// Release the AgentSprites bitmap
 	if (m_AgentSprites){
 		m_AgentSprites->Shutdown();
@@ -2195,6 +2244,32 @@ bool ApplicationClass::RenderGraphics(){
 			result = m_TextureShader->Render(m_D3D->GetDeviceContext(), m_AgentSprites->GetIndexCount(), worldMatrix, viewMatrix, orthoMatrix, m_AgentSprites->GetTexture(), PSTYPE_SPRITE);
 			if (!result){
 				return false;
+			}
+
+			// If the Agent currently has less than its maximum health, render a healthbar for it
+			if ((*activeAgent)->GetCurrentHealth() < (*activeAgent)->GetMaxHealth()){
+				// Render the healthbar background
+				result = m_AgentHealthbarBackground->Render(m_D3D->GetDeviceContext(), agentX + 1, agentY + 3);
+				if (!result){
+					return false;
+				}
+
+				result = m_TextureShader->Render(m_D3D->GetDeviceContext(), m_AgentHealthbarBackground->GetIndexCount(), worldMatrix, viewMatrix, orthoMatrix, m_AgentHealthbarBackground->GetTexture(), PSTYPE_NORMAL);
+				if (!result){
+					return false;
+				}
+
+				// Resize the healthbar to match the Agent's remaining health and render the healthbar
+				m_AgentHealthbar->SetDimensions((int)(28 * (*activeAgent)->GetCurrentHealth() / (*activeAgent)->GetMaxHealth()), 3);
+				result = m_AgentHealthbar->Render(m_D3D->GetDeviceContext(), agentX + 1, agentY + 3);
+				if (!result){
+					return false;
+				}
+
+				result = m_TextureShader->Render(m_D3D->GetDeviceContext(), m_AgentHealthbar->GetIndexCount(), worldMatrix, viewMatrix, orthoMatrix, m_AgentHealthbar->GetTexture(), PSTYPE_NORMAL);
+				if (!result){
+					return false;
+				}
 			}
 		}
 

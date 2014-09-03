@@ -94,6 +94,7 @@ private:
 	void StateChanged();
 	void DeselectCommand();
 
+	void SetHighlightedAgent();
 	bool SelectAgent();
 	bool SetSelectedAgent(ActiveAgentClass*);
 	bool OrderMove();
@@ -180,6 +181,8 @@ private:
 	HexMapClass* m_TerrainMap;
 	HexMapClass* m_HexHighlight;
 	SpriteClass* m_AgentSprites;
+	BitmapClass* m_AgentHealthbarBackground;
+	BitmapClass* m_AgentHealthbar;
 
 	std::list <MenuClass*> m_CurrentMenus;
 
@@ -212,6 +215,7 @@ private:
 	std::list <ActiveAgentClass*> m_ActiveAgents;
 	std::list <AgentClass*> m_InactiveAgents;
 	ActiveAgentClass* m_SelectedAgent;
+	ActiveAgentClass* m_HighlightedAgent;
 
 	D3DXMATRIX m_UIViewMatrix;
 };

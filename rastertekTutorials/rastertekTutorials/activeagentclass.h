@@ -11,6 +11,8 @@ public:
 	~ActiveAgentClass();
 
 	bool Initialize(AgentType, int, int, int, int);
+	void AddAbility(AbilityClass*);
+	void SetStandardAttack(AbilityClass*);
 
 	// Begin and End turn
 	void BeginTurn();
@@ -23,13 +25,27 @@ public:
 	// Variable requests
 	int GetOwner();
 	int GetInitiative();
+	int GetCurrentHealth();
+	int GetMaxHealth();
+	int GetStrength();
 	bool StartedTurn();
 	bool EndedTurn();
-	
-	std::list<abilityclass*> m_abilities;
+
+	void TakeDamage(int);
+
+private:
+	void SetHealth(int);
+	void SetStrength(int);
+	void SetDefense(int);
 
 private:
 	int m_Owner;
 	int m_Initiative;
+	int m_currentHealth, m_maxHealth;
+	int m_strength;
+	int m_defense;
 	bool m_beganTurn, m_endedTurn;
+
+	std::list <AbilityClass*> m_abilities;
+	AbilityClass* m_standardAttack;
 };

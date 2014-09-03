@@ -29,26 +29,22 @@ enum AgentType{
 class AgentClass{
 public:
 	AgentClass();
+	AgentClass(const AgentClass&);
 	~AgentClass();
 
 	bool Initialize(AgentType, int, int);
 
 	void setPosition(int, int);
 	void setHeading(int);
-	void setHealth(int);
-	void setDefense(int);
-	void takeDamage(int);
 
 	AgentType GetType();
 	char* GetName();
 	int GetSpriteID();
 	void GetPosition(int&, int&);
 	void GetHeading(int&);
-	void getHealth(int&);
-	void GetDefense(int&);
+	virtual int GetStrength();
 
-	void getStrength(int&);
-	void setStrength(int);
+	virtual void TakeDamage(int);
 
 private:
 	AgentType m_agentType;
@@ -57,8 +53,5 @@ private:
 	int m_agentSize;
 	int m_posX, m_posY;
 	int m_heading;
-	int m_health;
-	int m_defense;
-	int m_strength;
 };
 

@@ -1,11 +1,10 @@
 #include "abilityclass.h"
 
-
-abilityclass::abilityclass()
-{
+AbilityClass::AbilityClass(){
 }
 
+AbilityClass::AbilityClass(const AbilityClass& other){
+}
 
-abilityclass::~abilityclass()
-{
+AbilityClass::~AbilityClass(){
 }

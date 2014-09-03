@@ -67,9 +67,11 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="abilityclass.cpp" />
     <ClCompile Include="activeagentclass.cpp" />
     <ClCompile Include="agentclass.cpp" />
     <ClCompile Include="applicationclass.cpp" />
+    <ClCompile Include="basicattackclass.cpp" />
     <ClCompile Include="bitmapclass.cpp" />
     <ClCompile Include="buttonclass.cpp" />
     <ClCompile Include="cameraclass.cpp" />
@@ -101,9 +103,11 @@
     <ClCompile Include="timerclass.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="abilityclass.h" />
     <ClInclude Include="activeagentclass.h" />
     <ClInclude Include="agentclass.h" />
     <ClInclude Include="applicationclass.h" />
+    <ClInclude Include="basicattackclass.h" />
     <ClInclude Include="bitmapclass.h" />
     <ClInclude Include="buttonclass.h" />
     <ClInclude Include="cameraclass.h" />
